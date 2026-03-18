@@ -9,9 +9,24 @@ use App\Models\GovernanceControl;
 use App\Models\Report;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use OpenApi\Attributes as OA;
 
 class GovernanceDashboardController extends Controller
 {
+    #[OA\Get(
+        path: '/api/governance/dashboard',
+        operationId: 'getGovernanceDashboard',
+        summary: 'Get governance dashboard data',
+        description: 'Returns governance metrics, control monitoring, and recent audit activity for oversight analysis.',
+        tags: ['Governance Dashboard'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Governance dashboard returned successfully.',
+                content: new OA\JsonContent(ref: '#/components/schemas/GovernanceDashboardResponse')
+            ),
+        ]
+    )]
     public function index(): JsonResponse
     {
         $reports = Report::query()->get();

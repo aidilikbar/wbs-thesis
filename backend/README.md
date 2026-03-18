@@ -18,6 +18,11 @@ Laravel API for the whistleblowing system prototype.
 - `PATCH /api/investigator/cases/{case}/status`
 - `GET /api/governance/dashboard`
 
+## API documentation
+
+- Swagger UI: `http://localhost:8000/api/documentation`
+- OpenAPI JSON: `http://localhost:8000/docs`
+
 ## Run locally
 
 ```bash

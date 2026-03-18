@@ -8,9 +8,33 @@ use App\Http\Requests\TrackReportRequest;
 use App\Models\Report;
 use App\Services\CaseWorkflowService;
 use Illuminate\Http\JsonResponse;
+use OpenApi\Attributes as OA;
 
 class PublicReportController extends Controller
 {
+    #[OA\Post(
+        path: '/api/reports',
+        operationId: 'submitReport',
+        summary: 'Submit a whistleblowing report',
+        description: 'Registers a report, creates the initial case file, and returns the public reference and tracking token.',
+        tags: ['Public Reporting'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/ReportSubmissionRequest')
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Report submitted successfully.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ReportSubmissionResponse')
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')
+            ),
+        ]
+    )]
     public function store(StoreReportRequest $request, CaseWorkflowService $workflow): JsonResponse
     {
         $result = $workflow->submitReport($request->validated());
@@ -35,6 +59,34 @@ class PublicReportController extends Controller
         ], 201);
     }
 
+    #[OA\Post(
+        path: '/api/tracking',
+        operationId: 'trackReport',
+        summary: 'Track a submitted report',
+        description: 'Returns the public case snapshot and timeline for a valid reference and tracking token pair.',
+        tags: ['Public Reporting'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/TrackingRequest')
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Tracking details returned successfully.',
+                content: new OA\JsonContent(ref: '#/components/schemas/TrackingResponse')
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Tracking reference or token was not recognised.',
+                content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')
+            ),
+        ]
+    )]
     public function track(TrackReportRequest $request): JsonResponse
     {
         $validated = $request->validated();

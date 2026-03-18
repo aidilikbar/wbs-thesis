@@ -1,20 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\GovernanceDashboardController;
 use App\Http\Controllers\Api\InvestigatorCaseController;
 use App\Http\Controllers\Api\PublicReportController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/catalog', function () {
-    return response()->json([
-        'data' => [
-            'categories' => config('wbs.categories'),
-            'governance_tags' => config('wbs.governance_tags'),
-            'case_stages' => config('wbs.case_stages'),
-            'principles' => config('wbs.governance_principles'),
-        ],
-    ]);
-});
+Route::get('/catalog', [CatalogController::class, 'index']);
 
 Route::post('/reports', [PublicReportController::class, 'store']);
 Route::post('/tracking', [PublicReportController::class, 'track']);
