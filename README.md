@@ -124,7 +124,7 @@ The webpack build command is kept because some environments reject the default T
 
 ## Additional documentation
 
-- backend notes: [backend/README.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/backend/README.md)
-- frontend notes: [frontend/README.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/frontend/README.md)
-- architecture notes: [docs/architecture.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/docs/architecture.md)
-- API notes: [docs/api.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/docs/api.md)
+- backend notes: [`backend/README.md`](backend/README.md)
+- frontend notes: [`frontend/README.md`](frontend/README.md)
+- architecture notes: [`docs/architecture.md`](docs/architecture.md)
+- API notes: [`docs/api.md`](docs/api.md)
