@@ -1,32 +1,64 @@
 # KPK Whistleblowing System
 
-Whistleblowing system developed to support the thesis **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**.
+KPK Whistleblowing System is a governance-oriented whistleblowing platform developed for the thesis **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**. The repository contains a modular prototype with separate frontend and backend applications, institutional branding, case workflow support, and a local PostgreSQL setup for direct schema and data analysis.
 
-## Workspace
+## System overview
+
+- `frontend` is a Next.js application for public reporting, case tracking, investigator access, and governance dashboards.
+- `backend` is a Laravel API for data management, workflow enforcement, governance control, case handling, and audit logging.
+- `docs` contains architecture and API notes for the thesis artefacts.
+- `infra` contains optional Docker services for local Redis only.
 
 ```text
 wbs-thesis/
-├── backend   Laravel API for reporting, case workflow, governance, and audit
-├── frontend  Next.js UI for submission, tracking, investigator, and oversight
-├── docs      Architecture and API notes
-└── infra     Optional Docker Compose services for local Redis
+├── backend
+├── frontend
+├── docs
+└── infra
 ```
 
-## Quick Start
+## Core capabilities
 
-1. Prepare PostgreSQL:
+- public whistleblowing report submission with governance metadata
+- reference and token based case tracking for protected follow-up
+- investigator work queue with assignment and stage transitions
+- governance dashboard with operational metrics and control monitoring
+- audit logging for report intake, case creation, assignment, and workflow changes
+- local PostgreSQL persistence to support database inspection and thesis analysis
+
+## Technology stack
+
+- frontend: Next.js 16
+- backend: Laravel 13 with PHP 8.3+
+- database: PostgreSQL on `localhost:5432`
+- optional cache: Redis via Docker Compose profile `cache`
+- API documentation: Swagger UI and generated OpenAPI JSON
+
+## Local development setup
+
+### 1. Prepare PostgreSQL
+
+Expected local database connection:
+
+- host: `localhost`
+- port: `5432`
+- database: `wbs_thesis`
+- username: `postgres`
+- password: `postgres`
+
+Create the database if it does not already exist:
 
 ```bash
 createdb -h localhost -p 5432 -U postgres wbs_thesis
 ```
 
-If the database already exists, skip this step. Redis remains optional and can still be started with Docker:
+For direct inspection:
 
 ```bash
-docker compose -f infra/docker-compose.yml --profile cache up -d
+psql -h localhost -p 5432 -U postgres -d wbs_thesis
 ```
 
-2. Start the backend:
+### 2. Start the backend
 
 ```bash
 cd backend
@@ -37,7 +69,7 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-3. Start the frontend:
+### 3. Start the frontend
 
 ```bash
 cd frontend
@@ -46,20 +78,53 @@ npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:3000`. Backend runs on `http://localhost:8000`. PostgreSQL is expected on `localhost:5432`.
+### 4. Optional Redis
 
-## Prototype Scope
+Redis is not required for the default setup. If needed for local experimentation:
 
-- protected report submission with governance metadata
-- public-safe tracking via reference and token
-- investigator queue with assignment and stage transitions
-- governance dashboard with metrics, controls, and recent audit events
-- local PostgreSQL persistence for direct schema analysis, with optional Redis in Docker
+```bash
+docker compose -f infra/docker-compose.yml --profile cache up -d
+```
+
+## Local service endpoints
+
+- frontend UI: `http://localhost:3000`
+- backend API: `http://localhost:8000`
+- Swagger UI: `http://localhost:8000/api/documentation`
+- OpenAPI JSON: `http://localhost:8000/docs`
+
+## Backend data model
+
+The Laravel migrations create the main analysis tables below in PostgreSQL:
+
+- `reports`
+- `case_files`
+- `case_timeline_events`
+- `audit_logs`
+- `governance_controls`
+- Laravel support tables: `users`, `cache`, `jobs`
+
+## Main backend API routes
+
+- `GET /api/catalog`
+- `POST /api/reports`
+- `POST /api/tracking`
+- `GET /api/investigator/cases`
+- `PATCH /api/investigator/cases/{caseFile}/assign`
+- `PATCH /api/investigator/cases/{caseFile}/status`
+- `GET /api/governance/dashboard`
 
 ## Verification
 
-- Backend tests: `cd backend && php artisan test`
-- Frontend lint: `cd frontend && npm run lint`
-- Frontend production build: `cd frontend && npm run build:webpack`
+- backend tests: `cd backend && php artisan test`
+- frontend lint: `cd frontend && npm run lint`
+- frontend production build: `cd frontend && npm run build:webpack`
 
-The webpack build command is included because some sandboxed environments reject the default Turbopack build path.
+The webpack build command is kept because some environments reject the default Turbopack production build path.
+
+## Additional documentation
+
+- backend notes: [backend/README.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/backend/README.md)
+- frontend notes: [frontend/README.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/frontend/README.md)
+- architecture notes: [docs/architecture.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/docs/architecture.md)
+- API notes: [docs/api.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/docs/api.md)
