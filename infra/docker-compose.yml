@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: wbs_thesis_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wbs_thesis
+      POSTGRES_USER: wbs
+      POSTGRES_PASSWORD: wbs_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_wbs_thesis:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wbs -d wbs_thesis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - wbs_thesis
+
+  redis:
+    image: redis:7-alpine
+    container_name: wbs_thesis_redis
+    restart: unless-stopped
+    profiles: ["cache"]
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata_wbs_thesis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - wbs_thesis
+
+volumes:
+  pgdata_wbs_thesis:
+  redisdata_wbs_thesis:
+
+networks:
+  wbs_thesis:

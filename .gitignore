@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# environment
+.env
+.env.*
+
+# Laravel
+/backend/vendor
+/backend/node_modules
+/backend/storage/*.key
+
+# Next.js
+/frontend/node_modules
+/frontend/.next
+
+# logs
+*.log
+
+# docker
+*.pid
