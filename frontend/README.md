@@ -1,4 +1,4 @@
-# WBS Thesis Frontend
+# KPK Whistleblowing System Frontend
 
 Next.js app for the whistleblowing prototype interface.
 

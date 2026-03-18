@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return response()->json([
-        'application' => 'WBS Thesis Backend',
+        'application' => 'KPK Whistleblowing System Backend',
         'purpose' => 'Governance-oriented whistleblowing system prototype API.',
         'modules' => [
             'public_reporting' => '/api/reports',

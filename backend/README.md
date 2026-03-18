@@ -1,4 +1,4 @@
-# WBS Thesis Backend
+# KPK Whistleblowing System Backend
 
 Laravel API for the whistleblowing system prototype.
 
@@ -28,5 +28,10 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-Start PostgreSQL first with Docker Compose from the repo root.
-The provided Docker setup exposes PostgreSQL on host port `5433`.
+Configure PostgreSQL locally on `localhost:5432` with:
+
+- database: `wbs_thesis`
+- username: `postgres`
+- password: `postgres`
+
+The repo's Docker Compose file is now only needed if you want optional Redis locally.

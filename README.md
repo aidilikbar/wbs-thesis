@@ -1,6 +1,6 @@
-# WBS Thesis Prototype
+# KPK Whistleblowing System
 
-Prototype of a whistleblowing system for the thesis **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**.
+Whistleblowing system developed to support the thesis **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**.
 
 ## Workspace
 
@@ -9,18 +9,18 @@ wbs-thesis/
 ├── backend   Laravel API for reporting, case workflow, governance, and audit
 ├── frontend  Next.js UI for submission, tracking, investigator, and oversight
 ├── docs      Architecture and API notes
-└── infra     Docker Compose for PostgreSQL and optional Redis
+└── infra     Optional Docker Compose services for local Redis
 ```
 
 ## Quick Start
 
-1. Start infrastructure:
+1. Prepare PostgreSQL:
 
 ```bash
-docker compose -f infra/docker-compose.yml up -d
+createdb -h localhost -p 5432 -U postgres wbs_thesis
 ```
 
-Use Redis as well:
+If the database already exists, skip this step. Redis remains optional and can still be started with Docker:
 
 ```bash
 docker compose -f infra/docker-compose.yml --profile cache up -d
@@ -46,7 +46,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:3000`. Backend runs on `http://localhost:8000`. PostgreSQL is exposed on host port `5433`.
+Frontend runs on `http://localhost:3000`. Backend runs on `http://localhost:8000`. PostgreSQL is expected on `localhost:5432`.
 
 ## Prototype Scope
 
@@ -54,7 +54,7 @@ Frontend runs on `http://localhost:3000`. Backend runs on `http://localhost:8000
 - public-safe tracking via reference and token
 - investigator queue with assignment and stage transitions
 - governance dashboard with metrics, controls, and recent audit events
-- Docker-backed local persistence using PostgreSQL and optional Redis
+- local PostgreSQL persistence for direct schema analysis, with optional Redis in Docker
 
 ## Verification
 
