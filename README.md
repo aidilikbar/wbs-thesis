@@ -38,15 +38,7 @@ wbs-thesis/
 
 ### 1. Prepare PostgreSQL
 
-Expected local database connection:
-
-- host: `localhost`
-- port: `5432`
-- database: `wbs_thesis`
-- username: `postgres`
-- password: `postgres`
-
-Create the database if it does not already exist:
+Expected to have a local database connection. Create the database if it does not already exist:
 
 ```bash
 createdb -h localhost -p 5432 -U postgres wbs_thesis
