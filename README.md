@@ -9,13 +9,14 @@ wbs-thesis/
 ├── backend
 ├── frontend
 ├── docs
-└── infra
+├── docker-compose.yml
+└── README.md
 ```
 
 - `frontend`: Next.js user interface for reporter access, tracking, workflow, governance, and administration.
 - `backend`: Laravel API for authentication, role-based workflow, governance controls, and audit trail management.
 - `docs`: thesis-facing architecture and API notes.
-- `infra`: optional Docker services, currently only Redis.
+- `docker-compose.yml`: optional Docker services, currently only Redis.
 
 ## Implemented Business Roles
 
@@ -107,7 +108,7 @@ npm run dev
 ### 4. Optional Redis
 
 ```bash
-docker compose -f infra/docker-compose.yml --profile cache up -d
+docker compose --profile cache up -d
 ```
 
 ## Local Endpoints
