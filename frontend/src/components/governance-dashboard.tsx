@@ -62,7 +62,7 @@ export function GovernanceDashboard() {
 
   if (!isReady) {
     return (
-      <div className="panel rounded-[2rem] p-8">
+      <div className="panel rounded-[1rem] p-8">
         <p className="text-sm text-[var(--muted)]">Loading governance session.</p>
       </div>
     );
@@ -71,24 +71,21 @@ export function GovernanceDashboard() {
   if (!isAuthenticated || !isInternalUser) {
     return (
       <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="panel rounded-[2rem] p-8">
+        <div className="panel rounded-[1rem] p-8">
           <p className="eyebrow">Restricted Oversight</p>
           <h2 className="mt-4 text-3xl">Internal role access required</h2>
           <p className="muted mt-4 text-sm leading-7">
             Governance analytics are restricted to internal KPK workflow roles.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/login"
-              className="rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white"
-            >
-              Login
-            </Link>
-          </div>
+          <Link href="/login" className="primary-button mt-6">
+            Login
+          </Link>
         </div>
-        <aside className="panel rounded-[2rem] p-8">
-          <p className="eyebrow">Oversight Scope</p>
-          <ul className="mt-4 space-y-4 text-sm leading-7 text-[var(--muted)]">
+        <aside className="dark-card rounded-[1rem] border border-white/8 p-8">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Oversight Scope
+          </p>
+          <ul className="mt-4 space-y-4 text-sm leading-7 text-white/72">
             <li>The dashboard summarizes queue pressure, confidentiality posture, and timeliness.</li>
             <li>Recent audit events expose operational evidence for governance analysis.</li>
             <li>Reporter accounts do not have access to internal governance metrics.</li>
@@ -101,14 +98,81 @@ export function GovernanceDashboard() {
   return (
     <div className="space-y-6">
       {usingFallback ? (
-        <p className="inline-flex rounded-full bg-amber-100 px-4 py-2 text-sm text-amber-900">
+        <p className="inline-flex rounded-[0.45rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-2 text-sm text-[var(--secondary-strong)]">
           Backend unavailable. Showing seeded governance metrics for review.
         </p>
       ) : null}
 
+      <section className="grid gap-6 xl:grid-cols-[0.72fr_0.28fr]">
+        <div className="panel rounded-[1rem] p-7">
+          <p className="eyebrow">Control Posture</p>
+          <h2 className="mt-3 text-4xl">Governed case operations</h2>
+          <p className="muted mt-4 max-w-3xl text-sm leading-7">
+            Oversight combines throughput, queue segregation, confidentiality discipline, and auditable control execution across the full KPK whistleblowing process.
+          </p>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <article className="signal-card rounded-[0.85rem] p-5">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                Open cases
+              </p>
+              <p className="mt-3 font-display text-5xl">{dashboard.metrics.open_cases}</p>
+            </article>
+            <article className="accent-card rounded-[0.85rem] p-5">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                Confidential share
+              </p>
+              <p className="mt-3 font-display text-5xl">
+                {dashboard.metrics.confidential_share}%
+              </p>
+            </article>
+            <article className="outline-panel rounded-[0.85rem] p-5">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                Avg triage hours
+              </p>
+              <p className="mt-3 font-display text-5xl">
+                {dashboard.metrics.average_triage_hours}
+              </p>
+            </article>
+          </div>
+        </div>
+
+        <aside className="dark-card rounded-[1rem] border border-white/8 p-7">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Mandated Safeguards
+          </p>
+          <div className="mt-5 space-y-5">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                Role segregation
+              </p>
+              <p className="mt-2 text-sm leading-7 text-white/88">
+                Reporter, verification, investigation, director review, and administration remain segregated by explicit role ownership.
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                Audit visibility
+              </p>
+              <p className="mt-2 text-sm leading-7 text-white/88">
+                Every transition generates operational evidence to support governance assessment and thesis analysis.
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                Timeliness
+              </p>
+              <p className="mt-2 text-sm leading-7 text-white/88">
+                Queue metrics expose pressure points across verification, investigation, and director approval stages.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {Object.entries(dashboard.metrics).map(([key, value]) => (
-          <article key={key} className="panel rounded-[1.6rem] p-6">
+          <article key={key} className="panel rounded-[0.9rem] p-6">
             <p className="eyebrow">{metricLabels[key] ?? key}</p>
             <p className="metric-value mt-4">
               {key === "confidential_share" ? `${value}%` : value}
@@ -117,8 +181,8 @@ export function GovernanceDashboard() {
         ))}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <div className="panel rounded-[2rem] p-7">
+      <section className="grid gap-6 xl:grid-cols-[0.7fr_0.3fr]">
+        <div className="panel rounded-[1rem] p-7">
           <p className="eyebrow">Risk Distribution</p>
           <div className="mt-5 space-y-4">
             {dashboard.risk_distribution.map((item) => (
@@ -127,9 +191,9 @@ export function GovernanceDashboard() {
                   <span>{item.label}</span>
                   <span>{item.value}</span>
                 </div>
-                <div className="mt-2 h-3 rounded-full bg-white/70">
+                <div className="mt-2 h-3 rounded-[999px] bg-white/70">
                   <div
-                    className="h-3 rounded-full bg-[var(--accent)]"
+                    className="h-3 rounded-[999px] bg-[var(--primary)]"
                     style={{ width: `${Math.max(item.value * 18, 16)}%` }}
                   />
                 </div>
@@ -142,7 +206,7 @@ export function GovernanceDashboard() {
             {dashboard.status_breakdown.map((item) => (
               <div
                 key={item.label}
-                className="rounded-full border border-[var(--panel-border)] bg-white/60 px-4 py-2 text-sm"
+                className="rounded-[0.45rem] border border-[var(--panel-border)] bg-white/60 px-4 py-2 text-sm"
               >
                 {item.label}: {item.value}
               </div>
@@ -150,56 +214,98 @@ export function GovernanceDashboard() {
           </div>
         </div>
 
-        <div className="panel rounded-[2rem] p-7">
-          <p className="eyebrow">Governance Controls</p>
-          <h2 className="mt-3 text-3xl">Operationalized control statements</h2>
-          <div className="mt-6 grid gap-4">
-            {dashboard.controls.map((control) => (
-              <article
-                key={control.code}
-                className="rounded-[1.6rem] border border-[var(--panel-border)] bg-white/60 p-5"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                      {control.code}
-                    </p>
-                    <h3 className="mt-2 text-2xl">{control.name}</h3>
-                  </div>
-                  <StatusBadge value={control.status} />
-                </div>
-                <p className="muted mt-4 text-sm leading-7">
-                  {control.description}
-                </p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[1.2rem] bg-[var(--surface-soft)]/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                      Owner
-                    </p>
-                    <p className="mt-2 text-sm">{control.owner_role}</p>
-                  </div>
-                  <div className="rounded-[1.2rem] bg-[var(--surface-soft)]/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                      Metric
-                    </p>
-                    <p className="mt-2 text-sm">
-                      {control.current_metric ?? "Not configured"}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))}
+        <aside className="dark-card rounded-[1rem] border border-white/8 p-7">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Queue Pressure
+          </p>
+          <div className="mt-5 space-y-4">
+            <div className="rounded-[0.8rem] border border-white/10 bg-white/4 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                Verification queue
+              </p>
+              <p className="mt-2 font-display text-4xl text-white">
+                {dashboard.metrics.verification_queue}
+              </p>
+            </div>
+            <div className="rounded-[0.8rem] border border-white/10 bg-white/4 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                Investigation queue
+              </p>
+              <p className="mt-2 font-display text-4xl text-white">
+                {dashboard.metrics.investigation_queue}
+              </p>
+            </div>
+            <div className="rounded-[0.8rem] border border-white/10 bg-white/4 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                Director review queue
+              </p>
+              <p className="mt-2 font-display text-4xl text-white">
+                {dashboard.metrics.director_review_queue}
+              </p>
+            </div>
           </div>
+        </aside>
+      </section>
+
+      <section className="panel rounded-[1rem] p-7">
+        <p className="eyebrow">Governance Controls</p>
+        <h2 className="mt-3 text-3xl">Operationalized control statements</h2>
+        <div className="mt-6 grid gap-4">
+          {dashboard.controls.map((control) => (
+            <article
+              key={control.code}
+              className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/60 p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                    {control.code}
+                  </p>
+                  <h3 className="mt-2 text-2xl">{control.name}</h3>
+                </div>
+                <StatusBadge value={control.status} />
+              </div>
+              <p className="muted mt-4 text-sm leading-7">
+                {control.description}
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="outline-panel rounded-[0.75rem] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                    Owner
+                  </p>
+                  <p className="mt-2 text-sm">{control.owner_role}</p>
+                </div>
+                <div className="outline-panel rounded-[0.75rem] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                    Current metric
+                  </p>
+                  <p className="mt-2 text-sm">{control.current_metric ?? "Not configured"}</p>
+                </div>
+                <div className="outline-panel rounded-[0.75rem] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                    Target metric
+                  </p>
+                  <p className="mt-2 text-sm">{control.target_metric ?? "Not configured"}</p>
+                </div>
+                <div className="outline-panel rounded-[0.75rem] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                    Notes
+                  </p>
+                  <p className="mt-2 text-sm">{control.notes ?? "No notes recorded"}</p>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
-      <section className="panel rounded-[2rem] p-7">
+      <section className="panel rounded-[1rem] p-7">
         <p className="eyebrow">Recent Audit Events</p>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {dashboard.recent_audit_logs.map((log) => (
             <article
               key={`${log.action}-${log.happened_at}`}
-              className="rounded-[1.4rem] border border-[var(--panel-border)] bg-white/60 p-5"
+              className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/60 p-5"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <StatusBadge value={log.action} label={log.action.replaceAll("_", " ")} />

@@ -17,9 +17,11 @@ export default function LoginPage() {
       </section>
       <section className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <LoginForm />
-        <aside className="panel rounded-[2rem] p-8">
-          <p className="eyebrow">Access Notes</p>
-          <ul className="mt-4 space-y-4 text-sm leading-7 text-[var(--muted)]">
+        <aside className="dark-card rounded-[1rem] border border-white/8 p-8">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Access Notes
+          </p>
+          <ul className="mt-4 space-y-4 text-sm leading-7 text-white/72">
             <li>Reporter accounts are self-registered through the reporter registration page.</li>
             <li>System administrator provisions supervisor, verificator, investigator, director, and admin accounts.</li>
             <li>After login, each role is directed to its relevant workspace.</li>

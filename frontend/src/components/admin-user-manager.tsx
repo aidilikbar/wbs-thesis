@@ -103,7 +103,7 @@ export function AdminUserManager() {
 
   if (!isReady) {
     return (
-      <div className="panel rounded-[2rem] p-8">
+      <div className="panel rounded-[1rem] p-8">
         <p className="text-sm text-[var(--muted)]">Loading administrator session.</p>
       </div>
     );
@@ -112,24 +112,21 @@ export function AdminUserManager() {
   if (!isAuthenticated || !isAdmin) {
     return (
       <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="panel rounded-[2rem] p-8">
+        <div className="panel rounded-[1rem] p-8">
           <p className="eyebrow">Restricted Administration</p>
           <h2 className="mt-4 text-3xl">System administrator access required</h2>
           <p className="muted mt-4 text-sm leading-7">
             Only the system administrator may create internal role accounts for the KPK Whistleblowing System.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/login"
-              className="rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white"
-            >
-              Login
-            </Link>
-          </div>
+          <Link href="/login" className="primary-button mt-6">
+            Login
+          </Link>
         </div>
-        <aside className="panel rounded-[2rem] p-8">
-          <p className="eyebrow">Provisioning Rule</p>
-          <ul className="mt-4 space-y-4 text-sm leading-7 text-[var(--muted)]">
+        <aside className="dark-card rounded-[1rem] border border-white/8 p-8">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Provisioning Rule
+          </p>
+          <ul className="mt-4 space-y-4 text-sm leading-7 text-white/72">
             <li>Reporters self-register through the reporter registration page.</li>
             <li>All internal roles are provisioned here by the system administrator.</li>
             <li>Provisioned users can then log in through the shared login page.</li>
@@ -141,9 +138,13 @@ export function AdminUserManager() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-      <form className="panel rounded-[2rem] p-8" onSubmit={handleSubmit}>
+      <form className="panel rounded-[1rem] p-8" onSubmit={handleSubmit}>
         <p className="eyebrow">Create Internal User</p>
         <h2 className="mt-4 text-3xl">Provision a workflow role account</h2>
+        <p className="muted mt-4 text-sm leading-7">
+          Internal accounts are assigned to explicit governance roles and organizational units before they can access operational workspaces.
+        </p>
+
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <label className="block">
             <span className="mb-2 block text-sm font-semibold">Name</span>
@@ -224,54 +225,66 @@ export function AdminUserManager() {
 
         {message ? (
           <p
-            className={`mt-5 rounded-2xl px-4 py-3 text-sm ${
+            className={`mt-5 rounded-[0.65rem] px-4 py-3 text-sm ${
               message.includes("successfully")
                 ? "bg-emerald-100 text-emerald-900"
-                : "bg-amber-100 text-amber-900"
+                : "border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] text-[var(--secondary-strong)]"
             }`}
           >
             {message}
           </p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="mt-6 rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          {isPending ? "Creating..." : "Create internal user"}
-        </button>
+        <div className="mt-7 flex flex-wrap items-center gap-4">
+          <button type="submit" disabled={isPending} className="primary-button">
+            {isPending ? "Creating..." : "Create Internal User"}
+          </button>
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+            Role, unit, and credentials required
+          </p>
+        </div>
       </form>
 
-      <div className="panel rounded-[2rem] p-8">
-        <p className="eyebrow">Provisioned Users</p>
-        <h2 className="mt-4 text-3xl">Current role directory</h2>
-        <div className="mt-6 space-y-4">
-          {users.map((account) => (
-            <article
-              key={account.id}
-              className="rounded-[1.5rem] border border-[var(--panel-border)] bg-white/60 p-5"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xl">{account.name}</h3>
-                  <p className="muted mt-2 text-sm leading-7">
-                    {account.role_label}
-                    {account.unit ? ` · ${account.unit}` : ""}
-                  </p>
+      <div className="space-y-6">
+        <aside className="dark-card rounded-[1rem] border border-white/8 p-7">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Governance Note
+          </p>
+          <p className="mt-4 text-sm leading-7 text-white/72">
+            Reporter self-registration is intentionally separated from internal provisioning to preserve role segregation and reduce unauthorized access paths.
+          </p>
+        </aside>
+
+        <div className="panel rounded-[1rem] p-8">
+          <p className="eyebrow">Provisioned Users</p>
+          <h2 className="mt-4 text-3xl">Current role directory</h2>
+          <div className="mt-6 space-y-4">
+            {users.map((account) => (
+              <article
+                key={account.id}
+                className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/60 p-5"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl">{account.name}</h3>
+                    <p className="muted mt-2 text-sm leading-7">
+                      {account.role_label}
+                      {account.unit ? ` · ${account.unit}` : ""}
+                    </p>
+                  </div>
+                  <span className="rounded-[0.4rem] border border-[var(--panel-border)] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]">
+                    {account.is_active ? "Active" : "Inactive"}
+                  </span>
                 </div>
-                <span className="rounded-full border border-[var(--panel-border)] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]">
-                  {account.is_active ? "Active" : "Inactive"}
-                </span>
-              </div>
-              <p className="muted mt-3 text-sm">{account.email}</p>
-            </article>
-          ))}
-          {users.length === 0 ? (
-            <p className="muted text-sm leading-7">
-              No internal users are available yet.
-            </p>
-          ) : null}
+                <p className="muted mt-3 text-sm">{account.email}</p>
+              </article>
+            ))}
+            {users.length === 0 ? (
+              <p className="muted text-sm leading-7">
+                No internal users are available yet.
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

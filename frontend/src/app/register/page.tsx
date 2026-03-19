@@ -17,9 +17,11 @@ export default function RegisterPage() {
       </section>
       <section className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <RegisterForm />
-        <aside className="panel rounded-[2rem] p-8">
-          <p className="eyebrow">Why Registration Matters</p>
-          <ul className="mt-4 space-y-4 text-sm leading-7 text-[var(--muted)]">
+        <aside className="dark-card rounded-[1rem] border border-white/8 p-8">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Why Registration Matters
+          </p>
+          <ul className="mt-4 space-y-4 text-sm leading-7 text-white/72">
             <li>It establishes a governed submission path before the first case record is created.</li>
             <li>It enables follow-up communication while preserving confidentiality settings on the case.</li>
             <li>It separates reporter onboarding from internal role provisioning and administration.</li>

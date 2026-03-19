@@ -112,7 +112,9 @@ export function WorkflowWorkbench() {
             ? demoWorkflowCases
             : demoWorkflowCases.filter((item) => item.stage === stageFilter);
 
-        const nextSelectedId = fallback.some((item) => item.id === selectedCaseIdRef.current)
+        const nextSelectedId = fallback.some(
+          (item) => item.id === selectedCaseIdRef.current,
+        )
           ? selectedCaseIdRef.current
           : (fallback[0]?.id ?? null);
         const nextSelectedCase =
@@ -294,7 +296,7 @@ export function WorkflowWorkbench() {
 
   if (!isReady) {
     return (
-      <div className="panel rounded-[2rem] p-8">
+      <div className="panel rounded-[1rem] p-8">
         <p className="text-sm text-[var(--muted)]">Loading workflow session.</p>
       </div>
     );
@@ -303,25 +305,22 @@ export function WorkflowWorkbench() {
   if (!isAuthenticated || !isInternalUser || !user) {
     return (
       <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="panel rounded-[2rem] p-8">
+        <div className="panel rounded-[1rem] p-8">
           <p className="eyebrow">Restricted Workspace</p>
           <h2 className="mt-4 text-3xl">Internal role access required</h2>
           <p className="muted mt-4 text-sm leading-7">
             The workflow workbench is only available to supervisor, verificator,
             investigator, director, and system administrator accounts.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/login"
-              className="rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white"
-            >
-              Login
-            </Link>
-          </div>
+          <Link href="/login" className="primary-button mt-6">
+            Login
+          </Link>
         </div>
-        <aside className="panel rounded-[2rem] p-8">
-          <p className="eyebrow">Access Policy</p>
-          <ul className="mt-4 space-y-4 text-sm leading-7 text-[var(--muted)]">
+        <aside className="dark-card rounded-[1rem] border border-white/8 p-8">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Access Policy
+          </p>
+          <ul className="mt-4 space-y-4 text-sm leading-7 text-white/72">
             <li>Reporter accounts cannot access the internal workflow workbench.</li>
             <li>System administrator provisions internal user accounts.</li>
             <li>Workflow actions are exposed only when the current role owns the active stage.</li>
@@ -331,77 +330,138 @@ export function WorkflowWorkbench() {
     );
   }
 
+  const queueVisible = cases.length;
+  const actionableCases = cases.filter((item) => item.available_actions.length > 0).length;
+  const workflowOwners = selectedCase
+    ? [
+        ["Supervisor of Verificator", selectedCase.workflow.verification_supervisor],
+        ["Verificator", selectedCase.workflow.verificator],
+        ["Supervisor of Investigator", selectedCase.workflow.investigation_supervisor],
+        ["Investigator", selectedCase.workflow.investigator],
+        ["Director", selectedCase.workflow.director],
+      ]
+    : [];
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-      <div className="panel rounded-[2rem] p-7">
-        <div className="flex flex-col gap-5">
-          <div>
-            <p className="eyebrow">Queue Overview</p>
-            <h2 className="mt-3 text-3xl">Role-specific case queue</h2>
-            {usingFallback ? (
-              <p className="mt-3 rounded-full bg-amber-100 px-4 py-2 text-sm text-amber-900">
-                Backend unavailable. Showing seeded workflow cases.
+    <div className="grid gap-6 xl:grid-cols-[0.37fr_0.63fr]">
+      <aside className="space-y-6">
+        <section className="panel rounded-[1rem] p-6">
+          <p className="eyebrow">Case Queue</p>
+          <h2 className="mt-3 text-3xl">Operational workbench</h2>
+          <p className="muted mt-4 text-sm leading-7">
+            Role-gated queue for verification, investigation, and director review.
+          </p>
+
+          {usingFallback ? (
+            <div className="accent-card mt-5 rounded-[0.8rem] border border-[rgba(197,160,34,0.25)] px-4 py-3 text-sm text-[var(--secondary-strong)]">
+              Backend unavailable. Showing seeded workflow cases for interface review.
+            </div>
+          ) : null}
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <article className="outline-panel rounded-[0.8rem] px-4 py-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                Logged in role
               </p>
-            ) : null}
+              <p className="mt-2 text-lg font-semibold">{user.role_label}</p>
+            </article>
+            <article className="signal-card rounded-[0.8rem] px-4 py-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                Visible queue
+              </p>
+              <p className="mt-2 font-display text-4xl">{queueVisible}</p>
+            </article>
+            <article className="accent-card rounded-[0.8rem] px-4 py-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                Actionable now
+              </p>
+              <p className="mt-2 font-display text-4xl">{actionableCases}</p>
+            </article>
           </div>
-          <div className="flex flex-wrap gap-2">
+        </section>
+
+        <section className="panel rounded-[1rem] p-6">
+          <p className="eyebrow">Stage Filter</p>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Narrow the queue by active governance stage.
+          </p>
+
+          <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
             {stageFilters.map((filter) => (
               <button
                 key={filter.value}
                 type="button"
                 onClick={() => setStageFilter(filter.value)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`rounded-[0.55rem] border px-4 py-3 text-left text-sm font-semibold transition ${
                   stageFilter === filter.value
-                    ? "bg-[var(--foreground)] text-white"
-                    : "border border-[var(--panel-border)] bg-white/55"
+                    ? "border-[var(--primary)] bg-[rgba(239,47,39,0.08)] text-[var(--foreground)]"
+                    : "border-[var(--panel-border)] bg-white/75 text-[var(--muted)] hover:border-[rgba(239,47,39,0.2)] hover:text-[var(--foreground)]"
                 }`}
               >
                 {filter.label}
               </button>
             ))}
           </div>
-        </div>
 
-        <div className="mt-6 space-y-4">
-          {cases.length > 0 ? (
-            cases.map((caseItem) => (
-              <button
-                key={caseItem.case_number}
-                type="button"
-                onClick={() => selectCase(caseItem)}
-                className={`w-full rounded-[1.5rem] border p-5 text-left transition ${
-                  selectedCaseId === caseItem.id
-                    ? "border-[rgba(237,28,36,0.28)] bg-[rgba(237,28,36,0.08)]"
-                    : "border-[var(--panel-border)] bg-white/60 hover:bg-white"
-                }`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                      {caseItem.case_number}
-                    </p>
-                    <h3 className="mt-2 text-xl">{caseItem.title}</h3>
-                    <p className="muted mt-2 text-sm">
-                      {caseItem.current_role_label} · {caseItem.assigned_to ?? "Unassigned"}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <StatusBadge value={caseItem.stage} label={caseItem.stage_label} />
-                    <StatusBadge value={caseItem.severity} />
-                  </div>
-                </div>
-              </button>
-            ))
-          ) : (
-            <p className="muted text-sm leading-7">
-              No cases are currently available for this role and stage filter.
-            </p>
-          )}
-        </div>
-      </div>
+          <div className="mt-6 border-t border-[var(--panel-border)] pt-6">
+            <p className="eyebrow">Assigned Cases</p>
+            <div className="mt-4 space-y-3">
+              {cases.length > 0 ? (
+                cases.map((caseItem) => (
+                  <button
+                    key={caseItem.case_number}
+                    type="button"
+                    onClick={() => selectCase(caseItem)}
+                    className={`w-full rounded-[0.9rem] border p-5 text-left transition ${
+                      selectedCaseId === caseItem.id
+                        ? "border-[var(--primary)] bg-[rgba(239,47,39,0.08)] shadow-[0_16px_30px_rgba(239,47,39,0.08)]"
+                        : "border-[var(--panel-border)] bg-white/80 hover:border-[rgba(239,47,39,0.22)] hover:bg-white"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                          {caseItem.case_number}
+                        </p>
+                        <h3 className="mt-2 text-xl">{caseItem.title}</h3>
+                        <p className="muted mt-2 text-sm">
+                          {caseItem.current_role_label} · {caseItem.assigned_to ?? "Unassigned"}
+                        </p>
+                        <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                          {caseItem.assigned_unit ?? "Unit pending"} · {caseItem.category}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <StatusBadge value={caseItem.stage} label={caseItem.stage_label} />
+                        <StatusBadge value={caseItem.severity} />
+                      </div>
+                    </div>
+                    {caseItem.governance_tags.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {caseItem.governance_tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-[0.35rem] border border-[var(--panel-border)] bg-white px-2 py-1 text-[0.7rem] uppercase tracking-[0.16em] text-[var(--muted)]"
+                          >
+                            {tag.replaceAll("_", " ")}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </button>
+                ))
+              ) : (
+                <p className="muted text-sm leading-7">
+                  No cases are currently available for this role and stage filter.
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+      </aside>
 
       <div className="space-y-6">
-        <div className="panel rounded-[2rem] p-7">
+        <section className="panel rounded-[1rem] p-7">
           {selectedCase ? (
             <>
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -418,26 +478,28 @@ export function WorkflowWorkbench() {
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <article className="rounded-[1.3rem] bg-[var(--surface-soft)]/70 p-4">
+              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <article className="signal-card rounded-[0.85rem] p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                     Current role
                   </p>
                   <p className="mt-2 text-sm">{selectedCase.current_role_label}</p>
                 </article>
-                <article className="rounded-[1.3rem] bg-[var(--surface-soft)]/70 p-4">
+                <article className="outline-panel rounded-[0.85rem] p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                     Assigned unit
                   </p>
                   <p className="mt-2 text-sm">{selectedCase.assigned_unit ?? "Not assigned"}</p>
                 </article>
-                <article className="rounded-[1.3rem] bg-[var(--surface-soft)]/70 p-4">
+                <article className="accent-card rounded-[0.85rem] p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                     Reporter
                   </p>
-                  <p className="mt-2 text-sm">{selectedCase.reporter.name ?? "Protected reporter"}</p>
+                  <p className="mt-2 text-sm">
+                    {selectedCase.reporter.name ?? "Protected reporter"}
+                  </p>
                 </article>
-                <article className="rounded-[1.3rem] bg-[var(--surface-soft)]/70 p-4">
+                <article className="outline-panel rounded-[0.85rem] p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                     Last activity
                   </p>
@@ -449,32 +511,79 @@ export function WorkflowWorkbench() {
                 </article>
               </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <article className="rounded-[1.4rem] border border-[var(--panel-border)] bg-white/60 p-5">
+              <div className="mt-6 grid gap-4 md:grid-cols-[0.54fr_0.46fr]">
+                <article className="panel rounded-[0.95rem] border border-[var(--panel-border)] p-5">
                   <p className="eyebrow">Workflow Ownership</p>
-                  <ul className="mt-4 space-y-3 text-sm leading-7 text-[var(--muted)]">
-                    <li>Supervisor of Verificator: {selectedCase.workflow.verification_supervisor ?? "Not set"}</li>
-                    <li>Verificator: {selectedCase.workflow.verificator ?? "Not set"}</li>
-                    <li>Supervisor of Investigator: {selectedCase.workflow.investigation_supervisor ?? "Not set"}</li>
-                    <li>Investigator: {selectedCase.workflow.investigator ?? "Not set"}</li>
-                    <li>Director: {selectedCase.workflow.director ?? "Not set"}</li>
-                  </ul>
+                  <div className="mt-4 grid gap-3">
+                    {workflowOwners.map(([label, owner]) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between gap-4 border-b border-[rgba(19,19,19,0.06)] pb-3 last:border-b-0 last:pb-0"
+                      >
+                        <p className="text-sm text-[var(--muted)]">{label}</p>
+                        <p className="text-right text-sm font-semibold">
+                          {owner ?? "Not set"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </article>
-                <article className="rounded-[1.4rem] border border-[var(--panel-border)] bg-white/60 p-5">
-                  <p className="eyebrow">Case Signals</p>
-                  <ul className="mt-4 space-y-3 text-sm leading-7 text-[var(--muted)]">
-                    <li>Severity: {selectedCase.severity}</li>
-                    <li>Confidentiality: {selectedCase.confidentiality_level}</li>
-                    <li>
-                      SLA due: {selectedCase.sla_due_at ? formatDateTime(selectedCase.sla_due_at) : "Not set"}
-                    </li>
-                    <li>
-                      Governance flags:{" "}
-                      {selectedCase.governance_tags.length > 0
-                        ? selectedCase.governance_tags.join(", ")
-                        : "None"}
-                    </li>
-                  </ul>
+
+                <article className="dark-card rounded-[0.95rem] border border-white/8 p-5">
+                  <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+                    Case Signals
+                  </p>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                        Severity
+                      </p>
+                      <p className="mt-2 text-sm text-white/92">{selectedCase.severity}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                        Confidentiality
+                      </p>
+                      <p className="mt-2 text-sm text-white/92">
+                        {selectedCase.confidentiality_level}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                        SLA due
+                      </p>
+                      <p className="mt-2 text-sm text-white/92">
+                        {selectedCase.sla_due_at
+                          ? formatDateTime(selectedCase.sla_due_at)
+                          : "Not set"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/48">
+                        Governance tags
+                      </p>
+                      <p className="mt-2 text-sm text-white/92">
+                        {selectedCase.governance_tags.length > 0
+                          ? selectedCase.governance_tags.join(", ")
+                          : "None"}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              </div>
+
+              <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                <article className="outline-panel rounded-[0.9rem] p-5">
+                  <p className="eyebrow">Latest Internal Event</p>
+                  <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
+                    {selectedCase.latest_internal_event ?? "No internal event logged yet."}
+                  </p>
+                </article>
+                <article className="outline-panel rounded-[0.9rem] p-5">
+                  <p className="eyebrow">Latest Public Milestone</p>
+                  <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
+                    {selectedCase.latest_public_event ?? "No public update has been published."}
+                  </p>
                 </article>
               </div>
             </>
@@ -483,17 +592,20 @@ export function WorkflowWorkbench() {
               Select a case from the queue to view workflow details.
             </p>
           )}
-        </div>
+        </section>
 
-        <div className="panel rounded-[2rem] p-7">
-          <p className="eyebrow">Available Action</p>
+        <section className="dark-card rounded-[1rem] border border-white/8 p-7">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Stage Action Center
+          </p>
+
           {selectedCase && currentAction ? (
             <div className="mt-4 space-y-5">
-              <div className="rounded-[1.3rem] bg-[var(--surface-soft)]/70 p-4">
-                <p className="text-sm font-semibold text-[var(--foreground)]">
+              <div className="rounded-[0.8rem] border border-white/10 bg-white/4 p-4">
+                <p className="text-sm font-semibold text-white">
                   {actionLabels[currentAction] ?? currentAction}
                 </p>
-                <p className="muted mt-2 text-sm leading-7">
+                <p className="mt-2 text-sm leading-7 text-white/65">
                   Only the current accountable role may execute this stage transition.
                 </p>
               </div>
@@ -501,7 +613,9 @@ export function WorkflowWorkbench() {
               {["delegate_verification", "delegate_investigation"].includes(currentAction) ? (
                 <>
                   <label className="block">
-                    <span className="mb-2 block text-sm font-semibold">Assignee</span>
+                    <span className="mb-2 block text-sm font-semibold text-white">
+                      Assignee
+                    </span>
                     <select
                       className="field"
                       value={actionState.assignee_user_id}
@@ -520,9 +634,12 @@ export function WorkflowWorkbench() {
                       ))}
                     </select>
                   </label>
+
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="block">
-                      <span className="mb-2 block text-sm font-semibold">Assigned unit</span>
+                      <span className="mb-2 block text-sm font-semibold text-white">
+                        Assigned unit
+                      </span>
                       <input
                         className="field"
                         value={actionState.assigned_unit}
@@ -535,7 +652,9 @@ export function WorkflowWorkbench() {
                       />
                     </label>
                     <label className="block">
-                      <span className="mb-2 block text-sm font-semibold">Due in days</span>
+                      <span className="mb-2 block text-sm font-semibold text-white">
+                        Due in days
+                      </span>
                       <input
                         className="field"
                         type="number"
@@ -558,7 +677,9 @@ export function WorkflowWorkbench() {
                 currentAction,
               ) ? (
                 <label className="block">
-                  <span className="mb-2 block text-sm font-semibold">Decision</span>
+                  <span className="mb-2 block text-sm font-semibold text-white">
+                    Decision
+                  </span>
                   <select
                     className="field"
                     value={actionState.decision}
@@ -575,58 +696,60 @@ export function WorkflowWorkbench() {
                 </label>
               ) : null}
 
-              {currentAction ? (
-                <>
-                  <label className="block">
-                    <span className="mb-2 block text-sm font-semibold">Internal note</span>
-                    <textarea
-                      className="field min-h-32"
-                      value={actionState.internal_note}
-                      onChange={(event) =>
-                        setActionState((current) => ({
-                          ...current,
-                          internal_note: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="flex items-center gap-3 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={actionState.publish_update}
-                      onChange={(event) =>
-                        setActionState((current) => ({
-                          ...current,
-                          publish_update: event.target.checked,
-                        }))
-                      }
-                    />
-                    Publish a public-safe update to the reporter tracking view
-                  </label>
-                  {actionState.publish_update ? (
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-semibold">Public message</span>
-                      <textarea
-                        className="field min-h-24"
-                        value={actionState.public_message}
-                        onChange={(event) =>
-                          setActionState((current) => ({
-                            ...current,
-                            public_message: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                  ) : null}
-                </>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-white">
+                  Internal note
+                </span>
+                <textarea
+                  className="field min-h-32"
+                  value={actionState.internal_note}
+                  onChange={(event) =>
+                    setActionState((current) => ({
+                      ...current,
+                      internal_note: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="flex items-center gap-3 rounded-[0.8rem] border border-white/10 bg-white/4 px-4 py-4 text-sm text-white/88">
+                <input
+                  type="checkbox"
+                  checked={actionState.publish_update}
+                  onChange={(event) =>
+                    setActionState((current) => ({
+                      ...current,
+                      publish_update: event.target.checked,
+                    }))
+                  }
+                />
+                Publish a public-safe update to the reporter tracking view
+              </label>
+
+              {actionState.publish_update ? (
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-white">
+                    Public message
+                  </span>
+                  <textarea
+                    className="field min-h-24"
+                    value={actionState.public_message}
+                    onChange={(event) =>
+                      setActionState((current) => ({
+                        ...current,
+                        public_message: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
               ) : null}
 
               {message ? (
                 <p
-                  className={`rounded-2xl px-4 py-3 text-sm ${
+                  className={`rounded-[0.8rem] px-4 py-3 text-sm ${
                     message.includes("successfully")
                       ? "bg-emerald-100 text-emerald-900"
-                      : "bg-amber-100 text-amber-900"
+                      : "border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] text-[var(--secondary-strong)]"
                   }`}
                 >
                   {message}
@@ -642,17 +765,17 @@ export function WorkflowWorkbench() {
                     !actionState.assignee_user_id) ||
                   !actionState.internal_note
                 }
-                className="rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                className="primary-button disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isPending ? "Processing..." : actionLabels[currentAction]}
               </button>
             </div>
           ) : (
-            <p className="muted mt-4 text-sm leading-7">
+            <p className="mt-4 text-sm leading-7 text-white/65">
               No workflow action is currently available for this case and role.
             </p>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

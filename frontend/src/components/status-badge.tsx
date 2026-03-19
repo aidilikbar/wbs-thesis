@@ -7,7 +7,7 @@ function badgeClasses(value: string) {
   const normalized = value.toLowerCase();
 
   if (["critical", "rejected", "danger"].includes(normalized)) {
-    return "border border-[rgba(237,28,36,0.18)] bg-[rgba(237,28,36,0.12)] text-[var(--accent-strong)]";
+    return "border border-[rgba(239,47,39,0.24)] bg-[rgba(239,47,39,0.12)] text-[var(--primary-strong)]";
   }
 
   if (
@@ -19,7 +19,7 @@ function badgeClasses(value: string) {
       "warning",
     ].includes(normalized)
   ) {
-    return "border border-[rgba(16,17,20,0.12)] bg-[rgba(16,17,20,0.06)] text-[var(--foreground)]";
+    return "border border-[rgba(197,160,34,0.28)] bg-[rgba(197,160,34,0.16)] text-[var(--secondary-strong)]";
   }
 
   if (
@@ -33,16 +33,16 @@ function badgeClasses(value: string) {
       "identified",
     ].includes(normalized)
   ) {
-    return "border border-[rgba(16,17,20,0.08)] bg-white text-[var(--foreground)]";
+    return "border border-[rgba(19,19,19,0.08)] bg-white text-[var(--foreground)]";
   }
 
-  return "border border-[rgba(16,17,20,0.08)] bg-[var(--surface-soft)] text-[var(--muted)]";
+  return "border border-[rgba(116,118,121,0.16)] bg-[rgba(116,118,121,0.12)] text-[var(--neutral)]";
 }
 
 export function StatusBadge({ value, label }: StatusBadgeProps) {
   return (
     <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${badgeClasses(
+      className={`inline-flex rounded-[0.25rem] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] ${badgeClasses(
         value,
       )}`}
     >

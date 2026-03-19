@@ -10,9 +10,9 @@ export default function SubmitPage() {
     <AppShell>
       <section className="max-w-5xl">
         <p className="eyebrow">Reporter Submission</p>
-        <h1 className="mt-4 text-5xl">Submit a report from a registered reporter account</h1>
+        <h1 className="mt-4 text-[clamp(3rem,7vw,5.4rem)]">Report Corruption.</h1>
         <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Reporter registration is mandatory before submission. The report is then routed into the KPK role-based process beginning with the supervisor of verificator.
+          Enter the details of the suspected corruption activity. Reporter registration is mandatory before submission, and the case will then move into the formal KPK role-based process.
         </p>
       </section>
       <section className="mt-8">
