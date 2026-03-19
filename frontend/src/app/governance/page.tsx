@@ -12,9 +12,7 @@ export default function GovernancePage() {
         <p className="eyebrow">Governance Dashboard</p>
         <h1 className="mt-4 text-5xl">Oversight metrics and control health</h1>
         <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          This layer reframes whistleblowing as a governance capability, not
-          just a reporting form, by surfacing timeliness, auditability, and
-          control posture in one place.
+          This dashboard supports internal governance analysis across registration enforcement, role segregation, timeliness, confidentiality posture, and audit evidence.
         </p>
       </section>
       <section className="mt-8">

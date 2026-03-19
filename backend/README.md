@@ -1,42 +1,112 @@
 # KPK Whistleblowing System Backend
 
-Laravel API for the whistleblowing system prototype.
+Laravel API for the role-based KPK Whistleblowing System prototype.
 
 ## Responsibilities
 
-- report intake and tracking token issuance
-- case creation, assignment, and status transitions
-- governance dashboard metrics
-- audit logging for key workflow events
+- reporter registration and shared authentication
+- authenticated report intake
+- public reference and tracking token lookup
+- role-based case workflow orchestration
+- system administrator user provisioning
+- governance dashboard aggregation
+- audit logging across workflow transitions
 
-## Main endpoints
+## Role Model
 
-- `POST /api/reports`
+The backend supports:
+
+- Reporter
+- Supervisor of Verificator
+- Verificator
+- Supervisor of Investigator
+- Investigator
+- Director
+- System Administrator
+
+Reporter accounts register through `POST /api/auth/register`. All internal roles are created by the system administrator through `POST /api/admin/users`.
+
+## Main Endpoint Groups
+
+### Authentication
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
+
+### Reporter Workspace
+
+- `GET /api/reporter/reports`
+- `POST /api/reporter/reports`
+
+### Public Tracking
+
 - `POST /api/tracking`
-- `GET /api/investigator/cases`
-- `PATCH /api/investigator/cases/{case}/assign`
-- `PATCH /api/investigator/cases/{case}/status`
+
+### Workflow
+
+- `GET /api/workflow/cases`
+- `GET /api/workflow/assignees`
+- `PATCH /api/workflow/cases/{case}/delegate-verification`
+- `PATCH /api/workflow/cases/{case}/submit-verification`
+- `PATCH /api/workflow/cases/{case}/review-verification`
+- `PATCH /api/workflow/cases/{case}/delegate-investigation`
+- `PATCH /api/workflow/cases/{case}/submit-investigation`
+- `PATCH /api/workflow/cases/{case}/review-investigation`
+- `PATCH /api/workflow/cases/{case}/director-review`
+
+### Administration and Governance
+
+- `GET /api/admin/users`
+- `POST /api/admin/users`
 - `GET /api/governance/dashboard`
 
-## API documentation
+## Swagger
 
 - Swagger UI: `http://localhost:8000/api/documentation`
 - OpenAPI JSON: `http://localhost:8000/docs`
 
-## Run locally
+Regenerate documentation manually if needed:
+
+```bash
+php artisan l5-swagger:generate
+```
+
+## Local Run
 
 ```bash
 cp .env.example .env
 composer install
 php artisan key:generate
-php artisan migrate --seed
+php artisan migrate:fresh --seed
 php artisan serve
 ```
 
-Configure PostgreSQL locally on `localhost:5432` with:
+PostgreSQL configuration:
 
+- host: `localhost`
+- port: `5432`
 - database: `wbs_thesis`
 - username: `postgres`
 - password: `postgres`
 
-The repo's Docker Compose file is now only needed if you want optional Redis locally.
+## Seeded Accounts
+
+All seeded accounts use password `Password123`.
+
+- System Administrator: `sysadmin@kpk-wbs.test`
+- Supervisor of Verificator: `supervisor.verificator@kpk-wbs.test`
+- Verificator: `verificator.1@kpk-wbs.test`
+- Verificator: `verificator.2@kpk-wbs.test`
+- Supervisor of Investigator: `supervisor.investigator@kpk-wbs.test`
+- Investigator: `investigator.1@kpk-wbs.test`
+- Investigator: `investigator.2@kpk-wbs.test`
+- Director: `director@kpk-wbs.test`
+- Reporters: `reporter.1@example.test` through `reporter.4@example.test`
+
+## Verification
+
+- `php artisan test`
+- `php artisan migrate:fresh --seed`
+- `php artisan l5-swagger:generate`

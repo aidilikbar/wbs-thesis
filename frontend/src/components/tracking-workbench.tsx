@@ -67,8 +67,7 @@ export function TrackingWorkbench() {
           {isPending ? "Checking..." : "Track case"}
         </button>
         <p className="muted mt-5 text-sm leading-7">
-          If the API is offline, the page falls back to a reference case so the
-          interface can still be reviewed.
+          Tracking remains public, but it only exposes public-safe milestones rather than internal notes or reporter identity.
         </p>
         {message ? (
           <p className="mt-5 rounded-2xl bg-amber-100 px-4 py-3 text-sm text-amber-900">

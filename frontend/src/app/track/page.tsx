@@ -12,8 +12,7 @@ export default function TrackPage() {
         <p className="eyebrow">Case Tracking</p>
         <h1 className="mt-4 text-5xl">Check case progress without exposing identity</h1>
         <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Tracking uses a public reference and token pair. The view only shows
-          public-safe milestones, not internal investigation notes.
+          Tracking uses the public reference and token returned after reporter submission. The view only shows public-safe milestones, not internal workflow notes.
         </p>
       </section>
       <section className="mt-8">

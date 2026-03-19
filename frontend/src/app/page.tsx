@@ -6,6 +6,8 @@ import {
   landingStats,
   moduleCards,
   oversightPillars,
+  processSteps,
+  roleCards,
 } from "@/lib/demo-data";
 
 export default function Home() {
@@ -15,26 +17,24 @@ export default function Home() {
         <div className="panel rounded-[2rem] p-8 sm:p-10">
           <p className="eyebrow">KPK Whistleblowing System</p>
           <h1 className="mt-5 max-w-3xl text-5xl leading-none sm:text-6xl">
-            Secure reporting, protected case tracking, and accountable
-            governance oversight.
+            Registered reporting and governed case progression across the full KPK whistleblowing process.
           </h1>
           <p className="muted mt-6 max-w-2xl text-lg leading-8">
-            KPK Whistleblowing System supports confidential disclosure intake,
-            structured triage, investigator coordination, and management
-            oversight through a single institutional workflow.
+            The prototype reflects the operational chain from reporter registration to verification,
+            investigation, director approval, and system administration, with public tracking and auditability throughout.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href="/submit"
+              href="/register"
               className="rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-[var(--background)] transition hover:opacity-90"
             >
-              Submit a report
+              Register as reporter
             </Link>
             <Link
-              href="/track"
+              href="/login"
               className="rounded-full border border-[var(--panel-border)] bg-white/60 px-5 py-3 text-sm font-semibold transition hover:bg-white"
             >
-              Track a case
+              Login to workspace
             </Link>
           </div>
         </div>
@@ -47,10 +47,10 @@ export default function Home() {
           <div className="mt-6 space-y-5">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-[var(--muted)]">
-                Public Flow
+                Reporter Flow
               </p>
               <p className="mt-2 text-lg leading-8">
-                Anonymous or identified intake with protected tracking tokens.
+                Reporter registration, login, protected submission, and token-based tracking.
               </p>
             </div>
             <div>
@@ -58,7 +58,7 @@ export default function Home() {
                 Internal Flow
               </p>
               <p className="mt-2 text-lg leading-8">
-                Investigator queue, assignment, escalation, and audit logging.
+                Supervisor, verificator, investigator, and director actions with explicit approval gates.
               </p>
             </div>
             <div>
@@ -66,8 +66,7 @@ export default function Home() {
                 Governance Flow
               </p>
               <p className="mt-2 text-lg leading-8">
-                Control monitoring for anonymity, SLA, segregation, and trail
-                completeness.
+                Control monitoring for registration, confidentiality, timeliness, and audit completeness.
               </p>
             </div>
           </div>
@@ -89,15 +88,14 @@ export default function Home() {
           <div>
             <p className="eyebrow">Operational Modules</p>
             <h2 className="mt-3 text-3xl sm:text-4xl">
-              Modular screens aligned to stakeholder responsibilities
+              Modular screens aligned to each governance responsibility
             </h2>
           </div>
           <p className="muted max-w-xl text-sm leading-7">
-            Each module can evolve independently while staying governed through
-            shared case, audit, and control data.
+            Each screen maps to a formal role or control need while remaining connected through shared case and audit data.
           </p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {moduleCards.map((card) => (
             <Link
               key={card.href}
@@ -144,6 +142,42 @@ export default function Home() {
                 <h3 className="mt-3 text-2xl">{pillar.title}</h3>
                 <p className="muted mt-3 text-sm leading-7">{pillar.description}</p>
               </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-14 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="panel rounded-[2rem] p-8">
+          <p className="eyebrow">Role Map</p>
+          <h2 className="mt-4 text-3xl">Seven institutional roles in the prototype</h2>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {roleCards.map((role) => (
+              <article
+                key={role.title}
+                className="rounded-[1.5rem] border border-[var(--panel-border)] bg-white/60 p-5"
+              >
+                <h3 className="text-2xl">{role.title}</h3>
+                <p className="muted mt-3 text-sm leading-7">{role.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="panel rounded-[2rem] p-8">
+          <p className="eyebrow">Business Process</p>
+          <h2 className="mt-4 text-3xl">KPK workflow implemented in sequence</h2>
+          <div className="mt-6 space-y-4">
+            {processSteps.map((step, index) => (
+              <div
+                key={step}
+                className="rounded-[1.4rem] border border-[var(--panel-border)] bg-[var(--surface-soft)]/70 p-5"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
+                  Step {index + 1}
+                </p>
+                <p className="mt-2 text-sm leading-7">{step}</p>
+              </div>
             ))}
           </div>
         </div>

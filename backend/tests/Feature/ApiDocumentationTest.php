@@ -13,13 +13,15 @@ class ApiDocumentationTest extends TestCase
             ->assertSee('KPK Whistleblowing System API', false);
     }
 
-    public function test_openapi_json_describes_public_reporting_endpoint(): void
+    public function test_openapi_json_describes_authenticated_reporter_and_workflow_endpoints(): void
     {
         $this->artisan('l5-swagger:generate')->assertSuccessful();
 
         $this->getJson('/docs')
             ->assertOk()
             ->assertJsonPath('info.title', 'KPK Whistleblowing System API')
-            ->assertJsonPath('paths./api/reports.post.operationId', 'submitReport');
+            ->assertJsonPath('paths./api/auth/register.post.operationId', 'registerReporter')
+            ->assertJsonPath('paths./api/reporter/reports.post.operationId', 'submitReporterReport')
+            ->assertJsonPath('paths./api/workflow/cases.get.operationId', 'listWorkflowCases');
     }
 }

@@ -2,47 +2,142 @@
 
 Base URL: `http://localhost:8000/api`
 
-## Public Endpoints
+Swagger UI: `http://localhost:8000/api/documentation`
 
-### `POST /reports`
+OpenAPI JSON: `http://localhost:8000/docs`
 
-Creates a report, public reference, tracking token, case file, initial timeline entries, and audit logs.
+## Authentication
 
-### `POST /tracking`
+### `POST /auth/register`
 
-Looks up a report by public reference and tracking token and returns only public-safe case information.
+Registers a reporter account and immediately returns a bearer token.
+
+This path is only for the `Reporter` role.
+
+### `POST /auth/login`
+
+Shared login for reporter and internal users.
+
+### `GET /auth/me`
+
+Returns the current authenticated user.
+
+### `POST /auth/logout`
+
+Deletes the current personal access token.
+
+## Reference Data
 
 ### `GET /catalog`
 
-Returns intake categories, governance tags, case stages, and governance principles.
+Returns:
 
-## Investigator Endpoints
+- roles
+- internal roles
+- categories
+- governance tags
+- confidentiality levels
+- case stages
+- governance principles
 
-### `GET /investigator/cases`
+## Reporter Workspace
 
-Returns case queue data with report summary, severity, ownership, and SLA information.
+### `GET /reporter/reports`
 
-Optional query parameters:
+Lists the current reporter's own submissions.
+
+### `POST /reporter/reports`
+
+Creates a report for the authenticated reporter and returns:
+
+- public reference
+- tracking token
+- case number
+- status
+- severity
+- next steps
+
+Reporter registration is mandatory before this endpoint can be used.
+
+## Public Tracking
+
+### `POST /tracking`
+
+Looks up a report by public reference and tracking token and returns only public-safe case information:
+
+- title and category
+- current public status
+- confidentiality level
+- case snapshot
+- public timeline events
+
+## Workflow
+
+All workflow endpoints require authentication and are restricted by role.
+
+### `GET /workflow/cases`
+
+Returns the case list visible to the current internal role.
+
+Optional query parameter:
 
 - `stage`
-- `severity`
 
-### `PATCH /investigator/cases/{case}/assign`
+### `GET /workflow/assignees?role=verificator|investigator`
 
-Assigns an owner and unit to the case and records the change in the audit trail.
+Returns active assignee candidates for supervisor delegation.
 
-### `PATCH /investigator/cases/{case}/status`
+### Verification Stage
 
-Updates the case stage and optionally publishes a public-safe timeline update.
+- `PATCH /workflow/cases/{case}/delegate-verification`
+- `PATCH /workflow/cases/{case}/submit-verification`
+- `PATCH /workflow/cases/{case}/review-verification`
 
-## Governance Endpoint
+### Investigation Stage
+
+- `PATCH /workflow/cases/{case}/delegate-investigation`
+- `PATCH /workflow/cases/{case}/submit-investigation`
+- `PATCH /workflow/cases/{case}/review-investigation`
+
+### Director Stage
+
+- `PATCH /workflow/cases/{case}/director-review`
+
+## Administration
+
+### `GET /admin/users`
+
+Lists users. Restricted to `System Administrator`.
+
+### `POST /admin/users`
+
+Creates internal users for:
+
+- Supervisor of Verificator
+- Verificator
+- Supervisor of Investigator
+- Investigator
+- Director
+- System Administrator
+
+Reporter creation is excluded from this endpoint.
+
+## Governance
 
 ### `GET /governance/dashboard`
 
 Returns:
 
-- aggregate metrics
-- severity distribution
-- case status breakdown
-- governance control status list
+- total reports
+- open cases
+- completed cases
+- confidential share
+- overdue cases
+- average triage hours
+- verification queue
+- investigation queue
+- director review queue
+- risk distribution
+- status breakdown
+- governance control catalogue
 - recent audit log events

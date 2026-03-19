@@ -9,6 +9,7 @@ use App\Models\GovernanceControl;
 use App\Models\Report;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
 class GovernanceDashboardController extends Controller
@@ -19,16 +20,24 @@ class GovernanceDashboardController extends Controller
         summary: 'Get governance dashboard data',
         description: 'Returns governance metrics, control monitoring, and recent audit activity for oversight analysis.',
         tags: ['Governance Dashboard'],
+        security: [['bearerAuth' => []]],
         responses: [
             new OA\Response(
                 response: 200,
                 description: 'Governance dashboard returned successfully.',
                 content: new OA\JsonContent(ref: '#/components/schemas/GovernanceDashboardResponse')
             ),
+            new OA\Response(
+                response: 403,
+                description: 'Internal role access required.',
+                content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')
+            ),
         ]
     )]
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        abort_unless($request->user()?->isInternalUser(), 403, 'The governance dashboard is restricted to internal roles.');
+
         $reports = Report::query()->get();
         $caseFiles = CaseFile::query()->get();
         $controls = GovernanceControl::query()->orderBy('code')->get();
@@ -44,16 +53,19 @@ class GovernanceDashboardController extends Controller
             'data' => [
                 'metrics' => [
                     'total_reports' => $reports->count(),
-                    'open_cases' => $caseFiles->whereNotIn('stage', ['resolved', 'closed'])->count(),
-                    'resolved_cases' => $caseFiles->whereIn('stage', ['resolved', 'closed'])->count(),
-                    'anonymous_share' => $reports->isEmpty()
+                    'open_cases' => $caseFiles->where('stage', '!=', 'completed')->count(),
+                    'completed_cases' => $caseFiles->where('stage', 'completed')->count(),
+                    'confidential_share' => $reports->isEmpty()
                         ? 0
-                        : round(($reports->where('anonymity_level', 'anonymous')->count() / $reports->count()) * 100, 1),
+                        : round(($reports->where('anonymity_level', 'confidential')->count() / $reports->count()) * 100, 1),
                     'overdue_cases' => $caseFiles
-                        ->whereNotIn('stage', ['resolved', 'closed'])
+                        ->where('stage', '!=', 'completed')
                         ->filter(fn (CaseFile $caseFile) => $caseFile->sla_due_at && $caseFile->sla_due_at->isPast())
                         ->count(),
                     'average_triage_hours' => $averageTriageHours,
+                    'verification_queue' => $caseFiles->whereIn('stage', ['submitted', 'verification_in_progress', 'verification_review'])->count(),
+                    'investigation_queue' => $caseFiles->whereIn('stage', ['verified', 'investigation_in_progress', 'investigation_review'])->count(),
+                    'director_review_queue' => $caseFiles->where('stage', 'director_review')->count(),
                 ],
                 'risk_distribution' => $this->summarise($reports, 'severity'),
                 'status_breakdown' => $this->summarise($caseFiles, 'stage'),

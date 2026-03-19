@@ -26,8 +26,11 @@ class CatalogController extends Controller
     {
         return response()->json([
             'data' => [
+                'roles' => config('wbs.roles'),
+                'internal_roles' => config('wbs.internal_roles'),
                 'categories' => config('wbs.categories'),
                 'governance_tags' => config('wbs.governance_tags'),
+                'confidentiality_levels' => config('wbs.confidentiality_levels'),
                 'case_stages' => config('wbs.case_stages'),
                 'principles' => config('wbs.governance_principles'),
             ],

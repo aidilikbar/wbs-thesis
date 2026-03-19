@@ -1,110 +1,172 @@
 import type {
   GovernanceDashboardData,
-  InvestigatorCase,
+  InternalUserPayload,
+  ReporterReportSummary,
   SubmissionPayload,
   TrackingRecord,
+  WorkflowCase,
 } from "@/lib/types";
 
 export const landingStats = [
   {
-    label: "Trust Surface",
-    value: "4",
-    detail: "Public intake, tracking, investigator workflow, and governance oversight.",
+    label: "Institutional Roles",
+    value: "7",
+    detail:
+      "Reporter, two supervisors, verificator, investigator, director, and system administrator.",
+  },
+  {
+    label: "Process Gates",
+    value: "8",
+    detail:
+      "Submission, verification, supervisory review, investigation, director review, and completion milestones.",
   },
   {
     label: "Core Controls",
     value: "4",
-    detail: "Confidentiality, segregation of duties, SLA monitoring, and auditability.",
+    detail:
+      "Registration, confidentiality, segregation of duties, and audit traceability.",
   },
   {
-    label: "Architecture Split",
-    value: "3",
-    detail: "Frontend, backend, and Docker-backed infrastructure boundaries.",
-  },
-  {
-    label: "Primary Stakeholders",
+    label: "Primary Modules",
     value: "5",
-    detail: "Reporter, intake officer, investigator, governance office, and audit.",
+    detail:
+      "Overview, reporter submission, tracking, workflow operations, and governance administration.",
   },
 ];
 
 export const moduleCards = [
   {
     href: "/submit",
-    kicker: "Public Intake",
-    title: "Report Submission",
+    kicker: "Reporter Access",
+    title: "Registered Submission",
     description:
-      "Structured allegation capture with anonymity level, governance flags, and evidence hints.",
+      "Only authenticated reporters may submit a report into the KPK Whistleblowing System workflow.",
   },
   {
     href: "/track",
-    kicker: "Public Transparency",
-    title: "Case Tracking",
+    kicker: "Public Tracking",
+    title: "Reference and Token Lookup",
     description:
-      "Token-based progress checks that reveal only public-safe milestones.",
+      "Check public-safe milestones through the issued public reference and tracking token.",
   },
   {
-    href: "/investigator",
-    kicker: "Operational Control",
-    title: "Investigator Portal",
+    href: "/workflow",
+    kicker: "Internal Operations",
+    title: "Role-Based Workflow",
     description:
-      "Queue view for ownership, status changes, SLA exposure, and governance escalation.",
+      "Supervisors, verificators, investigators, and director operate from one governed case workbench.",
   },
   {
     href: "/governance",
     kicker: "Oversight",
     title: "Governance Dashboard",
     description:
-      "Metrics and controls for management oversight, timeliness, accountability, and control posture.",
+      "Monitor workload, timeliness, controls, and audit evidence across the whistleblowing process.",
+  },
+  {
+    href: "/admin",
+    kicker: "Administration",
+    title: "Role Provisioning",
+    description:
+      "System administrator creates internal role accounts and maintains operational readiness.",
   },
 ];
 
 export const architectureLayers = [
   {
     kicker: "Frontend",
-    title: "Next.js experience layer",
+    title: "Next.js institutional interface",
     description:
-      "Handles the submission journey, case tracking, investigator screens, and governance views.",
+      "Provides reporter registration and login, protected submission, workflow screens, and governance views.",
   },
   {
     kicker: "Backend",
-    title: "Laravel case and governance core",
+    title: "Laravel governance workflow core",
     description:
-      "Owns report intake, case workflow, risk state, governance controls, and audit logging.",
+      "Owns role-controlled case routing, audit logging, public tracking, and system administration APIs.",
   },
   {
     kicker: "Infrastructure",
-    title: "Docker-backed persistence",
+    title: "Local PostgreSQL deployment",
     description:
-      "Provides PostgreSQL for transactional data and an optional Redis profile for cache and queue support.",
+      "Persists operational data in native PostgreSQL, with optional Redis and Docker only for supporting services.",
   },
 ];
 
 export const oversightPillars = [
   {
-    kicker: "Confidentiality",
-    title: "Protected identity handling",
+    kicker: "Registration",
+    title: "Reporter identity before submission",
     description:
-      "Separate public tracking data from internal evidence, ownership, and investigative notes.",
+      "The prototype enforces reporter registration before any report can be accepted into the system.",
   },
   {
-    kicker: "Traceability",
-    title: "Audit-first event history",
+    kicker: "Confidentiality",
+    title: "Protected reporter handling",
     description:
-      "Capture submission, assignment, escalation, and closure changes as queryable governance evidence.",
+      "Reporter identity is retained internally while public tracking exposes only safe milestones and case metadata.",
   },
   {
     kicker: "Segregation",
-    title: "Role-sensitive workflow",
+    title: "Role-specific approvals",
     description:
-      "Keep public, investigator, and oversight concerns separated at the application boundary.",
+      "Verification, investigation, and director approval are separated into distinct operational roles.",
   },
   {
-    kicker: "Timeliness",
-    title: "SLA and escalation posture",
+    kicker: "Traceability",
+    title: "Audit-first workflow evidence",
     description:
-      "Track overdue cases, triage lead time, and escalation indicators as control signals.",
+      "Every submission, delegation, approval, rejection, and completion is written to the audit trail.",
   },
+];
+
+export const roleCards = [
+  {
+    title: "Reporter",
+    description:
+      "Registers, logs in, submits a report, and monitors public-safe progress through account and tracking token access.",
+  },
+  {
+    title: "Supervisor of Verificator",
+    description:
+      "Receives new reports, delegates them to verificators, and decides whether verification is accepted or returned.",
+  },
+  {
+    title: "Verificator",
+    description:
+      "Performs verification of submitted reports and returns documented findings to the supervisor of verificator.",
+  },
+  {
+    title: "Supervisor of Investigator",
+    description:
+      "Receives verified reports, delegates investigation, and reviews the investigator submission before director review.",
+  },
+  {
+    title: "Investigator",
+    description:
+      "Analyzes verified reports, documents investigation findings, and submits them to the supervisor of investigator.",
+  },
+  {
+    title: "Director",
+    description:
+      "Provides the final decision to complete the report or return it for further investigation.",
+  },
+  {
+    title: "System Administrator",
+    description:
+      "Creates internal user accounts, manages operational readiness, and supports governance administration.",
+  },
+];
+
+export const processSteps = [
+  "Reporter registers and logs in before creating a report.",
+  "Supervisor of verificator receives the submitted report and delegates it to a verificator.",
+  "Verificator verifies the report and submits the result back to the supervisor of verificator.",
+  "Supervisor of verificator approves the verification or returns it for further work.",
+  "Supervisor of investigator receives an approved verification and delegates it to an investigator.",
+  "Investigator analyzes the verified report and submits the investigation to the supervisor of investigator.",
+  "Supervisor of investigator approves the investigation or returns it to the investigator.",
+  "Director approves report completion or returns the case for further investigation.",
 ];
 
 export const categoryOptions = [
@@ -127,6 +189,23 @@ export const governanceTagOptions = [
   { value: "data-integrity", label: "Data integrity concern" },
 ];
 
+export const confidentialityOptions = [
+  { value: "confidential", label: "Confidential identity" },
+  { value: "identified", label: "Identified reporter" },
+] as const;
+
+export const internalRoleOptions: Array<{
+  value: InternalUserPayload["role"];
+  label: string;
+}> = [
+  { value: "supervisor_of_verificator", label: "Supervisor of Verificator" },
+  { value: "verificator", label: "Verificator" },
+  { value: "supervisor_of_investigator", label: "Supervisor of Investigator" },
+  { value: "investigator", label: "Investigator" },
+  { value: "director", label: "Director" },
+  { value: "system_administrator", label: "System Administrator" },
+];
+
 export const initialSubmissionPayload: SubmissionPayload = {
   title: "",
   category: "procurement",
@@ -135,113 +214,183 @@ export const initialSubmissionPayload: SubmissionPayload = {
   incident_location: "",
   accused_party: "",
   evidence_summary: "",
-  anonymity_level: "anonymous",
-  reporter_name: "",
-  reporter_email: "",
-  reporter_phone: "",
+  confidentiality_level: "confidential",
   requested_follow_up: true,
   witness_available: false,
   governance_tags: [],
 };
 
+export const demoReporterReports: ReporterReportSummary[] = [
+  {
+    id: 1,
+    public_reference: "WBS-2026-0003",
+    tracking_token: "DEMO7788ABCD",
+    title: "Repeated duplicate reimbursement patterns in finance unit",
+    category: "fraud",
+    status: "investigation_in_progress",
+    severity: "high",
+    submitted_at: "2026-03-11T10:00:00.000Z",
+    confidentiality_level: "confidential",
+    case: {
+      case_number: "CASE-2026-0003",
+      stage: "investigation_in_progress",
+      stage_label: "Investigation In Progress",
+      assigned_unit: "Investigation Desk",
+      current_role: "investigator",
+      current_role_label: "Investigator",
+    },
+  },
+];
+
 export const demoTrackingRecord: TrackingRecord = {
   public_reference: "WBS-2026-DEMO",
-  title: "Procurement committee requested unofficial facilitation payment",
+  title: "Request for unofficial payment before vendor evaluation",
   category: "procurement",
   category_label: "Procurement fraud",
-  status: "investigating",
+  status: "investigation_in_progress",
   severity: "high",
   submitted_at: "2026-03-04T08:30:00.000Z",
-  anonymity_level: "confidential",
+  confidentiality_level: "confidential",
   case: {
     case_number: "CASE-2026-DEMO",
-    stage: "investigation",
-    stage_label: "Investigation",
-    assigned_unit: "Anti-Corruption Investigation Desk",
+    stage: "investigation_in_progress",
+    stage_label: "Investigation In Progress",
+    assigned_unit: "Investigation Desk",
     sla_due_at: "2026-03-22T16:00:00.000Z",
   },
   timeline: [
     {
-      stage: "intake",
-      stage_label: "Intake",
+      stage: "submitted",
+      stage_label: "Submitted",
       headline: "Report received",
-      detail: "The disclosure was received and registered for triage.",
+      detail:
+        "The report was received from a registered reporter and routed to the supervisor of verificator.",
       actor_role: "system",
       occurred_at: "2026-03-04T08:30:00.000Z",
     },
     {
-      stage: "assessment",
-      stage_label: "Assessment",
-      headline: "Assessment update",
-      detail: "Initial evidence was reviewed and the case was assigned for formal assessment.",
-      actor_role: "case_manager",
+      stage: "verification_review",
+      stage_label: "Verification Review",
+      headline: "Verification completed",
+      detail:
+        "The report passed verification and progressed to the investigation allocation stage.",
+      actor_role: "supervisor_of_verificator",
       occurred_at: "2026-03-06T09:15:00.000Z",
     },
     {
-      stage: "investigation",
-      stage_label: "Investigation",
-      headline: "Investigation update",
-      detail: "The report advanced into investigation after corroboration checks.",
-      actor_role: "investigator",
+      stage: "investigation_in_progress",
+      stage_label: "Investigation In Progress",
+      headline: "Investigation delegated",
+      detail:
+        "The report is currently being analyzed in the investigation stage.",
+      actor_role: "supervisor_of_investigator",
       occurred_at: "2026-03-08T13:45:00.000Z",
     },
   ],
 };
 
-export const demoInvestigatorCases: InvestigatorCase[] = [
+export const demoWorkflowCases: WorkflowCase[] = [
   {
     id: 1,
     case_number: "CASE-2026-0001",
-    stage: "investigation",
-    stage_label: "Investigation",
-    assigned_to: "Rani Putri",
-    assigned_unit: "Anti-Corruption Investigation Desk",
+    stage: "submitted",
+    stage_label: "Submitted",
+    status: "submitted",
+    current_role: "supervisor_of_verificator",
+    current_role_label: "Supervisor of Verificator",
+    assigned_to: "Sinta Pramudita",
+    assigned_unit: "Verification Supervision",
     severity: "high",
-    status: "investigating",
     public_reference: "WBS-2026-0001",
-    title: "Procurement committee requested unofficial facilitation payment",
+    title: "Request for unofficial payment before vendor evaluation",
     category: "procurement",
     governance_tags: ["procurement", "financial-loss"],
-    escalation_required: false,
-    sla_due_at: "2026-03-22T16:00:00.000Z",
-    last_activity_at: "2026-03-10T09:00:00.000Z",
-    latest_internal_event: "Case moved to Investigation",
+    confidentiality_level: "confidential",
+    reporter: {
+      name: "Laila N",
+      email: "reporter.1@example.test",
+      phone: "+62-812-1000-1001",
+    },
+    workflow: {
+      verification_supervisor: "Sinta Pramudita",
+      verificator: null,
+      investigation_supervisor: "Bagas Santoso",
+      investigator: null,
+      director: "Nadia Prabowo",
+    },
+    sla_due_at: "2026-03-24T10:00:00.000Z",
+    last_activity_at: "2026-03-18T09:00:00.000Z",
+    latest_internal_event: "Report submitted by registered reporter",
+    latest_public_event: "Report received",
+    available_actions: ["delegate_verification"],
   },
   {
     id: 2,
     case_number: "CASE-2026-0002",
-    stage: "escalated",
-    stage_label: "Escalated",
-    assigned_to: "Bagas Santoso",
-    assigned_unit: "Ethics and Protection Desk",
-    severity: "critical",
-    status: "investigating",
+    stage: "verification_review",
+    stage_label: "Verification Review",
+    status: "verification_review",
+    current_role: "supervisor_of_verificator",
+    current_role_label: "Supervisor of Verificator",
+    assigned_to: "Sinta Pramudita",
+    assigned_unit: "Verification Supervision",
+    severity: "medium",
     public_reference: "WBS-2026-0002",
-    title: "Supervisor threatened staff after ethics complaint",
-    category: "retaliation",
-    governance_tags: ["retaliation-risk", "leadership"],
-    escalation_required: true,
-    sla_due_at: "2026-03-20T16:00:00.000Z",
-    last_activity_at: "2026-03-11T11:15:00.000Z",
-    latest_internal_event: "Case moved to Escalated",
+    title: "Possible conflict of interest in evaluation panel",
+    category: "conflict_of_interest",
+    governance_tags: ["conflict-sensitive"],
+    confidentiality_level: "identified",
+    reporter: {
+      name: "Fajar Kurniawan",
+      email: "reporter.2@example.test",
+      phone: "+62-812-1000-1002",
+    },
+    workflow: {
+      verification_supervisor: "Sinta Pramudita",
+      verificator: "Aditya Prakoso",
+      investigation_supervisor: "Bagas Santoso",
+      investigator: null,
+      director: "Nadia Prabowo",
+    },
+    sla_due_at: "2026-03-22T10:00:00.000Z",
+    last_activity_at: "2026-03-19T07:45:00.000Z",
+    latest_internal_event: "Verification submitted to supervisor",
+    latest_public_event: "Verification review update",
+    available_actions: ["review_verification"],
   },
   {
     id: 3,
-    case_number: "CASE-2026-0004",
-    stage: "resolved",
-    stage_label: "Resolved",
-    assigned_to: "Dimas Haryanto",
-    assigned_unit: "Forensic Audit Cell",
+    case_number: "CASE-2026-0003",
+    stage: "investigation_in_progress",
+    stage_label: "Investigation In Progress",
+    status: "investigation_in_progress",
+    current_role: "investigator",
+    current_role_label: "Investigator",
+    assigned_to: "Ayu Wicaksono",
+    assigned_unit: "Investigation Desk",
     severity: "high",
-    status: "resolved",
-    public_reference: "WBS-2026-0004",
-    title: "Repeated duplicate reimbursement claim patterns",
+    public_reference: "WBS-2026-0003",
+    title: "Repeated duplicate reimbursement patterns in finance unit",
     category: "fraud",
     governance_tags: ["financial-loss", "data-integrity"],
-    escalation_required: false,
-    sla_due_at: "2026-03-12T16:00:00.000Z",
-    last_activity_at: "2026-03-12T17:00:00.000Z",
-    latest_internal_event: "Case moved to Resolved",
+    confidentiality_level: "confidential",
+    reporter: {
+      name: "Rina Maharani",
+      email: "reporter.3@example.test",
+      phone: "+62-812-1000-1003",
+    },
+    workflow: {
+      verification_supervisor: "Sinta Pramudita",
+      verificator: "Maya Lestari",
+      investigation_supervisor: "Bagas Santoso",
+      investigator: "Ayu Wicaksono",
+      director: "Nadia Prabowo",
+    },
+    sla_due_at: "2026-03-23T10:00:00.000Z",
+    last_activity_at: "2026-03-18T14:30:00.000Z",
+    latest_internal_event: "Investigation delegated",
+    latest_public_event: "Verification completed",
+    available_actions: ["submit_investigation"],
   },
 ];
 
@@ -249,10 +398,13 @@ export const demoGovernanceDashboard: GovernanceDashboardData = {
   metrics: {
     total_reports: 4,
     open_cases: 3,
-    resolved_cases: 1,
-    anonymous_share: 25,
+    completed_cases: 1,
+    confidential_share: 75,
     overdue_cases: 0,
-    average_triage_hours: 18,
+    average_triage_hours: 12,
+    verification_queue: 2,
+    investigation_queue: 1,
+    director_review_queue: 0,
   },
   risk_distribution: [
     { label: "critical", value: 1 },
@@ -260,66 +412,77 @@ export const demoGovernanceDashboard: GovernanceDashboardData = {
     { label: "medium", value: 1 },
   ],
   status_breakdown: [
-    { label: "assessment", value: 1 },
-    { label: "investigation", value: 1 },
-    { label: "escalated", value: 1 },
-    { label: "resolved", value: 1 },
+    { label: "submitted", value: 1 },
+    { label: "verification_review", value: 1 },
+    { label: "investigation_in_progress", value: 1 },
+    { label: "completed", value: 1 },
   ],
   controls: [
     {
-      code: "ANON-01",
-      name: "Anonymity safeguard",
+      code: "REG-01",
+      name: "Reporter registration control",
       description:
-        "Protect whistleblower identity across intake, tracking, and escalation flows.",
-      owner_role: "Governance Office",
+        "Require reporters to register before submitting a report into the KPK Whistleblowing System.",
+      owner_role: "System Administrator",
       status: "active",
-      target_metric: "100% secure anonymous intake",
-      current_metric: "Enabled by design",
-      notes: "",
+      target_metric: "100% registered reporter submissions",
+      current_metric: "Enforced",
+      notes: "Anonymous public submission is disabled.",
     },
     {
       code: "SEG-02",
       name: "Segregation of duties",
       description:
-        "Separate intake handling from investigation execution and oversight monitoring.",
-      owner_role: "Chief Compliance Officer",
+        "Separate verification supervision, verification work, investigation supervision, and final approval.",
+      owner_role: "Director",
       status: "active",
-      target_metric: "Distinct owners for intake and investigation",
+      target_metric: "Distinct accountable role at each stage",
       current_metric: "Operational",
-      notes: "",
+      notes: "Role ownership is visible on every case.",
     },
     {
       code: "SLA-03",
-      name: "Triage timeliness",
+      name: "Workflow timeliness",
       description:
-        "Monitor elapsed time from intake to assignment and escalation decisions.",
-      owner_role: "Case Management Lead",
+        "Monitor delegation and review timeliness across verification and investigation stages.",
+      owner_role: "Supervisor of Verificator",
       status: "warning",
-      target_metric: "Average triage under 72 hours",
-      current_metric: "18 hours",
-      notes: "",
+      target_metric: "Average first delegation under 72 hours",
+      current_metric: "12 hours",
+      notes: "Dashboard exposes overdue cases and queue volumes.",
+    },
+    {
+      code: "AUD-04",
+      name: "Audit trail completeness",
+      description:
+        "Log report submission, delegation, approval, rejection, and completion events.",
+      owner_role: "System Administrator",
+      status: "active",
+      target_metric: "All workflow actions auditable",
+      current_metric: "Operational",
+      notes: "Recent audit entries are available below.",
     },
   ],
   recent_audit_logs: [
     {
-      action: "case_status_updated",
-      actor_role: "investigator",
-      actor_name: "Rani Putri",
-      happened_at: "2026-03-10T09:00:00.000Z",
-      context: { stage: "investigation", published_update: true },
+      action: "director_approved",
+      actor_role: "director",
+      actor_name: "Nadia Prabowo",
+      happened_at: "2026-03-18T16:00:00.000Z",
+      context: { decision: "approved" },
     },
     {
-      action: "case_assigned",
-      actor_role: "case_manager",
+      action: "investigation_delegated",
+      actor_role: "supervisor_of_investigator",
       actor_name: "Bagas Santoso",
-      happened_at: "2026-03-09T10:30:00.000Z",
-      context: { assigned_unit: "Ethics and Protection Desk", stage: "assessment" },
+      happened_at: "2026-03-18T14:00:00.000Z",
+      context: { assigned_unit: "Investigation Desk" },
     },
     {
       action: "report_submitted",
-      actor_role: "whistleblower",
-      actor_name: "Protected reporter",
-      happened_at: "2026-03-04T08:30:00.000Z",
+      actor_role: "reporter",
+      actor_name: "Laila N",
+      happened_at: "2026-03-18T09:00:00.000Z",
       context: { category: "procurement", severity: "high" },
     },
   ],

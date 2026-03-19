@@ -1,32 +1,45 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
 import { api } from "@/lib/api";
 import { demoGovernanceDashboard } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
+import { isInternalRole } from "@/lib/roles";
 import type { GovernanceDashboardData } from "@/lib/types";
 
 const metricLabels: Record<string, string> = {
   total_reports: "Total reports",
   open_cases: "Open cases",
-  resolved_cases: "Resolved cases",
-  anonymous_share: "Anonymous share",
+  completed_cases: "Completed cases",
+  confidential_share: "Confidential share",
   overdue_cases: "Overdue cases",
   average_triage_hours: "Avg triage hours",
+  verification_queue: "Verification queue",
+  investigation_queue: "Investigation queue",
+  director_review_queue: "Director review queue",
 };
 
 export function GovernanceDashboard() {
+  const { isReady, isAuthenticated, token, user } = useAuth();
   const [dashboard, setDashboard] =
     useState<GovernanceDashboardData>(demoGovernanceDashboard);
   const [usingFallback, setUsingFallback] = useState(true);
 
+  const isInternalUser = isInternalRole(user?.role);
+
   useEffect(() => {
+    if (!token || !isInternalUser) {
+      return;
+    }
+
     let active = true;
 
     const load = async () => {
       try {
-        const data = await api.fetchGovernanceDashboard();
+        const data = await api.fetchGovernanceDashboard(token);
 
         if (active) {
           setDashboard(data);
@@ -45,7 +58,45 @@ export function GovernanceDashboard() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [token, isInternalUser]);
+
+  if (!isReady) {
+    return (
+      <div className="panel rounded-[2rem] p-8">
+        <p className="text-sm text-[var(--muted)]">Loading governance session.</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !isInternalUser) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="panel rounded-[2rem] p-8">
+          <p className="eyebrow">Restricted Oversight</p>
+          <h2 className="mt-4 text-3xl">Internal role access required</h2>
+          <p className="muted mt-4 text-sm leading-7">
+            Governance analytics are restricted to internal KPK workflow roles.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/login"
+              className="rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-white"
+            >
+              Login
+            </Link>
+          </div>
+        </div>
+        <aside className="panel rounded-[2rem] p-8">
+          <p className="eyebrow">Oversight Scope</p>
+          <ul className="mt-4 space-y-4 text-sm leading-7 text-[var(--muted)]">
+            <li>The dashboard summarizes queue pressure, confidentiality posture, and timeliness.</li>
+            <li>Recent audit events expose operational evidence for governance analysis.</li>
+            <li>Reporter accounts do not have access to internal governance metrics.</li>
+          </ul>
+        </aside>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -60,7 +111,7 @@ export function GovernanceDashboard() {
           <article key={key} className="panel rounded-[1.6rem] p-6">
             <p className="eyebrow">{metricLabels[key] ?? key}</p>
             <p className="metric-value mt-4">
-              {key === "anonymous_share" ? `${value}%` : value}
+              {key === "confidential_share" ? `${value}%` : value}
             </p>
           </article>
         ))}
@@ -100,12 +151,8 @@ export function GovernanceDashboard() {
         </div>
 
         <div className="panel rounded-[2rem] p-7">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="eyebrow">Governance Controls</p>
-              <h2 className="mt-3 text-3xl">Operationalised oversight checks</h2>
-            </div>
-          </div>
+          <p className="eyebrow">Governance Controls</p>
+          <h2 className="mt-3 text-3xl">Operationalized control statements</h2>
           <div className="mt-6 grid gap-4">
             {dashboard.controls.map((control) => (
               <article
@@ -161,7 +208,7 @@ export function GovernanceDashboard() {
                 </p>
               </div>
               <p className="mt-4 text-lg">
-                {log.actor_name} · {log.actor_role}
+                {log.actor_name ?? "System"} · {log.actor_role}
               </p>
               <p className="muted mt-3 text-sm leading-7">
                 {Object.entries(log.context)

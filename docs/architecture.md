@@ -2,59 +2,80 @@
 
 ## Thesis Orientation
 
-This prototype frames whistleblowing as a governance capability rather than only a complaint form. The architecture therefore emphasises:
+This prototype treats whistleblowing as a governance capability rather than a standalone submission form. The architecture therefore emphasizes:
 
-- confidentiality and controlled disclosure
+- reporter registration before intake
+- confidentiality with controlled public disclosure
+- segregation of duties across verification, investigation, and approval
 - traceability through audit events
-- segregation of duties between intake, investigation, and oversight
-- measurable governance controls and SLA posture
+- measurable governance controls and queue metrics
 
 ## Modular Structure
 
 ```mermaid
 flowchart LR
-    A["Reporter / Investigator / Governance User"] --> B["Next.js Frontend"]
+    A["Reporter / Internal Role"] --> B["Next.js Frontend"]
     B --> C["Laravel Backend API"]
     C --> D["PostgreSQL"]
-    C --> E["Redis (optional)"]
+    C --> E["Redis (Optional)"]
 ```
 
 ## Frontend Modules
 
-- submission journey for protected intake
-- public case tracking with reference and token
-- investigator workspace for queue visibility
-- governance dashboard for control monitoring
+- reporter registration and login
+- reporter submission workspace
+- public tracking workspace
+- internal workflow workspace
+- governance dashboard
+- system administrator workspace
 
 ## Backend Modules
 
-- report intake and validation
-- case workflow orchestration
-- governance control catalogue
-- audit logging
-- dashboard aggregation and metrics
+- authentication and role enforcement
+- report intake with authenticated reporter ownership
+- workflow orchestration for verification and investigation
+- director approval routing
+- user provisioning for internal roles
+- audit logging and governance metrics
+
+## KPK Role-Based Process Modeled
+
+```mermaid
+flowchart TD
+    A["Reporter Registers and Logs In"] --> B["Reporter Submits Report"]
+    B --> C["Supervisor of Verificator Receives Report"]
+    C --> D["Delegate to Verificator"]
+    D --> E["Verificator Verifies Report"]
+    E --> F["Supervisor of Verificator Reviews"]
+    F -->|Approved| G["Supervisor of Investigator Receives Verified Report"]
+    F -->|Rejected| E
+    G --> H["Delegate to Investigator"]
+    H --> I["Investigator Analyzes Report"]
+    I --> J["Supervisor of Investigator Reviews"]
+    J -->|Approved| K["Director Reviews"]
+    J -->|Rejected| I
+    K -->|Approved| L["Report Completed"]
+    K -->|Rejected| I
+```
 
 ## Core Data Objects
 
-- `reports`: public reference, tracking token, allegation details, severity, status
-- `case_files`: internal case ownership, stage, SLA, escalation state
-- `case_timeline_events`: public and internal timeline entries
-- `audit_logs`: immutable-style workflow event log
-- `governance_controls`: control catalogue for dashboard visibility
+- `users`: reporter and internal role accounts
+- `reports`: reporter-owned allegations, public reference, tracking token, severity, status
+- `case_files`: internal workflow routing, current role, assignments, SLA, and completion state
+- `case_timeline_events`: public and internal timeline events
+- `audit_logs`: workflow evidence for submission, delegation, approval, rejection, and completion
+- `governance_controls`: explicit governance control catalogue for dashboard reporting
+- `personal_access_tokens`: bearer tokens for authenticated API use
 
 ## Governance Controls Represented
 
-- anonymity safeguard
+- reporter registration control
+- confidentiality handling
 - segregation of duties
-- triage timeliness
+- workflow timeliness
 - audit trail completeness
 
-## KPK-Inspired Elements
+## Infrastructure Position
 
-The prototype borrows the public-facing pattern of:
-
-- direct report submission
-- reference-based tracking
-- a serious institutional tone for integrity reporting
-
-It then adds thesis-specific governance views and modular boundaries that are not just presentational.
+The operational database runs on local PostgreSQL to support thesis analysis directly from the host environment. Docker is retained only for optional services such as Redis.

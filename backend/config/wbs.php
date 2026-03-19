@@ -1,6 +1,23 @@
 <?php
 
 return [
+    'roles' => [
+        'reporter' => 'Reporter',
+        'supervisor_of_verificator' => 'Supervisor of Verificator',
+        'verificator' => 'Verificator',
+        'supervisor_of_investigator' => 'Supervisor of Investigator',
+        'investigator' => 'Investigator',
+        'director' => 'Director',
+        'system_administrator' => 'System Administrator',
+    ],
+    'internal_roles' => [
+        'supervisor_of_verificator',
+        'verificator',
+        'supervisor_of_investigator',
+        'investigator',
+        'director',
+        'system_administrator',
+    ],
     'categories' => [
         'bribery' => 'Bribery and gratuities',
         'procurement' => 'Procurement fraud',
@@ -19,18 +36,24 @@ return [
         'financial-loss' => 'Potential financial loss',
         'data-integrity' => 'Data integrity concern',
     ],
+    'confidentiality_levels' => [
+        'confidential' => 'Confidential identity',
+        'identified' => 'Identified reporter',
+    ],
     'case_stages' => [
-        'intake' => 'Intake',
-        'assessment' => 'Assessment',
-        'investigation' => 'Investigation',
-        'escalated' => 'Escalated',
-        'resolved' => 'Resolved',
-        'closed' => 'Closed',
+        'submitted' => 'Submitted',
+        'verification_in_progress' => 'Verification In Progress',
+        'verification_review' => 'Verification Review',
+        'verified' => 'Verified',
+        'investigation_in_progress' => 'Investigation In Progress',
+        'investigation_review' => 'Investigation Review',
+        'director_review' => 'Director Review',
+        'completed' => 'Completed',
     ],
     'governance_principles' => [
-        'confidentiality' => 'Preserve whistleblower confidentiality by default.',
-        'traceability' => 'Record every case transition and governance intervention.',
-        'segregation' => 'Separate intake, investigation, and oversight responsibilities.',
-        'timeliness' => 'Track SLAs for triage, escalation, and closure.',
+        'confidentiality' => 'Require registered reporters while preserving confidential identity handling in the workflow.',
+        'traceability' => 'Record every delegation, approval, rejection, and completion as audit evidence.',
+        'segregation' => 'Separate reporting, verification, investigation, direction, and administration duties by role.',
+        'timeliness' => 'Track SLAs across verification, investigation, and director review.',
     ],
 ];

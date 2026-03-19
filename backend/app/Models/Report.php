@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Report extends Model
 {
     protected $fillable = [
+        'reporter_user_id',
         'uuid',
         'public_reference',
         'tracking_token',
@@ -42,6 +44,11 @@ class Report extends Model
             'submitted_at' => 'datetime',
             'last_public_update_at' => 'datetime',
         ];
+    }
+
+    public function reporter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reporter_user_id');
     }
 
     public function caseFile(): HasOne

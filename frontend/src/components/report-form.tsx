@@ -1,41 +1,64 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { api } from "@/lib/api";
+import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
+import { useAuth } from "@/components/auth-provider";
 import {
   categoryOptions,
+  confidentialityOptions,
+  demoReporterReports,
   governanceTagOptions,
   initialSubmissionPayload,
 } from "@/lib/demo-data";
-import type { SubmissionPayload, SubmissionReceipt } from "@/lib/types";
-
-function buildFallbackReceipt(form: SubmissionPayload): SubmissionReceipt {
-  const year = new Date().getFullYear();
-  const suffix = `${Math.floor(Math.random() * 9000) + 1000}`;
-
-  return {
-    public_reference: `WBS-${year}-${suffix}`,
-    tracking_token: `TRACK${Math.floor(Math.random() * 900000 + 100000)}`,
-    case_number: `CASE-${year}-${suffix}`,
-    status: "submitted",
-    severity:
-      form.category === "bribery" || form.category === "procurement"
-        ? "high"
-        : "medium",
-    submitted_at: new Date().toISOString(),
-    next_steps: [
-      "This is a temporary receipt because the backend service could not be reached.",
-      "Keep the reference and token to explore the tracking screen.",
-      "Start the Laravel API to receive persistent case numbers.",
-    ],
-  };
-}
+import { api } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
+import { isReporter } from "@/lib/roles";
+import type {
+  ReporterReportSummary,
+  SubmissionPayload,
+  SubmissionReceipt,
+} from "@/lib/types";
 
 export function ReportForm() {
+  const { isReady, isAuthenticated, token, user } = useAuth();
   const [form, setForm] = useState<SubmissionPayload>(initialSubmissionPayload);
   const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [reports, setReports] = useState<ReporterReportSummary[]>([]);
+  const [usingFallback, setUsingFallback] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const isReporterUser = isReporter(user?.role);
+
+  useEffect(() => {
+    if (!token || !isReporterUser) {
+      return;
+    }
+
+    let active = true;
+
+    const loadReports = async () => {
+      try {
+        const data = await api.listReporterReports(token);
+
+        if (active) {
+          setReports(data);
+          setUsingFallback(false);
+        }
+      } catch {
+        if (active) {
+          setReports(demoReporterReports);
+          setUsingFallback(true);
+        }
+      }
+    };
+
+    loadReports();
+
+    return () => {
+      active = false;
+    };
+  }, [token, isReporterUser, receipt]);
 
   const updateField = <K extends keyof SubmissionPayload>(
     field: K,
@@ -57,25 +80,100 @@ export function ReportForm() {
     event.preventDefault();
     setFeedback(null);
 
+    if (!token) {
+      setFeedback("You must be logged in as a reporter before submitting a report.");
+
+      return;
+    }
+
     startTransition(async () => {
       try {
-        const data = await api.submitReport(form);
+        const data = await api.submitReport(token, form);
         setReceipt(data);
+        setForm(initialSubmissionPayload);
+        setFeedback("Report submitted successfully.");
       } catch (error) {
-        setReceipt(buildFallbackReceipt(form));
         setFeedback(
           error instanceof Error
-            ? `${error.message} Showing a temporary local receipt.`
-            : "The API is unavailable. Showing a temporary local receipt.",
+            ? error.message
+            : "The report could not be submitted.",
         );
       }
     });
   };
 
+  if (!isReady) {
+    return (
+      <div className="panel rounded-[2rem] p-8">
+        <p className="text-sm text-[var(--muted)]">Loading reporter session.</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !isReporterUser || !user) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="panel rounded-[2rem] p-8">
+          <p className="eyebrow">Reporter Access Required</p>
+          <h2 className="mt-4 text-3xl">Register before submitting a report</h2>
+          <p className="muted mt-4 max-w-2xl text-sm leading-7">
+            In this prototype, the reporter must register and log in before a report can be submitted.
+            Internal roles are created separately by the system administrator and cannot self-register.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/register"
+              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
+            >
+              Reporter registration
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-full border border-[var(--panel-border)] bg-white px-5 py-3 text-sm font-semibold"
+            >
+              Login
+            </Link>
+          </div>
+        </div>
+
+        <aside className="panel rounded-[2rem] p-8">
+          <p className="eyebrow">Submission Rules</p>
+          <ul className="mt-4 space-y-4 text-sm leading-7 text-[var(--muted)]">
+            <li>Reporter identity is established through registration before report intake.</li>
+            <li>Confidential or identified reporting modes remain available after login.</li>
+            <li>Public tracking still uses the reference and token pair returned after submission.</li>
+          </ul>
+        </aside>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+    <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
       <form className="panel rounded-[2rem] p-7 sm:p-8" onSubmit={handleSubmit}>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="rounded-[1.5rem] border border-[var(--panel-border)] bg-white/70 p-5">
+          <p className="eyebrow">Reporter Identity</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Name</p>
+              <p className="mt-2 text-sm">{user.name}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Email</p>
+              <p className="mt-2 text-sm">{user.email}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Phone</p>
+              <p className="mt-2 text-sm">{user.phone}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Role</p>
+              <p className="mt-2 text-sm">{user.role_label}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
           <label className="block">
             <span className="mb-2 block text-sm font-semibold">Report title</span>
             <input
@@ -108,7 +206,7 @@ export function ReportForm() {
               className="field min-h-40"
               value={form.description}
               onChange={(event) => updateField("description", event.target.value)}
-              placeholder="Describe the incident, who was involved, what happened, and why it matters."
+              placeholder="Describe the incident, involved parties, chronology, and governance impact."
               required
             />
           </label>
@@ -128,9 +226,7 @@ export function ReportForm() {
             <input
               className="field"
               value={form.incident_location}
-              onChange={(event) =>
-                updateField("incident_location", event.target.value)
-              }
+              onChange={(event) => updateField("incident_location", event.target.value)}
               placeholder="Office, unit, or process stage"
             />
           </label>
@@ -146,68 +242,35 @@ export function ReportForm() {
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold">
-              Evidence summary
-            </span>
+            <span className="mb-2 block text-sm font-semibold">Evidence summary</span>
             <input
               className="field"
               value={form.evidence_summary}
-              onChange={(event) =>
-                updateField("evidence_summary", event.target.value)
-              }
-              placeholder="Documents, logs, screenshots, witnesses"
+              onChange={(event) => updateField("evidence_summary", event.target.value)}
+              placeholder="Documents, witnesses, screenshots, logs"
             />
           </label>
         </div>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold">Disclosure mode</span>
+            <span className="mb-2 block text-sm font-semibold">Confidentiality level</span>
             <select
               className="field"
-              value={form.anonymity_level}
+              value={form.confidentiality_level}
               onChange={(event) =>
                 updateField(
-                  "anonymity_level",
-                  event.target.value as SubmissionPayload["anonymity_level"],
+                  "confidentiality_level",
+                  event.target.value as SubmissionPayload["confidentiality_level"],
                 )
               }
             >
-              <option value="anonymous">Anonymous</option>
-              <option value="confidential">Confidential</option>
-              <option value="identified">Identified</option>
+              {confidentialityOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">Reporter name</span>
-            <input
-              className="field"
-              value={form.reporter_name}
-              onChange={(event) => updateField("reporter_name", event.target.value)}
-              placeholder="Optional unless identified"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">Reporter email</span>
-            <input
-              className="field"
-              type="email"
-              value={form.reporter_email}
-              onChange={(event) => updateField("reporter_email", event.target.value)}
-              placeholder="For protected follow-up"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">Reporter phone</span>
-            <input
-              className="field"
-              value={form.reporter_phone}
-              onChange={(event) => updateField("reporter_phone", event.target.value)}
-              placeholder="Optional"
-            />
           </label>
         </div>
 
@@ -255,9 +318,21 @@ export function ReportForm() {
                 updateField("requested_follow_up", event.target.checked)
               }
             />
-            I want follow-up through protected channels
+            I want protected follow-up
           </label>
         </div>
+
+        {feedback ? (
+          <p
+            className={`mt-6 rounded-2xl px-4 py-3 text-sm ${
+              feedback.includes("successfully")
+                ? "bg-emerald-100 text-emerald-900"
+                : "bg-amber-100 text-amber-900"
+            }`}
+          >
+            {feedback}
+          </p>
+        ) : null}
 
         <div className="mt-8 flex flex-wrap gap-4">
           <button
@@ -265,32 +340,17 @@ export function ReportForm() {
             disabled={isPending}
             className="rounded-full bg-[var(--foreground)] px-5 py-3 text-sm font-semibold text-[var(--background)] transition hover:opacity-90 disabled:opacity-60"
           >
-            {isPending ? "Submitting..." : "Submit disclosure"}
+            {isPending ? "Submitting..." : "Submit report"}
           </button>
           <p className="muted max-w-xl text-sm leading-7">
-            The form sends data to the Laravel API when available and falls back
-            to a temporary local receipt otherwise.
+            The report is sent directly to the Laravel backend and will be routed first to the supervisor of verificator.
           </p>
         </div>
       </form>
 
       <aside className="space-y-6">
         <div className="panel rounded-[2rem] p-7">
-          <p className="eyebrow">Intake Guarantees</p>
-          <ul className="mt-4 space-y-4 text-sm leading-7 text-[var(--muted)]">
-            <li>Every submission receives a case reference and tracking token.</li>
-            <li>Governance tags help prioritise retaliation, procurement, and data risks.</li>
-            <li>Only public-safe milestones are exposed to the reporter later.</li>
-          </ul>
-        </div>
-
-        <div className="panel rounded-[2rem] p-7">
-          <p className="eyebrow">Receipt</p>
-          {feedback ? (
-            <p className="mt-4 rounded-2xl bg-amber-100 px-4 py-3 text-sm text-amber-900">
-              {feedback}
-            </p>
-          ) : null}
+          <p className="eyebrow">Submission Outcome</p>
           {receipt ? (
             <div className="mt-4 space-y-4">
               <div className="rounded-[1.4rem] bg-[var(--surface-soft)]/70 p-5">
@@ -318,10 +378,47 @@ export function ReportForm() {
             </div>
           ) : (
             <p className="muted mt-4 text-sm leading-7">
-              Submit the form to receive the reference and token pair used by the
-              tracking screen.
+              Once submitted, the system will return a public reference and tracking token for future tracking.
             </p>
           )}
+        </div>
+
+        <div className="panel rounded-[2rem] p-7">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="eyebrow">My Reports</p>
+              <p className="muted mt-3 text-sm leading-7">
+                Recent reports submitted from this reporter account.
+              </p>
+            </div>
+            {usingFallback ? (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-900">
+                Seeded
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-5 space-y-4">
+            {reports.length > 0 ? (
+              reports.map((report) => (
+                <article
+                  key={report.public_reference}
+                  className="rounded-[1.4rem] border border-[var(--panel-border)] bg-white/60 p-5"
+                >
+                  <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                    {report.public_reference}
+                  </p>
+                  <h3 className="mt-2 text-xl">{report.title}</h3>
+                  <p className="muted mt-3 text-sm leading-7">
+                    {report.case.stage_label ?? "Submitted"} · {formatDateTime(report.submitted_at)}
+                  </p>
+                </article>
+              ))
+            ) : (
+              <p className="muted text-sm leading-7">
+                No reports have been submitted from this account yet.
+              </p>
+            )}
+          </div>
         </div>
       </aside>
     </div>
