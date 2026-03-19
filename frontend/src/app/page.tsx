@@ -16,8 +16,8 @@ export default function Home() {
         <div className="space-y-6">
           <p className="eyebrow">Official Integrity Portal</p>
           <h1 className="max-w-4xl text-[clamp(3.3rem,8vw,6.4rem)]">
-            The Guardian&apos;s Archive:
-            <span className="block text-[var(--primary)]">Governed Confidentiality.</span>
+            KPK
+            <span className="block text-[var(--primary)]">Whistleblowing</span> System
           </h1>
           <p className="max-w-2xl text-xl leading-9 text-[var(--muted)]">
             A governance-oriented whistleblowing prototype aligned to the KPK business process,
@@ -33,22 +33,80 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative min-h-[420px] overflow-hidden rounded-[1.2rem] border border-[var(--panel-border)] bg-[linear-gradient(180deg,rgba(216,203,192,0.8),rgba(239,47,39,0.18))]">
+        <div className="relative overflow-hidden rounded-[1.2rem] border border-[var(--panel-border)] bg-[linear-gradient(180deg,rgba(216,203,192,0.8),rgba(239,47,39,0.18))] p-6 sm:p-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.62),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.24),transparent_48%)]" />
-          <div className="absolute right-8 top-8 max-w-[15rem] rounded-[0.8rem] bg-white/84 px-5 py-4 shadow-[0_20px_40px_rgba(19,19,19,0.08)]">
-            <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--primary)]">
-              Confidential Access
-            </p>
-            <p className="mt-3 text-5xl font-black leading-none">7</p>
-            <p className="mt-2 text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
-              Role-separated actors in the adjusted process
-            </p>
-          </div>
-          <div className="absolute bottom-8 left-8 max-w-[18rem] rounded-[0.9rem] border-l-[3px] border-[var(--secondary)] bg-white/94 px-6 py-5 shadow-[0_24px_50px_rgba(19,19,19,0.12)]">
-            <p className="text-5xl font-black leading-none">100%</p>
-            <p className="mt-2 font-mono text-[0.66rem] uppercase tracking-[0.24em] text-[var(--muted)]">
-              Registered reporter gate enforced before submission
-            </p>
+          <div className="relative grid min-h-[360px] gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:grid-rows-[auto_1fr_auto]">
+            <div className="lg:col-start-2 lg:row-start-1 lg:justify-self-end">
+              <div className="max-w-[15rem] rounded-[0.8rem] bg-white/90 px-5 py-4 shadow-[0_20px_40px_rgba(19,19,19,0.08)]">
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--primary)]">
+                  Confidential Access
+                </p>
+                <p className="mt-3 text-5xl font-black leading-none">7</p>
+                <p className="mt-2 text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Role-separated actors in the adjusted process
+                </p>
+              </div>
+            </div>
+
+            <div className="lg:col-start-1 lg:row-start-2">
+              <div className="rounded-[1rem] border border-white/55 bg-white/68 p-6 shadow-[0_18px_36px_rgba(19,19,19,0.06)] backdrop-blur-[2px]">
+                <p className="eyebrow">Governed Intake</p>
+                <h2 className="mt-3 text-4xl">Registered filing and controlled case routing</h2>
+                <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--muted)]">
+                  Reporter onboarding, supervisor delegation, and public-safe milestone disclosure are treated as explicit control points instead of incidental interface steps.
+                </p>
+                <div className="mt-6 space-y-3">
+                  {[
+                    "Reporter registration required before submission",
+                    "Verification and investigation roles remain segregated",
+                    "Tracking view exposes only approved public milestones",
+                  ].map((item, index) => (
+                    <div
+                      key={item}
+                      className="grid grid-cols-[auto_1fr] items-start gap-3 rounded-[0.7rem] border border-[rgba(19,19,19,0.06)] bg-white/72 px-4 py-3"
+                    >
+                      <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-[0.35rem] bg-[var(--primary)] font-mono text-[0.65rem] font-bold text-white">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <p className="text-sm leading-6 text-[var(--foreground)]">{item}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-start-2 lg:row-start-2 lg:self-end">
+              <div className="dark-card rounded-[1rem] border border-white/8 p-5">
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary)]">
+                  Process Controls
+                </p>
+                <div className="mt-4 space-y-3">
+                  {[
+                    "Registration gate",
+                    "Supervisor delegation",
+                    "Role-owned review",
+                    "Audit evidence",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-center justify-between gap-4 border-b border-white/10 pb-3 last:border-b-0 last:pb-0"
+                    >
+                      <p className="text-sm text-white/84">{item}</p>
+                      <span className="h-2.5 w-2.5 rounded-full bg-[var(--secondary)]" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-start-1 lg:row-start-3 lg:self-end">
+              <div className="max-w-[20rem] rounded-[0.9rem] border-l-[3px] border-[var(--secondary)] bg-white/94 px-6 py-5 shadow-[0_24px_50px_rgba(19,19,19,0.12)]">
+                <p className="text-5xl font-black leading-none">100%</p>
+                <p className="mt-2 font-mono text-[0.66rem] uppercase tracking-[0.24em] text-[var(--muted)]">
+                  Registered reporter gate enforced before submission
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
