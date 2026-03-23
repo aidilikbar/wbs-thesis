@@ -200,3 +200,4 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 - [`frontend/README.md`](frontend/README.md)
 - [`docs/architecture.md`](docs/architecture.md)
 - [`docs/api.md`](docs/api.md)
+- [`docs/account-test-cases.md`](docs/account-test-cases.md)
