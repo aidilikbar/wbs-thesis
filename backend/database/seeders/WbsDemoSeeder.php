@@ -417,34 +417,18 @@ class WbsDemoSeeder extends Seeder
                     $governanceTags,
                     $faker->numberBetween(0, 2)
                 );
+                $payload = $this->buildAdditionalTransactionPayload(
+                    $category,
+                    $selectedTags,
+                    $sequence,
+                    $faker,
+                );
 
                 $result = $workflow->submitReport($users[$reporterKey], [
-                    'title' => sprintf(
-                        '%s report batch %02d',
-                        str($category)->replace('_', ' ')->headline(),
-                        $sequence
-                    ),
-                    'category' => $category,
-                    'description' => sprintf(
-                        'Reporter %s filed additional enterprise-scale test transaction %02d concerning %s, with enough chronology and operational detail to exercise reporter search, pagination, and status handling.',
-                        $users[$reporterKey]->name,
-                        $sequence,
-                        str($category)->replace('_', ' ')
-                    ),
-                    'incident_date' => now()->subDays($faker->numberBetween(3, 90))->toDateString(),
-                    'incident_location' => $faker->randomElement([
-                        'Regional Office',
-                        'Finance Directorate',
-                        'Procurement Unit',
-                        'Head Office',
-                        'Integrity Monitoring Desk',
-                    ]),
-                    'accused_party' => $faker->jobTitle(),
-                    'evidence_summary' => $faker->sentence(14),
+                    ...$payload,
                     'confidentiality_level' => $faker->randomElement(['anonymous', 'identified']),
                     'requested_follow_up' => $faker->boolean(70),
                     'witness_available' => $faker->boolean(50),
-                    'governance_tags' => array_values($selectedTags),
                 ]);
 
                 $this->advanceSeededCaseToStatus(
@@ -570,6 +554,266 @@ class WbsDemoSeeder extends Seeder
                 'publish_update' => false,
             ]
         );
+    }
+
+    private function buildAdditionalTransactionPayload(
+        string $category,
+        array $selectedTags,
+        int $sequence,
+        \Faker\Generator $faker,
+    ): array {
+        $office = $faker->randomElement([
+            'Jakarta Head Office',
+            'Bandung Regional Office',
+            'Surabaya Regional Office',
+            'Makassar Coordination Office',
+            'Yogyakarta Service Unit',
+        ]);
+        $month = $faker->randomElement([
+            'January 2026',
+            'February 2026',
+            'March 2026',
+            'April 2026',
+            'May 2026',
+        ]);
+        $templates = $this->additionalTransactionTemplates();
+        $template = $templates[$category][($sequence - 1) % count($templates[$category])];
+        $governanceTags = array_values(array_unique([
+            ...($template['governance_tags'] ?? []),
+            ...$selectedTags,
+        ]));
+
+        return [
+            'title' => $template['title'],
+            'category' => $category,
+            'description' => sprintf(
+                $template['description'],
+                $office,
+                $month,
+            ),
+            'incident_date' => now()->subDays($faker->numberBetween(3, 90))->toDateString(),
+            'incident_location' => $template['incident_location'] ?? $office,
+            'accused_party' => $template['accused_party'],
+            'evidence_summary' => sprintf(
+                $template['evidence_summary'],
+                $month,
+            ),
+            'governance_tags' => array_slice($governanceTags, 0, 3),
+        ];
+    }
+
+    private function additionalTransactionTemplates(): array
+    {
+        return [
+            'bribery' => [
+                [
+                    'title' => 'Request for facilitation payment before inspection report issuance',
+                    'description' => 'A field officer in %s allegedly asked the reporting party to transfer money before an inspection report would be signed off. The request was repeated during follow-up calls in %s and was framed as a way to accelerate administrative clearance.',
+                    'incident_location' => 'Field Inspection Unit',
+                    'accused_party' => 'Inspection Officer',
+                    'evidence_summary' => 'Available evidence includes call logs, chat screenshots, and a handwritten payment note dated %s.',
+                    'governance_tags' => ['leadership'],
+                ],
+                [
+                    'title' => 'Cash payment requested before monitoring visit findings were closed',
+                    'description' => 'During a compliance monitoring process in %s, the reporter was told that adverse findings would be removed if a cash payment was provided through an intermediary. The request was communicated verbally and then repeated over messaging in %s.',
+                    'incident_location' => 'Compliance Monitoring Desk',
+                    'accused_party' => 'Monitoring Coordinator',
+                    'evidence_summary' => 'Supporting material includes screenshots of the intermediary conversation, meeting schedules, and a timeline of the monitoring visit from %s.',
+                    'governance_tags' => ['financial-loss'],
+                ],
+                [
+                    'title' => 'Unofficial fee requested to release permit recommendation letter',
+                    'description' => 'An administrative officer in %s allegedly delayed release of a recommendation letter until an unofficial fee was paid. The reporter states that the payment request was described as a routine cost even though it was not reflected in any official tariff document in %s.',
+                    'incident_location' => 'Permit Recommendation Service',
+                    'accused_party' => 'Administrative Officer',
+                    'evidence_summary' => 'Evidence consists of service receipts, tariff guidance, and message exchanges documenting the unofficial fee request in %s.',
+                    'governance_tags' => ['procurement'],
+                ],
+            ],
+            'procurement' => [
+                [
+                    'title' => 'Tender committee directed scoring adjustments for a preferred vendor',
+                    'description' => 'Members of a procurement committee in %s allegedly revised evaluation scoring after the technical review had closed so that a preferred vendor would move into first rank. The reporting party observed the score changes and preserved the before-and-after worksheets used in %s.',
+                    'incident_location' => 'Procurement Evaluation Room',
+                    'accused_party' => 'Tender Committee Member',
+                    'evidence_summary' => 'Evidence includes comparative scoring sheets, committee attendance records, and emails discussing the revised ranking in %s.',
+                    'governance_tags' => ['procurement', 'financial-loss'],
+                ],
+                [
+                    'title' => 'Procurement packages split to stay below approval threshold',
+                    'description' => 'The reporter observed a recurring pattern in %s where related procurement needs were divided into smaller packages so they would remain below the approval threshold for a higher-level review. The package descriptions and delivery windows matched closely across purchases logged in %s.',
+                    'incident_location' => 'Budget Planning and Procurement Unit',
+                    'accused_party' => 'Procurement Planning Official',
+                    'evidence_summary' => 'Supporting evidence includes purchase orders, vendor comparison files, and package summaries from %s showing repeated splitting patterns.',
+                    'governance_tags' => ['procurement', 'data-integrity'],
+                ],
+                [
+                    'title' => 'Contract handover delayed until supplier agreed to informal payment',
+                    'description' => 'A supplier dealing with %s reported that the final contract handover would not be scheduled unless an informal payment was provided to an official associated with the tender secretariat. The same demand was repeated shortly before the signing window in %s.',
+                    'incident_location' => 'Tender Secretariat',
+                    'accused_party' => 'Tender Secretariat Officer',
+                    'evidence_summary' => 'The record contains meeting invitations, vendor correspondence, and notes from the supplier discussion held in %s.',
+                    'governance_tags' => ['procurement'],
+                ],
+            ],
+            'fraud' => [
+                [
+                    'title' => 'Duplicate reimbursement entries recorded under different voucher numbers',
+                    'description' => 'Finance staff in %s identified reimbursement claims that appeared twice under different voucher numbers but with identical supporting narratives and amounts. The duplication was noticed during a reconciliation exercise covering transactions from %s.',
+                    'incident_location' => 'Finance Reconciliation Unit',
+                    'accused_party' => 'Finance Supervisor',
+                    'evidence_summary' => 'Supporting material includes reimbursement ledgers, voucher scans, and reconciliation notes prepared during %s.',
+                    'governance_tags' => ['financial-loss', 'data-integrity'],
+                ],
+                [
+                    'title' => 'Maintenance invoices submitted for work not performed on site',
+                    'description' => 'The reporter states that facility maintenance invoices approved in %s do not match actual work performed at the site. Field conditions remained unchanged despite full payment approval, and follow-up inquiries during %s were not answered satisfactorily.',
+                    'incident_location' => 'Facilities Management Unit',
+                    'accused_party' => 'Project Accountant',
+                    'evidence_summary' => 'Evidence includes invoice copies, photo documentation of the site condition, and work-order records covering %s.',
+                    'governance_tags' => ['financial-loss'],
+                ],
+                [
+                    'title' => 'Honorarium list contains names of personnel not assigned to the activity',
+                    'description' => 'An honorarium payment list processed in %s allegedly included several names of personnel who were not present and had not been assigned to the related activity. The discrepancy became visible after attendance sheets were cross-checked against payroll support files in %s.',
+                    'incident_location' => 'Program Finance Desk',
+                    'accused_party' => 'Program Treasurer',
+                    'evidence_summary' => 'The supporting file bundle includes attendance sheets, payment recaps, and assignment letters reviewed for %s.',
+                    'governance_tags' => ['financial-loss', 'data-integrity'],
+                ],
+            ],
+            'abuse_of_authority' => [
+                [
+                    'title' => 'Supervisor instructed staff to backdate approval memorandum',
+                    'description' => 'A unit supervisor in %s allegedly ordered subordinates to backdate an approval memorandum so that a late transaction would appear compliant with deadline requirements. The instruction was given after the document had already been questioned during %s.',
+                    'incident_location' => 'Administrative Control Unit',
+                    'accused_party' => 'Unit Supervisor',
+                    'evidence_summary' => 'Available evidence includes draft memoranda, tracked document revisions, and chat messages referring to the backdating request in %s.',
+                    'governance_tags' => ['leadership', 'data-integrity'],
+                ],
+                [
+                    'title' => 'Official vehicle and budget used for private family travel',
+                    'description' => 'The reporter observed that an official vehicle assigned in %s was repeatedly used for private family travel while fuel and driver allowances continued to be charged to the office budget. The trips took place during %s outside the approved operational schedule.',
+                    'incident_location' => 'General Affairs Unit',
+                    'accused_party' => 'Division Head',
+                    'evidence_summary' => 'Evidence consists of vehicle logs, fuel purchase slips, and security gate records covering %s.',
+                    'governance_tags' => ['leadership', 'financial-loss'],
+                ],
+                [
+                    'title' => 'Access rights removed from staff who questioned procurement irregularities',
+                    'description' => 'After staff raised concerns about irregular procurement documents in %s, a manager allegedly removed their access to the shared evaluation drive without formal justification. The restriction occurred during %s and appears to have impeded ordinary review duties.',
+                    'incident_location' => 'Digital Records Administration',
+                    'accused_party' => 'Information Systems Manager',
+                    'evidence_summary' => 'Supporting evidence includes access logs, email notices, and screenshots of permission changes recorded in %s.',
+                    'governance_tags' => ['leadership', 'data-integrity'],
+                ],
+            ],
+            'conflict_of_interest' => [
+                [
+                    'title' => 'Evaluation panel member has undisclosed family link to shortlisted bidder',
+                    'description' => 'The reporter identified that one evaluation panel member in %s appears to have a family relationship with a director of a shortlisted bidder. The connection was not disclosed in the conflict declaration even though both names appear in public records reviewed during %s.',
+                    'incident_location' => 'Bid Evaluation Panel',
+                    'accused_party' => 'Evaluation Panel Member',
+                    'evidence_summary' => 'The evidence set includes corporate registry excerpts, family relation references, and the signed conflict declaration collected in %s.',
+                    'governance_tags' => ['conflict-sensitive', 'procurement'],
+                ],
+                [
+                    'title' => 'Reviewer participated in decision involving former consulting client',
+                    'description' => 'A reviewer assigned in %s allegedly took part in a decision affecting an entity that had recently been their private consulting client. The prior engagement was not disclosed even after the matter was raised internally during %s.',
+                    'incident_location' => 'Policy Review Secretariat',
+                    'accused_party' => 'Senior Reviewer',
+                    'evidence_summary' => 'Supporting material includes archived consultancy documents, assignment memos, and internal correspondence from %s.',
+                    'governance_tags' => ['conflict-sensitive'],
+                ],
+                [
+                    'title' => 'Vendor ownership overlap not declared during selection process',
+                    'description' => 'Two vendors competing in a process handled by %s appear to share beneficial ownership through the same holding arrangement, but this overlap was not disclosed in the selection file. The issue became visible when ownership records were compared in %s.',
+                    'incident_location' => 'Vendor Qualification Review',
+                    'accused_party' => 'Selection Committee Secretary',
+                    'evidence_summary' => 'Evidence includes ownership extracts, vendor declarations, and comparison notes prepared during %s.',
+                    'governance_tags' => ['conflict-sensitive', 'procurement'],
+                ],
+            ],
+            'harassment' => [
+                [
+                    'title' => 'Sexual harassment complaint allegedly suppressed by direct supervisor',
+                    'description' => 'A staff member in %s reported repeated inappropriate messages and unwanted contact from a direct supervisor, but the formal complaint was allegedly withheld from HR processing. The reporting party states that the matter escalated during %s without any formal protective action.',
+                    'incident_location' => 'Human Resources Liaison Desk',
+                    'accused_party' => 'Direct Supervisor',
+                    'evidence_summary' => 'Evidence includes message screenshots, meeting notes, and copies of the complaint submission filed in %s.',
+                    'governance_tags' => ['leadership'],
+                ],
+                [
+                    'title' => 'Witness intimidation reported after misconduct allegation was filed',
+                    'description' => 'Following a misconduct allegation in %s, two witnesses were allegedly pressured to withdraw their statements by a senior official. The intimidation took the form of repeated summons and verbal warnings delivered during %s.',
+                    'incident_location' => 'Internal Ethics Coordination Unit',
+                    'accused_party' => 'Senior Official',
+                    'evidence_summary' => 'Supporting files include witness notes, summons records, and message threads documenting the pressure applied in %s.',
+                    'governance_tags' => ['retaliation-risk', 'leadership'],
+                ],
+                [
+                    'title' => 'Derogatory conduct during closed-door briefing went unrecorded in official minutes',
+                    'description' => 'The reporter states that abusive and degrading remarks were made by a manager during a closed-door briefing in %s, but the official meeting minutes omitted those exchanges entirely. Several attendees recall the statements being made during %s.',
+                    'incident_location' => 'Internal Briefing Room',
+                    'accused_party' => 'Manager',
+                    'evidence_summary' => 'The evidence package includes attendee statements, draft minutes, and follow-up email summaries circulated in %s.',
+                    'governance_tags' => ['leadership'],
+                ],
+            ],
+            'retaliation' => [
+                [
+                    'title' => 'Threat of reassignment after staff questioned travel expense claims',
+                    'description' => 'After irregular travel expense claims were questioned in %s, the reporting party was allegedly warned that they would be reassigned to a non-operational post if they continued raising the issue. The warning was repeated during %s in meetings with management.',
+                    'incident_location' => 'Directorate Administration Office',
+                    'accused_party' => 'Division Supervisor',
+                    'evidence_summary' => 'Available evidence includes reassignment drafts, meeting notes, and expense claim files linked to the complaint raised in %s.',
+                    'governance_tags' => ['retaliation-risk', 'leadership'],
+                ],
+                [
+                    'title' => 'Performance score reduced after reporting irregular procurement communication',
+                    'description' => 'The reporter alleges that their annual performance score in %s was reduced without explanation shortly after they documented irregular communication between procurement officials and a vendor. The sequence of events occurred over %s.',
+                    'incident_location' => 'Performance Evaluation Unit',
+                    'accused_party' => 'Section Head',
+                    'evidence_summary' => 'Supporting evidence includes performance appraisal forms, procurement correspondence, and timeline notes prepared during %s.',
+                    'governance_tags' => ['retaliation-risk', 'procurement'],
+                ],
+                [
+                    'title' => 'System access blocked after witness statement was submitted',
+                    'description' => 'A staff member who submitted a witness statement in %s reported that their access to operational systems was suspended without prior notice. The access block happened during %s and prevented them from performing normal duties.',
+                    'incident_location' => 'Operations Support Unit',
+                    'accused_party' => 'Operations Manager',
+                    'evidence_summary' => 'Evidence includes access denial screenshots, helpdesk tickets, and the earlier witness statement filed in %s.',
+                    'governance_tags' => ['retaliation-risk', 'data-integrity'],
+                ],
+            ],
+            'other' => [
+                [
+                    'title' => 'Official correspondence archive appears to have been selectively removed',
+                    'description' => 'The reporter found that an archive folder in %s no longer contained key correspondence related to a high-value decision process. The missing files were still visible in circulation lists during %s but could not be retrieved afterward.',
+                    'incident_location' => 'Records Management Unit',
+                    'accused_party' => 'Records Custodian',
+                    'evidence_summary' => 'Supporting documents include archive indexes, circulation logs, and screenshots showing the missing correspondence during %s.',
+                    'governance_tags' => ['data-integrity'],
+                ],
+                [
+                    'title' => 'Unofficial donation request tied to access to public service queue',
+                    'description' => 'Members of the public dealing with %s were allegedly told to provide an unofficial donation to a staff-associated foundation in exchange for priority processing. The request was conveyed repeatedly during %s.',
+                    'incident_location' => 'Public Service Counter',
+                    'accused_party' => 'Service Counter Officer',
+                    'evidence_summary' => 'The evidence bundle contains queue tickets, donation request notes, and witness statements gathered in %s.',
+                    'governance_tags' => ['financial-loss'],
+                ],
+                [
+                    'title' => 'Meeting minutes altered after objection was formally recorded',
+                    'description' => 'During a governance meeting in %s, the reporter lodged a formal objection to a proposed decision, but the final circulated minutes no longer reflected that objection. The change was noticed when the final version was distributed in %s.',
+                    'incident_location' => 'Secretariat Meeting Unit',
+                    'accused_party' => 'Meeting Secretariat Officer',
+                    'evidence_summary' => 'Evidence includes draft and final meeting minutes, attendee notes, and email circulation records from %s.',
+                    'governance_tags' => ['data-integrity', 'leadership'],
+                ],
+            ],
+        ];
     }
 
     private function seedGovernanceControls(): void
