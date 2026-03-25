@@ -52,6 +52,14 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const navItems = navForRole(user?.role);
 
+  const isNavItemActive = (href: string) => {
+    if (href === "/") {
+      return pathname === "/";
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
   const handleLogout = () => {
     startTransition(async () => {
       await logout();
@@ -95,7 +103,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`nav-link ${pathname === item.href ? "is-active" : ""}`}
+                    className={`nav-link ${isNavItemActive(item.href) ? "is-active" : ""}`}
                   >
                     {item.label}
                   </Link>

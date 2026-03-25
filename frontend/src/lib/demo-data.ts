@@ -231,6 +231,8 @@ export const demoReporterReports: ReporterReportSummary[] = [
     severity: "high",
     submitted_at: "2026-03-11T10:00:00.000Z",
     confidentiality_level: "confidential",
+    is_editable: true,
+    edit_lock_reason: null,
     case: {
       case_number: "CASE-2026-0003",
       stage: "investigation_in_progress",

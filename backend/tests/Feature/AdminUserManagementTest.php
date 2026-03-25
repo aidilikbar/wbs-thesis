@@ -107,6 +107,27 @@ class AdminUserManagementTest extends TestCase
             ->assertJsonPath('data.items.0.is_active', false);
     }
 
+    public function test_system_administrator_can_view_single_user_record(): void
+    {
+        $administrator = $this->createAdministrator();
+        $target = User::query()->create([
+            'name' => 'Case Analyst',
+            'email' => 'case.analyst@example.test',
+            'phone' => '+62-812-0000-0014',
+            'role' => User::ROLE_VERIFICATOR,
+            'unit' => 'Verification Desk',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        Sanctum::actingAs($administrator, [$administrator->role]);
+
+        $this->getJson("/api/admin/users/{$target->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $target->id)
+            ->assertJsonPath('data.email', 'case.analyst@example.test');
+    }
+
     public function test_system_administrator_can_update_and_deactivate_user(): void
     {
         $administrator = $this->createAdministrator();

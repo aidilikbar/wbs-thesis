@@ -22,6 +22,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('reporter')->group(function () {
         Route::get('/reports', [ReporterReportController::class, 'index']);
         Route::post('/reports', [ReporterReportController::class, 'store']);
+        Route::get('/reports/{report}', [ReporterReportController::class, 'show']);
+        Route::patch('/reports/{report}', [ReporterReportController::class, 'update']);
     });
 
     Route::prefix('workflow')->group(function () {
@@ -39,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('admin')->group(function () {
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::post('/users', [AdminUserController::class, 'store']);
+        Route::get('/users/{user}', [AdminUserController::class, 'show']);
         Route::patch('/users/{user}', [AdminUserController::class, 'update']);
         Route::patch('/users/{user}/deactivate', [AdminUserController::class, 'deactivate']);
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);

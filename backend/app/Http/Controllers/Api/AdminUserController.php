@@ -22,7 +22,7 @@ class AdminUserController extends Controller
         security: [['bearerAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 1)),
-            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 8)),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 10)),
             new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'role', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'status', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['active', 'inactive'])),
@@ -36,7 +36,7 @@ class AdminUserController extends Controller
     {
         $this->authorizeSystemAdministrator($request);
 
-        $perPage = min(max($request->integer('per_page', 8), 1), 50);
+        $perPage = min(max($request->integer('per_page', 10), 1), 50);
         $search = trim($request->string('search')->toString());
         $role = $request->string('role')->toString();
         $status = $request->string('status')->toString();
@@ -83,6 +83,31 @@ class AdminUserController extends Controller
                     'to' => $users->lastItem(),
                 ],
             ],
+        ]);
+    }
+
+    #[OA\Get(
+        path: '/api/admin/users/{user}',
+        operationId: 'showUser',
+        summary: 'Get a single user',
+        description: 'Returns a single directory record for the selected user. This endpoint is restricted to the system administrator.',
+        tags: ['Administration'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'user', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'User record returned.', content: new OA\JsonContent(ref: '#/components/schemas/UserRecordResponse')),
+            new OA\Response(response: 403, description: 'System administrator access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'User not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+        ]
+    )]
+    public function show(Request $request, User $user): JsonResponse
+    {
+        $this->authorizeSystemAdministrator($request);
+
+        return response()->json([
+            'data' => $this->transformUser($user),
         ]);
     }
 

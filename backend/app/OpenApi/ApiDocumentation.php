@@ -213,26 +213,92 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
-    schema: 'ReporterReportListResponse',
+    schema: 'ReporterReportDirectoryResponse',
     type: 'object',
     required: ['data'],
     properties: [
         new OA\Property(
             property: 'data',
-            type: 'array',
-            items: new OA\Items(
-                type: 'object',
-                properties: [
-                    new OA\Property(property: 'id', type: 'integer', example: 1),
-                    new OA\Property(property: 'public_reference', type: 'string', example: 'WBS-2026-0001'),
-                    new OA\Property(property: 'tracking_token', type: 'string', example: 'ABCD1234EFGH'),
-                    new OA\Property(property: 'title', type: 'string', example: 'Potential bribery during permit approval'),
-                    new OA\Property(property: 'status', type: 'string', example: 'submitted'),
-                    new OA\Property(property: 'severity', type: 'string', example: 'high'),
-                    new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time', example: '2026-03-19T09:00:00Z'),
-                ]
-            )
+            type: 'object',
+            properties: [
+                new OA\Property(
+                    property: 'items',
+                    type: 'array',
+                    items: new OA\Items(
+                        type: 'object',
+                        properties: [
+                            new OA\Property(property: 'id', type: 'integer', example: 1),
+                            new OA\Property(property: 'public_reference', type: 'string', example: 'WBS-2026-0001'),
+                            new OA\Property(property: 'tracking_token', type: 'string', example: 'ABCD1234EFGH'),
+                            new OA\Property(property: 'title', type: 'string', example: 'Potential bribery during permit approval'),
+                            new OA\Property(property: 'category', type: 'string', example: 'bribery'),
+                            new OA\Property(property: 'status', type: 'string', example: 'submitted'),
+                            new OA\Property(property: 'severity', type: 'string', example: 'high'),
+                            new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time', example: '2026-03-19T09:00:00Z'),
+                            new OA\Property(property: 'confidentiality_level', type: 'string', example: 'confidential'),
+                            new OA\Property(property: 'is_editable', type: 'boolean', example: true),
+                            new OA\Property(property: 'edit_lock_reason', type: 'string', nullable: true, example: null),
+                            new OA\Property(property: 'case', type: 'object', additionalProperties: true),
+                        ]
+                    )
+                ),
+                new OA\Property(
+                    property: 'meta',
+                    type: 'object',
+                    properties: [
+                        new OA\Property(property: 'current_page', type: 'integer', example: 1),
+                        new OA\Property(property: 'last_page', type: 'integer', example: 5),
+                        new OA\Property(property: 'per_page', type: 'integer', example: 10),
+                        new OA\Property(property: 'total', type: 'integer', example: 42),
+                        new OA\Property(property: 'from', type: 'integer', nullable: true, example: 1),
+                        new OA\Property(property: 'to', type: 'integer', nullable: true, example: 10),
+                    ]
+                ),
+            ]
         ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ReporterReportRecordResponse',
+    type: 'object',
+    required: ['data'],
+    properties: [
+        new OA\Property(
+            property: 'data',
+            type: 'object',
+            properties: [
+                new OA\Property(property: 'id', type: 'integer', example: 1),
+                new OA\Property(property: 'public_reference', type: 'string', example: 'WBS-2026-0001'),
+                new OA\Property(property: 'tracking_token', type: 'string', example: 'ABCD1234EFGH'),
+                new OA\Property(property: 'title', type: 'string', example: 'Potential bribery during permit approval'),
+                new OA\Property(property: 'category', type: 'string', example: 'bribery'),
+                new OA\Property(property: 'description', type: 'string', example: 'A staff member allegedly requested an unofficial payment to accelerate a permit approval.'),
+                new OA\Property(property: 'incident_date', type: 'string', format: 'date', nullable: true, example: '2026-03-17'),
+                new OA\Property(property: 'incident_location', type: 'string', nullable: true, example: 'Permit Approval Desk'),
+                new OA\Property(property: 'accused_party', type: 'string', nullable: true, example: 'Permit Officer'),
+                new OA\Property(property: 'evidence_summary', type: 'string', nullable: true, example: 'Messaging screenshots and approval timestamps are available.'),
+                new OA\Property(property: 'confidentiality_level', type: 'string', example: 'confidential'),
+                new OA\Property(property: 'requested_follow_up', type: 'boolean', example: true),
+                new OA\Property(property: 'witness_available', type: 'boolean', example: true),
+                new OA\Property(property: 'governance_tags', type: 'array', items: new OA\Items(type: 'string'), example: ['procurement', 'financial-loss']),
+                new OA\Property(property: 'status', type: 'string', example: 'verification_review'),
+                new OA\Property(property: 'severity', type: 'string', example: 'high'),
+                new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time', example: '2026-03-19T09:00:00Z'),
+                new OA\Property(property: 'is_editable', type: 'boolean', example: true),
+                new OA\Property(property: 'edit_lock_reason', type: 'string', nullable: true, example: null),
+                new OA\Property(property: 'case', type: 'object', additionalProperties: true),
+                new OA\Property(property: 'reporter', type: 'object', additionalProperties: true),
+            ]
+        ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ReporterReportMutationResponse',
+    type: 'object',
+    required: ['message', 'data'],
+    properties: [
+        new OA\Property(property: 'message', type: 'string', example: 'Reporter report updated successfully.'),
+        new OA\Property(property: 'data', type: 'object', additionalProperties: true),
     ]
 )]
 #[OA\Schema(
@@ -415,12 +481,34 @@ use OpenApi\Attributes as OA;
                     properties: [
                         new OA\Property(property: 'current_page', type: 'integer', example: 1),
                         new OA\Property(property: 'last_page', type: 'integer', example: 2),
-                        new OA\Property(property: 'per_page', type: 'integer', example: 8),
+                        new OA\Property(property: 'per_page', type: 'integer', example: 10),
                         new OA\Property(property: 'total', type: 'integer', example: 12),
                         new OA\Property(property: 'from', type: 'integer', nullable: true, example: 1),
-                        new OA\Property(property: 'to', type: 'integer', nullable: true, example: 8),
+                        new OA\Property(property: 'to', type: 'integer', nullable: true, example: 10),
                     ]
                 ),
+            ]
+        ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'UserRecordResponse',
+    type: 'object',
+    required: ['data'],
+    properties: [
+        new OA\Property(
+            property: 'data',
+            type: 'object',
+            properties: [
+                new OA\Property(property: 'id', type: 'integer', example: 1),
+                new OA\Property(property: 'name', type: 'string', example: 'System Administrator'),
+                new OA\Property(property: 'email', type: 'string', format: 'email', example: 'sysadmin@example.test'),
+                new OA\Property(property: 'phone', type: 'string', example: '+62-812-0000-0001'),
+                new OA\Property(property: 'role', type: 'string', example: 'system_administrator'),
+                new OA\Property(property: 'role_label', type: 'string', example: 'System Administrator'),
+                new OA\Property(property: 'unit', type: 'string', nullable: true, example: 'System Administration'),
+                new OA\Property(property: 'is_active', type: 'boolean', example: true),
+                new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true, example: '2026-03-25T08:15:00Z'),
             ]
         ),
     ]

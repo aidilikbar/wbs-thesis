@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\CaseFile;
+use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ReportSubmissionTest extends TestCase
@@ -84,5 +87,204 @@ class ReportSubmissionTest extends TestCase
             'action' => 'report_submitted',
             'actor_role' => User::ROLE_REPORTER,
         ]);
+    }
+
+    public function test_reporter_can_list_reports_with_pagination_and_filters(): void
+    {
+        $reporter = User::query()->create([
+            'name' => 'Reporter One',
+            'email' => 'reporter.one@example.test',
+            'phone' => '+62-812-0000-0100',
+            'role' => User::ROLE_REPORTER,
+            'unit' => 'Reporter',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        $otherReporter = User::query()->create([
+            'name' => 'Reporter Two',
+            'email' => 'reporter.two@example.test',
+            'phone' => '+62-812-0000-0101',
+            'role' => User::ROLE_REPORTER,
+            'unit' => 'Reporter',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        foreach (range(1, 12) as $index) {
+            $this->createReporterReport(
+                $reporter,
+                [
+                    'title' => $index === 3 ? 'Flagged procurement concern' : "Reporter case {$index}",
+                    'status' => $index % 2 === 0 ? 'completed' : 'submitted',
+                ],
+                [
+                    'stage' => $index % 2 === 0 ? 'completed' : 'submitted',
+                    'current_role' => $index % 2 === 0 ? User::ROLE_DIRECTOR : User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+                ]
+            );
+        }
+
+        $this->createReporterReport($otherReporter, [
+            'title' => 'Other reporter case',
+        ]);
+
+        $token = $this->postJson('/api/auth/login', [
+            'email' => $reporter->email,
+            'password' => 'Password123',
+        ])->json('data.token');
+
+        $this->withToken($token)
+            ->getJson('/api/reporter/reports?per_page=10&search=Flagged&status=submitted')
+            ->assertOk()
+            ->assertJsonPath('data.meta.per_page', 10)
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.title', 'Flagged procurement concern')
+            ->assertJsonPath('data.items.0.is_editable', true);
+    }
+
+    public function test_reporter_can_view_and_update_owned_report(): void
+    {
+        $reporter = User::query()->create([
+            'name' => 'Reporter Three',
+            'email' => 'reporter.three@example.test',
+            'phone' => '+62-812-0000-0102',
+            'role' => User::ROLE_REPORTER,
+            'unit' => 'Reporter',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        $report = $this->createReporterReport($reporter);
+
+        $token = $this->postJson('/api/auth/login', [
+            'email' => $reporter->email,
+            'password' => 'Password123',
+        ])->json('data.token');
+
+        $this->withToken($token)
+            ->getJson("/api/reporter/reports/{$report->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $report->id)
+            ->assertJsonPath('data.is_editable', true);
+
+        $this->withToken($token)
+            ->patchJson("/api/reporter/reports/{$report->id}", [
+                'title' => 'Updated allegation title',
+                'category' => 'fraud',
+                'description' => 'The reporter revised the chronology and added more contextual explanation for the suspected corruption transaction.',
+                'incident_date' => now()->subDays(2)->toDateString(),
+                'incident_location' => 'Finance Unit',
+                'accused_party' => 'Finance Supervisor',
+                'evidence_summary' => 'Updated evidence summary with invoice references and screenshots.',
+                'confidentiality_level' => 'identified',
+                'requested_follow_up' => false,
+                'witness_available' => true,
+                'governance_tags' => ['financial-loss'],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Updated allegation title')
+            ->assertJsonPath('data.confidentiality_level', 'identified')
+            ->assertJsonPath('data.requested_follow_up', false);
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $report->id,
+            'title' => 'Updated allegation title',
+            'category' => 'fraud',
+            'anonymity_level' => 'identified',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'report_id' => $report->id,
+            'action' => 'report_updated_by_reporter',
+            'actor_role' => User::ROLE_REPORTER,
+        ]);
+    }
+
+    public function test_reporter_cannot_update_completed_report(): void
+    {
+        $reporter = User::query()->create([
+            'name' => 'Reporter Four',
+            'email' => 'reporter.four@example.test',
+            'phone' => '+62-812-0000-0103',
+            'role' => User::ROLE_REPORTER,
+            'unit' => 'Reporter',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        $report = $this->createReporterReport(
+            $reporter,
+            ['status' => 'completed'],
+            ['stage' => 'completed', 'current_role' => User::ROLE_DIRECTOR]
+        );
+
+        $token = $this->postJson('/api/auth/login', [
+            'email' => $reporter->email,
+            'password' => 'Password123',
+        ])->json('data.token');
+
+        $this->withToken($token)
+            ->patchJson("/api/reporter/reports/{$report->id}", [
+                'title' => 'Completed report update attempt',
+                'category' => 'fraud',
+                'description' => 'This update attempt should be blocked because the report is already completed and closed.',
+                'incident_date' => now()->subDays(2)->toDateString(),
+                'incident_location' => 'Finance Unit',
+                'accused_party' => 'Finance Supervisor',
+                'evidence_summary' => 'Blocked update payload.',
+                'confidentiality_level' => 'confidential',
+                'requested_follow_up' => true,
+                'witness_available' => false,
+                'governance_tags' => ['financial-loss'],
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Completed reports can no longer be edited by the reporter.');
+    }
+
+    private function createReporterReport(
+        User $reporter,
+        array $attributes = [],
+        array $caseAttributes = [],
+    ): Report {
+        $report = Report::query()->create(array_merge([
+            'reporter_user_id' => $reporter->id,
+            'uuid' => (string) Str::uuid(),
+            'public_reference' => 'WBS-2026-T' . fake()->unique()->numerify('####'),
+            'tracking_token' => Str::upper(Str::random(12)),
+            'title' => 'Default report title',
+            'category' => 'procurement',
+            'description' => 'A sufficiently detailed report description is provided so the record can be used in reporter directory tests.',
+            'incident_date' => now()->subDays(5)->toDateString(),
+            'incident_location' => 'Procurement Unit',
+            'accused_party' => 'Procurement Officer',
+            'evidence_summary' => 'Supporting evidence exists for this seeded test record.',
+            'anonymity_level' => 'confidential',
+            'reporter_name' => $reporter->name,
+            'reporter_email' => $reporter->email,
+            'reporter_phone' => $reporter->phone,
+            'requested_follow_up' => true,
+            'witness_available' => false,
+            'governance_tags' => ['procurement'],
+            'severity' => 'high',
+            'status' => 'submitted',
+            'submitted_at' => now()->subDay(),
+            'last_public_update_at' => now()->subDay(),
+        ], $attributes));
+
+        CaseFile::query()->create(array_merge([
+            'report_id' => $report->id,
+            'case_number' => 'CASE-2026-T' . fake()->unique()->numerify('####'),
+            'stage' => 'submitted',
+            'current_role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'disposition' => 'submitted',
+            'assigned_unit' => 'Verification Supervision',
+            'assigned_to' => 'Verification Supervisor',
+            'confidentiality_level' => 'confidential',
+            'last_activity_at' => now()->subDay(),
+            'notes' => $report->description,
+        ], $caseAttributes));
+
+        return $report->fresh('caseFile');
     }
 }

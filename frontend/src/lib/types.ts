@@ -105,6 +105,8 @@ export type ReporterReportSummary = {
   severity: string;
   submitted_at: string;
   confidentiality_level: string;
+  is_editable: boolean;
+  edit_lock_reason: string | null;
   case: {
     case_number: string | null;
     stage: string | null;
@@ -112,6 +114,22 @@ export type ReporterReportSummary = {
     assigned_unit: string | null;
     current_role: string | null;
     current_role_label: string | null;
+  };
+};
+
+export type ReporterReportDetail = ReporterReportSummary & {
+  description: string;
+  incident_date: string | null;
+  incident_location: string | null;
+  accused_party: string | null;
+  evidence_summary: string | null;
+  requested_follow_up: boolean;
+  witness_available: boolean;
+  governance_tags: string[];
+  reporter: {
+    name: string;
+    email: string;
+    phone: string;
   };
 };
 

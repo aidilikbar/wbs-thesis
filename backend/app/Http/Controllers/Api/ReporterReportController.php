@@ -17,45 +17,58 @@ class ReporterReportController extends Controller
         path: '/api/reporter/reports',
         operationId: 'listReporterReports',
         summary: 'List the current reporter reports',
-        description: 'Returns the authenticated reporter submissions and their current public-safe status.',
+        description: 'Returns the authenticated reporter submissions and their current public-safe status with pagination and filtering.',
         tags: ['Reporter Workspace'],
         security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 10)),
+            new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+        ],
         responses: [
-            new OA\Response(response: 200, description: 'Reporter reports returned.', content: new OA\JsonContent(ref: '#/components/schemas/ReporterReportListResponse')),
+            new OA\Response(response: 200, description: 'Reporter reports returned.', content: new OA\JsonContent(ref: '#/components/schemas/ReporterReportDirectoryResponse')),
             new OA\Response(response: 403, description: 'Reporter access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
         ]
     )]
     public function index(Request $request): JsonResponse
     {
         $user = $this->authorizeReporter($request);
+        $perPage = min(max($request->integer('per_page', 10), 1), 50);
+        $search = trim($request->string('search')->toString());
+        $status = $request->string('status')->toString();
 
         $reports = Report::query()
             ->with('caseFile')
             ->where('reporter_user_id', $user->id)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($nested) use ($search) {
+                    $like = "%{$search}%";
+
+                    $nested
+                        ->where('title', 'like', $like)
+                        ->orWhere('public_reference', 'like', $like)
+                        ->orWhere('category', 'like', $like)
+                        ->orWhere('accused_party', 'like', $like);
+                });
+            })
+            ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->latest('submitted_at')
-            ->get()
-            ->map(fn (Report $report) => [
-                'id' => $report->id,
-                'public_reference' => $report->public_reference,
-                'tracking_token' => $report->tracking_token,
-                'title' => $report->title,
-                'category' => $report->category,
-                'status' => $report->status,
-                'severity' => $report->severity,
-                'submitted_at' => $report->submitted_at?->toISOString(),
-                'confidentiality_level' => $report->anonymity_level,
-                'case' => [
-                    'case_number' => $report->caseFile?->case_number,
-                    'stage' => $report->caseFile?->stage,
-                    'stage_label' => config("wbs.case_stages.{$report->caseFile?->stage}", $report->caseFile?->stage),
-                    'assigned_unit' => $report->caseFile?->assigned_unit,
-                    'current_role' => $report->caseFile?->current_role,
-                    'current_role_label' => config("wbs.roles.{$report->caseFile?->current_role}", $report->caseFile?->current_role),
-                ],
-            ]);
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
-            'data' => $reports,
+            'data' => [
+                'items' => $reports->getCollection()->map(fn (Report $report) => $this->transformSummary($report)),
+                'meta' => [
+                    'current_page' => $reports->currentPage(),
+                    'last_page' => $reports->lastPage(),
+                    'per_page' => $reports->perPage(),
+                    'total' => $reports->total(),
+                    'from' => $reports->firstItem(),
+                    'to' => $reports->lastItem(),
+                ],
+            ],
         ]);
     }
 
@@ -101,6 +114,66 @@ class ReporterReportController extends Controller
         ], 201);
     }
 
+    #[OA\Get(
+        path: '/api/reporter/reports/{report}',
+        operationId: 'showReporterReport',
+        summary: 'Get a single reporter report',
+        description: 'Returns the authenticated reporter report with editable details and current case status.',
+        tags: ['Reporter Workspace'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'report', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Reporter report returned.', content: new OA\JsonContent(ref: '#/components/schemas/ReporterReportRecordResponse')),
+            new OA\Response(response: 403, description: 'Reporter access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Report not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+        ]
+    )]
+    public function show(Request $request, Report $report): JsonResponse
+    {
+        $user = $this->authorizeOwnedReport($request, $report);
+
+        return response()->json([
+            'data' => $this->transformDetail($report->fresh('caseFile'), $user),
+        ]);
+    }
+
+    #[OA\Patch(
+        path: '/api/reporter/reports/{report}',
+        operationId: 'updateReporterReport',
+        summary: 'Update a reporter-owned report',
+        description: 'Updates the authenticated reporter report details while preserving the existing workflow case.',
+        tags: ['Reporter Workspace'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'report', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/ReportSubmissionRequest')
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Reporter report updated.', content: new OA\JsonContent(ref: '#/components/schemas/ReporterReportMutationResponse')),
+            new OA\Response(response: 403, description: 'Reporter access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Report not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+            new OA\Response(response: 422, description: 'Validation failed.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ]
+    )]
+    public function update(
+        StoreReportRequest $request,
+        Report $report,
+        CaseWorkflowService $workflow,
+    ): JsonResponse {
+        $user = $this->authorizeOwnedReport($request, $report);
+        $updatedReport = $workflow->updateReporterReport($report->fresh('caseFile'), $user, $request->validated());
+
+        return response()->json([
+            'message' => 'Reporter report updated successfully.',
+            'data' => $this->transformDetail($updatedReport, $user),
+        ]);
+    }
+
     private function authorizeReporter(Request $request): User
     {
         $user = $request->user();
@@ -108,5 +181,66 @@ class ReporterReportController extends Controller
         abort_unless($user?->hasRole(User::ROLE_REPORTER), 403, 'Only registered reporters may submit reports.');
 
         return $user;
+    }
+
+    private function authorizeOwnedReport(Request $request, Report $report): User
+    {
+        $user = $this->authorizeReporter($request);
+
+        abort_if((int) $report->reporter_user_id !== (int) $user->id, 404, 'Report not found.');
+
+        return $user;
+    }
+
+    private function editLockReason(Report $report): ?string
+    {
+        return $report->status === 'completed'
+            ? 'Completed reports can no longer be edited by the reporter.'
+            : null;
+    }
+
+    private function transformSummary(Report $report): array
+    {
+        return [
+            'id' => $report->id,
+            'public_reference' => $report->public_reference,
+            'tracking_token' => $report->tracking_token,
+            'title' => $report->title,
+            'category' => $report->category,
+            'status' => $report->status,
+            'severity' => $report->severity,
+            'submitted_at' => $report->submitted_at?->toISOString(),
+            'confidentiality_level' => $report->anonymity_level,
+            'is_editable' => $this->editLockReason($report) === null,
+            'edit_lock_reason' => $this->editLockReason($report),
+            'case' => [
+                'case_number' => $report->caseFile?->case_number,
+                'stage' => $report->caseFile?->stage,
+                'stage_label' => config("wbs.case_stages.{$report->caseFile?->stage}", $report->caseFile?->stage),
+                'assigned_unit' => $report->caseFile?->assigned_unit,
+                'current_role' => $report->caseFile?->current_role,
+                'current_role_label' => config("wbs.roles.{$report->caseFile?->current_role}", $report->caseFile?->current_role),
+            ],
+        ];
+    }
+
+    private function transformDetail(Report $report, User $user): array
+    {
+        return [
+            ...$this->transformSummary($report),
+            'description' => $report->description,
+            'incident_date' => $report->incident_date?->toDateString(),
+            'incident_location' => $report->incident_location,
+            'accused_party' => $report->accused_party,
+            'evidence_summary' => $report->evidence_summary,
+            'requested_follow_up' => $report->requested_follow_up,
+            'witness_available' => $report->witness_available,
+            'governance_tags' => array_values($report->governance_tags ?? []),
+            'reporter' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+            ],
+        ];
     }
 }

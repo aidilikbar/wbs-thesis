@@ -220,6 +220,8 @@ class WbsDemoSeeder extends Seeder
             ]
         );
 
+        $this->seedAdditionalReporterTransactions($users, $workflow);
+
         // Keep one case at the initial submitted queue for the supervisor of verificator.
         CaseFile::query()->findOrFail($submittedCase['caseFile']->id)->forceFill([
             'last_activity_at' => now()->subDays(1),
@@ -228,7 +230,7 @@ class WbsDemoSeeder extends Seeder
 
     private function seedUsers(): array
     {
-        return [
+        $users = [
             'system_administrator' => User::query()->create([
                 'name' => 'Raka Mahendra',
                 'email' => 'sysadmin@kpk-wbs.test',
@@ -338,6 +340,236 @@ class WbsDemoSeeder extends Seeder
                 'password' => 'Password123',
             ]),
         ];
+
+        $this->seedAdditionalEnterpriseUsers();
+
+        return $users;
+    }
+
+    private function seedAdditionalEnterpriseUsers(): void
+    {
+        $roles = [
+            User::ROLE_REPORTER,
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            User::ROLE_VERIFICATOR,
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            User::ROLE_INVESTIGATOR,
+            User::ROLE_DIRECTOR,
+            User::ROLE_SYSTEM_ADMINISTRATOR,
+        ];
+
+        $faker = fake('id_ID');
+        $faker->seed(20260325);
+
+        for ($index = 1; $index <= 30; $index++) {
+            $role = $faker->randomElement($roles);
+
+            User::query()->create([
+                'name' => $faker->name(),
+                'email' => sprintf('enterprise.user.%02d@kpk-wbs.test', $index),
+                'phone' => sprintf('+62-812-2000-%04d', $index),
+                'role' => $role,
+                'unit' => $this->unitForRole($role, $index),
+                'is_active' => $index % 7 !== 0,
+                'password' => 'Password123',
+            ]);
+        }
+    }
+
+    private function unitForRole(string $role, int $index): string
+    {
+        return match ($role) {
+            User::ROLE_REPORTER => 'Reporter',
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR => 'Verification Supervision',
+            User::ROLE_VERIFICATOR => $index % 2 === 0 ? 'Verification Desk' : 'Protected Verification Desk',
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR => 'Investigation Supervision',
+            User::ROLE_INVESTIGATOR => $index % 2 === 0 ? 'Investigation Desk' : 'Protected Investigation Desk',
+            User::ROLE_DIRECTOR => 'Directorate',
+            User::ROLE_SYSTEM_ADMINISTRATOR => 'System Administration',
+            default => 'General Unit',
+        };
+    }
+
+    private function seedAdditionalReporterTransactions(array $users, CaseWorkflowService $workflow): void
+    {
+        $faker = fake('id_ID');
+        $faker->seed(20260327);
+
+        $reporterKeys = ['reporter_1', 'reporter_2', 'reporter_3', 'reporter_4'];
+        $statusTargets = [
+            'submitted',
+            'verification_in_progress',
+            'verification_review',
+            'verified',
+            'investigation_in_progress',
+            'investigation_review',
+            'director_review',
+            'completed',
+        ];
+        $categories = array_keys(config('wbs.categories'));
+        $governanceTags = array_keys(config('wbs.governance_tags'));
+
+        foreach ($reporterKeys as $reporterKey) {
+            for ($sequence = 1; $sequence <= 10; $sequence++) {
+                $targetStatus = $faker->randomElement($statusTargets);
+                $category = $faker->randomElement($categories);
+                $selectedTags = $faker->randomElements(
+                    $governanceTags,
+                    $faker->numberBetween(0, 2)
+                );
+
+                $result = $workflow->submitReport($users[$reporterKey], [
+                    'title' => sprintf(
+                        '%s report batch %02d',
+                        str($category)->replace('_', ' ')->headline(),
+                        $sequence
+                    ),
+                    'category' => $category,
+                    'description' => sprintf(
+                        'Reporter %s filed additional enterprise-scale test transaction %02d concerning %s, with enough chronology and operational detail to exercise reporter search, pagination, and status handling.',
+                        $users[$reporterKey]->name,
+                        $sequence,
+                        str($category)->replace('_', ' ')
+                    ),
+                    'incident_date' => now()->subDays($faker->numberBetween(3, 90))->toDateString(),
+                    'incident_location' => $faker->randomElement([
+                        'Regional Office',
+                        'Finance Directorate',
+                        'Procurement Unit',
+                        'Head Office',
+                        'Integrity Monitoring Desk',
+                    ]),
+                    'accused_party' => $faker->jobTitle(),
+                    'evidence_summary' => $faker->sentence(14),
+                    'confidentiality_level' => $faker->randomElement(['confidential', 'identified']),
+                    'requested_follow_up' => $faker->boolean(70),
+                    'witness_available' => $faker->boolean(50),
+                    'governance_tags' => array_values($selectedTags),
+                ]);
+
+                $this->advanceSeededCaseToStatus(
+                    CaseFile::query()->findOrFail($result['caseFile']->id),
+                    $targetStatus,
+                    $users,
+                    $workflow,
+                    $faker,
+                );
+            }
+        }
+    }
+
+    private function advanceSeededCaseToStatus(
+        CaseFile $caseFile,
+        string $targetStatus,
+        array $users,
+        CaseWorkflowService $workflow,
+        \Faker\Generator $faker,
+    ): void {
+        if ($targetStatus === 'submitted') {
+            return;
+        }
+
+        $verificator = $faker->randomElement([
+            $users['verificator_1'],
+            $users['verificator_2'],
+        ]);
+
+        $workflow->delegateToVerificator(
+            $caseFile->fresh(),
+            $users['supervisor_of_verificator'],
+            $verificator,
+            [
+                'assigned_unit' => $verificator->unit,
+                'due_in_days' => $faker->numberBetween(3, 7),
+            ]
+        );
+
+        if ($targetStatus === 'verification_in_progress') {
+            return;
+        }
+
+        $workflow->submitVerification(
+            $caseFile->fresh(),
+            $verificator,
+            [
+                'internal_note' => 'Seeded verification note for enterprise transaction coverage.',
+                'publish_update' => false,
+            ]
+        );
+
+        if ($targetStatus === 'verification_review') {
+            return;
+        }
+
+        $workflow->reviewVerification(
+            $caseFile->fresh(),
+            $users['supervisor_of_verificator'],
+            [
+                'decision' => 'approved',
+                'internal_note' => 'Seeded verification approval for enterprise transaction coverage.',
+                'publish_update' => false,
+            ]
+        );
+
+        if ($targetStatus === 'verified') {
+            return;
+        }
+
+        $investigator = $faker->randomElement([
+            $users['investigator_1'],
+            $users['investigator_2'],
+        ]);
+
+        $workflow->delegateToInvestigator(
+            $caseFile->fresh(),
+            $users['supervisor_of_investigator'],
+            $investigator,
+            [
+                'assigned_unit' => $investigator->unit,
+                'due_in_days' => $faker->numberBetween(5, 10),
+            ]
+        );
+
+        if ($targetStatus === 'investigation_in_progress') {
+            return;
+        }
+
+        $workflow->submitInvestigation(
+            $caseFile->fresh(),
+            $investigator,
+            [
+                'internal_note' => 'Seeded investigation note for enterprise transaction coverage.',
+                'publish_update' => false,
+            ]
+        );
+
+        if ($targetStatus === 'investigation_review') {
+            return;
+        }
+
+        $workflow->reviewInvestigation(
+            $caseFile->fresh(),
+            $users['supervisor_of_investigator'],
+            [
+                'decision' => 'approved',
+                'internal_note' => 'Seeded investigation approval for enterprise transaction coverage.',
+                'publish_update' => false,
+            ]
+        );
+
+        if ($targetStatus === 'director_review') {
+            return;
+        }
+
+        $workflow->directorDecision(
+            $caseFile->fresh(),
+            $users['director'],
+            [
+                'decision' => 'approved',
+                'internal_note' => 'Seeded director approval for enterprise transaction coverage.',
+                'publish_update' => false,
+            ]
+        );
     }
 
     private function seedGovernanceControls(): void

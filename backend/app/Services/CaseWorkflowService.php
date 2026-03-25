@@ -143,6 +143,82 @@ class CaseWorkflowService
         });
     }
 
+    public function updateReporterReport(Report $report, User $reporter, array $payload): Report
+    {
+        if ((int) $report->reporter_user_id !== (int) $reporter->id) {
+            throw ValidationException::withMessages([
+                'report' => 'You may update only your own reports.',
+            ]);
+        }
+
+        if ($report->status === self::REPORT_STATUSES['completed']) {
+            throw ValidationException::withMessages([
+                'report' => 'Completed reports can no longer be edited by the reporter.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($report, $reporter, $payload) {
+            $updatedAt = now();
+            $caseFile = $report->caseFile()->firstOrFail();
+            $nextSeverity = $this->determineSeverity(
+                $payload['category'],
+                $payload['governance_tags'] ?? [],
+                $payload['witness_available'] ?? false,
+            );
+
+            $report->forceFill([
+                'title' => $payload['title'],
+                'category' => $payload['category'],
+                'description' => $payload['description'],
+                'incident_date' => $payload['incident_date'] ?? null,
+                'incident_location' => $payload['incident_location'] ?? null,
+                'accused_party' => $payload['accused_party'] ?? null,
+                'evidence_summary' => $payload['evidence_summary'] ?? null,
+                'anonymity_level' => $payload['confidentiality_level'],
+                'requested_follow_up' => $payload['requested_follow_up'] ?? true,
+                'witness_available' => $payload['witness_available'] ?? false,
+                'governance_tags' => array_values($payload['governance_tags'] ?? []),
+                'severity' => $nextSeverity,
+            ])->save();
+
+            $caseFile->forceFill([
+                'confidentiality_level' => $payload['confidentiality_level'],
+                'escalation_required' => in_array('retaliation-risk', $payload['governance_tags'] ?? [], true),
+                'notes' => $payload['description'],
+                'last_activity_at' => $updatedAt,
+            ])->save();
+
+            $this->addTimelineEvent(
+                report: $report,
+                caseFile: $caseFile,
+                visibility: 'internal',
+                stage: $caseFile->stage,
+                headline: 'Reporter updated report details',
+                detail: 'The reporter revised the allegation details and supporting context after submission.',
+                actorRole: $reporter->role,
+                actorName: $reporter->name,
+                occurredAt: $updatedAt,
+            );
+
+            $this->recordAudit(
+                action: 'report_updated_by_reporter',
+                auditable: $report,
+                report: $report,
+                caseFile: $caseFile,
+                actorRole: $reporter->role,
+                actorName: $reporter->name,
+                context: [
+                    'status' => $report->status,
+                    'category' => $report->category,
+                    'severity' => $report->severity,
+                    'confidentiality_level' => $report->anonymity_level,
+                ],
+            );
+
+            return $report->fresh(['caseFile']);
+        });
+    }
+
     public function delegateToVerificator(
         CaseFile $caseFile,
         User $supervisor,

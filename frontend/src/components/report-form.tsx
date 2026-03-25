@@ -1,23 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
 import {
   categoryOptions,
   confidentialityOptions,
-  demoReporterReports,
   governanceTagOptions,
   initialSubmissionPayload,
 } from "@/lib/demo-data";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { isReporter } from "@/lib/roles";
-import type {
-  ReporterReportSummary,
-  SubmissionPayload,
-  SubmissionReceipt,
-} from "@/lib/types";
+import type { ReporterReportDetail, SubmissionPayload } from "@/lib/types";
 
 const filingSteps = [
   "Allegation",
@@ -26,46 +22,89 @@ const filingSteps = [
   "Identity Protection",
 ];
 
-export function ReportForm() {
+function buildPayloadFromReport(report: ReporterReportDetail): SubmissionPayload {
+  return {
+    title: report.title,
+    category: report.category,
+    description: report.description,
+    incident_date: report.incident_date ?? "",
+    incident_location: report.incident_location ?? "",
+    accused_party: report.accused_party ?? "",
+    evidence_summary: report.evidence_summary ?? "",
+    confidentiality_level: report.confidentiality_level as SubmissionPayload["confidentiality_level"],
+    requested_follow_up: report.requested_follow_up,
+    witness_available: report.witness_available,
+    governance_tags: report.governance_tags,
+  };
+}
+
+export function ReportForm({
+  mode,
+  reportId,
+}: {
+  mode: "create" | "edit";
+  reportId?: number;
+}) {
+  const router = useRouter();
   const { isReady, isAuthenticated, token, user } = useAuth();
   const [form, setForm] = useState<SubmissionPayload>(initialSubmissionPayload);
-  const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
+  const [record, setRecord] = useState<ReporterReportDetail | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [reports, setReports] = useState<ReporterReportSummary[]>([]);
-  const [usingFallback, setUsingFallback] = useState(false);
+  const [isLoading, setIsLoading] = useState(mode === "edit");
   const [isPending, startTransition] = useTransition();
 
   const isReporterUser = isReporter(user?.role);
+  const isEditMode = mode === "edit";
 
   useEffect(() => {
-    if (!token || !isReporterUser) {
+    if (!isEditMode) {
+      setIsLoading(false);
+
+      return;
+    }
+
+    if (!isReady) {
+      return;
+    }
+
+    if (!token || !isReporterUser || !reportId || Number.isNaN(reportId)) {
+      setIsLoading(false);
+
       return;
     }
 
     let active = true;
 
-    const loadReports = async () => {
+    const loadReport = async () => {
       try {
-        const data = await api.listReporterReports(token);
+        const data = await api.fetchReporterReport(token, reportId);
 
-        if (active) {
-          setReports(data);
-          setUsingFallback(false);
+        if (!active) {
+          return;
         }
-      } catch {
+
+        setRecord(data);
+        setForm(buildPayloadFromReport(data));
+        setFeedback(null);
+      } catch (error) {
         if (active) {
-          setReports(demoReporterReports);
-          setUsingFallback(true);
+          setFeedback(
+            error instanceof Error ? error.message : "Report could not be loaded.",
+          );
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
         }
       }
     };
 
-    loadReports();
+    loadReport();
 
     return () => {
       active = false;
     };
-  }, [token, isReporterUser, receipt]);
+  }, [isEditMode, isReady, token, isReporterUser, reportId]);
 
   const updateField = <K extends keyof SubmissionPayload>(
     field: K,
@@ -88,31 +127,54 @@ export function ReportForm() {
     setFeedback(null);
 
     if (!token) {
-      setFeedback("You must be logged in as a reporter before submitting a report.");
+      setFeedback("You must be logged in as a reporter before continuing.");
 
       return;
     }
 
     startTransition(async () => {
       try {
+        if (isEditMode && reportId) {
+          await api.updateReporterReport(token, reportId, form);
+          router.push("/submit?notice=updated");
+          router.refresh();
+
+          return;
+        }
+
         const data = await api.submitReport(token, form);
-        setReceipt(data);
-        setForm(initialSubmissionPayload);
-        setFeedback("Report submitted successfully.");
+        router.push(
+          `/submit?notice=created&reference=${encodeURIComponent(data.public_reference)}&trackingToken=${encodeURIComponent(data.tracking_token)}`,
+        );
+        router.refresh();
       } catch (error) {
         setFeedback(
           error instanceof Error
             ? error.message
-            : "The report could not be submitted.",
+            : isEditMode
+              ? "The report could not be updated."
+              : "The report could not be submitted.",
         );
       }
     });
   };
 
-  if (!isReady) {
+  const reporterProfile = record?.reporter
+    ? record.reporter
+    : user
+      ? {
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+        }
+      : null;
+
+  if (!isReady || isLoading) {
     return (
       <div className="panel rounded-[1rem] p-8">
-        <p className="text-sm text-[var(--muted)]">Loading reporter session.</p>
+        <p className="text-sm text-[var(--muted)]">
+          {isEditMode ? "Loading reporter record." : "Loading reporter session."}
+        </p>
       </div>
     );
   }
@@ -170,11 +232,36 @@ export function ReportForm() {
     );
   }
 
+  if (isEditMode && !record) {
+    return (
+      <div className="panel rounded-[1rem] p-8">
+        <p className="eyebrow">Record Not Available</p>
+        <h2 className="mt-4 text-3xl">The selected report could not be opened</h2>
+        <p className="muted mt-4 text-sm leading-7">
+          {feedback ?? "The requested record was not found in your reporter account."}
+        </p>
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => router.push("/submit")}
+            className="primary-button cursor-pointer"
+          >
+            Back to Reports
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const editLocked = Boolean(isEditMode && record && !record.is_editable);
+
   return (
     <div className="grid gap-8 xl:grid-cols-[250px_1fr]">
       <aside className="space-y-4">
         <div className="panel rounded-[1rem] p-6">
-          <p className="eyebrow">Secure Filing Session</p>
+          <p className="eyebrow">
+            {isEditMode ? "Reporter Edit Session" : "Secure Filing Session"}
+          </p>
           <div className="mt-5 space-y-3">
             {filingSteps.map((step, index) => (
               <div
@@ -196,31 +283,59 @@ export function ReportForm() {
           </div>
         </div>
 
-        <div className="accent-card rounded-[1rem] border border-[var(--panel-border)] p-6">
-          <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary-strong)]">
-            Reporter Profile
-          </p>
-          <div className="mt-4 space-y-3 text-sm leading-7">
-            <div>
-              <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                Name
-              </p>
-              <p>{user.name}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                Email
-              </p>
-              <p>{user.email}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                Phone
-              </p>
-              <p>{user.phone}</p>
+        {reporterProfile ? (
+          <div className="accent-card rounded-[1rem] border border-[var(--panel-border)] p-6">
+            <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary-strong)]">
+              Reporter Profile
+            </p>
+            <div className="mt-4 space-y-3 text-sm leading-7">
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Name
+                </p>
+                <p>{reporterProfile.name}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Email
+                </p>
+                <p>{reporterProfile.email}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Phone
+                </p>
+                <p>{reporterProfile.phone}</p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
+
+        {record ? (
+          <div className="panel rounded-[1rem] p-6">
+            <p className="eyebrow">Current Record</p>
+            <div className="mt-4 space-y-3 text-sm leading-7">
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Reference
+                </p>
+                <p className="font-mono">{record.public_reference}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Status
+                </p>
+                <p>{record.case.stage_label ?? record.status}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Submitted
+                </p>
+                <p>{formatDateTime(record.submitted_at)}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="dark-card rounded-[1rem] border border-[rgba(0,0,0,0.3)] p-6">
           <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary)]">
@@ -241,7 +356,9 @@ export function ReportForm() {
                 <h2 className="mt-3 text-4xl">Allegation Details</h2>
               </div>
               <p className="max-w-sm text-right font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                Report corruption with as much specific detail as possible
+                {isEditMode
+                  ? "Revise the report details while preserving the existing workflow record"
+                  : "Report corruption with as much specific detail as possible"}
               </p>
             </div>
 
@@ -256,6 +373,7 @@ export function ReportForm() {
                   onChange={(event) => updateField("title", event.target.value)}
                   placeholder="Brief summary of the incident"
                   required
+                  disabled={editLocked}
                 />
               </label>
 
@@ -267,6 +385,7 @@ export function ReportForm() {
                   className="field"
                   value={form.category}
                   onChange={(event) => updateField("category", event.target.value)}
+                  disabled={editLocked}
                 >
                   {categoryOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -285,6 +404,7 @@ export function ReportForm() {
                   type="date"
                   value={form.incident_date}
                   onChange={(event) => updateField("incident_date", event.target.value)}
+                  disabled={editLocked}
                 />
               </label>
 
@@ -298,6 +418,7 @@ export function ReportForm() {
                   onChange={(event) => updateField("description", event.target.value)}
                   placeholder="Describe who, what, where, when, and how."
                   required
+                  disabled={editLocked}
                 />
               </label>
             </div>
@@ -319,6 +440,7 @@ export function ReportForm() {
                   value={form.incident_location}
                   onChange={(event) => updateField("incident_location", event.target.value)}
                   placeholder="Office, unit, or process stage"
+                  disabled={editLocked}
                 />
               </label>
 
@@ -331,6 +453,7 @@ export function ReportForm() {
                   value={form.accused_party}
                   onChange={(event) => updateField("accused_party", event.target.value)}
                   placeholder="Person, team, or role"
+                  disabled={editLocked}
                 />
               </label>
 
@@ -343,6 +466,7 @@ export function ReportForm() {
                   value={form.evidence_summary}
                   onChange={(event) => updateField("evidence_summary", event.target.value)}
                   placeholder="Documents, witnesses, screenshots, logs"
+                  disabled={editLocked}
                 />
               </label>
             </div>
@@ -360,11 +484,12 @@ export function ReportForm() {
                       key={tag.value}
                       type="button"
                       onClick={() => toggleTag(tag.value)}
+                      disabled={editLocked}
                       className={`rounded-[0.35rem] border px-4 py-3 text-[0.72rem] font-mono uppercase tracking-[0.22em] transition ${
                         active
                           ? "border-[rgba(239,47,39,0.18)] bg-[rgba(239,47,39,0.1)] text-[var(--primary-strong)]"
                           : "border-[var(--panel-border)] bg-white/80 text-[var(--foreground)]"
-                      }`}
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
                     >
                       {tag.label}
                     </button>
@@ -382,6 +507,7 @@ export function ReportForm() {
                     onChange={(event) =>
                       updateField("witness_available", event.target.checked)
                     }
+                    disabled={editLocked}
                   />
                   Witnesses can corroborate the report
                 </span>
@@ -395,6 +521,7 @@ export function ReportForm() {
                     onChange={(event) =>
                       updateField("requested_follow_up", event.target.checked)
                     }
+                    disabled={editLocked}
                   />
                   I request protected follow-up
                 </span>
@@ -426,6 +553,7 @@ export function ReportForm() {
                         event.target.value as SubmissionPayload["confidentiality_level"],
                       )
                     }
+                    disabled={editLocked}
                   >
                     {confidentialityOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -440,13 +568,13 @@ export function ReportForm() {
                     <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/56">
                       Registered Name
                     </p>
-                    <p className="mt-2 text-sm text-white">{user.name}</p>
+                    <p className="mt-2 text-sm text-white">{reporterProfile?.name}</p>
                   </div>
                   <div className="rounded-[0.8rem] border border-white/10 bg-white/5 p-4">
                     <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/56">
                       Contact Channel
                     </p>
-                    <p className="mt-2 text-sm text-white">{user.email}</p>
+                    <p className="mt-2 text-sm text-white">{reporterProfile?.email}</p>
                   </div>
                 </div>
               </div>
@@ -465,93 +593,42 @@ export function ReportForm() {
             </p>
           ) : null}
 
+          {editLocked && record?.edit_lock_reason ? (
+            <p className="rounded-[0.8rem] border border-amber-200 bg-amber-100 px-4 py-4 text-sm text-amber-900">
+              {record.edit_lock_reason}
+            </p>
+          ) : null}
+
           <div className="flex flex-col gap-5 border-t border-[var(--panel-border)] pt-6 lg:flex-row lg:items-center lg:justify-between">
             <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
-              The report is transmitted to the Laravel backend and enters the KPK role-based review process beginning with the supervisor of verificator.
+              {isEditMode
+                ? "Updates remain tied to the original reporter account and are written into the audit trail of the existing case."
+                : "The report is transmitted to the Laravel backend and enters the KPK role-based review process beginning with the supervisor of verificator."}
             </p>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="primary-button disabled:opacity-60"
-            >
-              {isPending ? "Submitting..." : "Submit Secure Report"}
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => router.push("/submit")}
+                className="ghost-button cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isPending || editLocked}
+                className="primary-button disabled:opacity-60"
+              >
+                {isPending
+                  ? isEditMode
+                    ? "Saving..."
+                    : "Submitting..."
+                  : isEditMode
+                    ? "Save Changes"
+                    : "Submit Secure Report"}
+              </button>
+            </div>
           </div>
         </form>
-
-        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="panel rounded-[1rem] p-7">
-            <p className="eyebrow">Submission Outcome</p>
-            {receipt ? (
-              <div className="mt-5 space-y-4">
-                <div className="signal-card rounded-[0.8rem] border border-[var(--panel-border)] p-5">
-                  <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                    Public Reference
-                  </p>
-                  <p className="mt-3 font-mono text-xl">{receipt.public_reference}</p>
-                </div>
-                <div className="accent-card rounded-[0.8rem] border border-[var(--panel-border)] p-5">
-                  <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                    Tracking Token
-                  </p>
-                  <p className="mt-3 font-mono text-xl">{receipt.tracking_token}</p>
-                </div>
-                <div className="outline-panel rounded-[0.8rem] p-5">
-                  <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                    Next Steps
-                  </p>
-                  <ul className="mt-3 space-y-2 text-sm leading-7 text-[var(--muted)]">
-                    {receipt.next_steps.map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ) : (
-              <p className="muted mt-4 text-sm leading-7">
-                After submission, the system issues a public reference and tracking token for public-safe follow-up.
-              </p>
-            )}
-          </div>
-
-          <div className="panel rounded-[1rem] p-7">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="eyebrow">Recent Submissions</p>
-                <p className="muted mt-3 text-sm leading-7">
-                  Reports previously filed from this reporter account.
-                </p>
-              </div>
-              {usingFallback ? (
-                <span className="rounded-[0.3rem] bg-amber-100 px-3 py-1 font-mono text-[0.62rem] uppercase tracking-[0.22em] text-amber-900">
-                  Seeded
-                </span>
-              ) : null}
-            </div>
-            <div className="mt-5 space-y-4">
-              {reports.length > 0 ? (
-                reports.map((report) => (
-                  <article
-                    key={report.public_reference}
-                    className="signal-card rounded-[0.8rem] border border-[var(--panel-border)] p-5"
-                  >
-                    <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                      {report.public_reference}
-                    </p>
-                    <h3 className="mt-2 text-2xl">{report.title}</h3>
-                    <p className="muted mt-3 text-sm leading-7">
-                      {report.case.stage_label ?? "Submitted"} · {formatDateTime(report.submitted_at)}
-                    </p>
-                  </article>
-                ))
-              ) : (
-                <p className="muted text-sm leading-7">
-                  No reports have been submitted from this account yet.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

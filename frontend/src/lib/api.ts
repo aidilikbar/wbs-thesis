@@ -9,6 +9,7 @@ import type {
   MessageResponse,
   PaginatedData,
   RegisterReporterPayload,
+  ReporterReportDetail,
   ReporterReportSummary,
   SubmissionPayload,
   SubmissionReceipt,
@@ -75,13 +76,55 @@ export const api = {
       method: "POST",
       token,
     }),
-  listReporterReports: (token: string) =>
-    request<ReporterReportSummary[]>("/reporter/reports", {
+  listReporterReports: (
+    token: string,
+    options: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      status?: string;
+    } = {},
+  ) => {
+    const params = new URLSearchParams();
+
+    if (options.page) {
+      params.set("page", String(options.page));
+    }
+
+    if (options.per_page) {
+      params.set("per_page", String(options.per_page));
+    }
+
+    if (options.search) {
+      params.set("search", options.search);
+    }
+
+    if (options.status) {
+      params.set("status", options.status);
+    }
+
+    const query = params.toString();
+
+    return request<PaginatedData<ReporterReportSummary>>(
+      query ? `/reporter/reports?${query}` : "/reporter/reports",
+      {
+        token,
+      },
+    );
+  },
+  fetchReporterReport: (token: string, reportId: number) =>
+    request<ReporterReportDetail>(`/reporter/reports/${reportId}`, {
       token,
     }),
   submitReport: (token: string, body: SubmissionPayload) =>
     request<SubmissionReceipt>("/reporter/reports", {
       method: "POST",
+      token,
+      body,
+    }),
+  updateReporterReport: (token: string, reportId: number, body: SubmissionPayload) =>
+    request<ReporterReportDetail>(`/reporter/reports/${reportId}`, {
+      method: "PATCH",
       token,
       body,
     }),
@@ -239,6 +282,10 @@ export const api = {
       method: "POST",
       token,
       body,
+    }),
+  fetchUser: (token: string, userId: number) =>
+    request<AuthUser>(`/admin/users/${userId}`, {
+      token,
     }),
   updateUser: (token: string, userId: number, body: AdminUserUpdatePayload) =>
     request<AuthUser>(`/admin/users/${userId}`, {
