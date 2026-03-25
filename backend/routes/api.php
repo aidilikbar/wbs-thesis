@@ -39,6 +39,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('admin')->group(function () {
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::post('/users', [AdminUserController::class, 'store']);
+        Route::patch('/users/{user}', [AdminUserController::class, 'update']);
+        Route::patch('/users/{user}/deactivate', [AdminUserController::class, 'deactivate']);
+        Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
     });
 
     Route::get('/governance/dashboard', [GovernanceDashboardController::class, 'index']);

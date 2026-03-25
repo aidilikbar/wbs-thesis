@@ -16,6 +16,7 @@ export type AuthUser = {
   role_label: string;
   unit: string | null;
   is_active: boolean;
+  created_at: string | null;
 };
 
 export type AuthSession = {
@@ -44,6 +45,30 @@ export type InternalUserPayload = {
   unit: string;
   password: string;
   password_confirmation: string;
+};
+
+export type AdminUserUpdatePayload = {
+  name: string;
+  email: string;
+  phone: string;
+  unit: string;
+  is_active: boolean;
+  password?: string;
+  password_confirmation?: string;
+};
+
+export type PaginationMeta = {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number | null;
+  to: number | null;
+};
+
+export type PaginatedData<T> = {
+  items: T[];
+  meta: PaginationMeta;
 };
 
 export type SubmissionPayload = {

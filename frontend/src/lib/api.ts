@@ -1,4 +1,5 @@
 import type {
+  AdminUserUpdatePayload,
   AuthSession,
   AuthUser,
   CatalogData,
@@ -6,6 +7,7 @@ import type {
   InternalUserPayload,
   LoginPayload,
   MessageResponse,
+  PaginatedData,
   RegisterReporterPayload,
   ReporterReportSummary,
   SubmissionPayload,
@@ -191,14 +193,52 @@ export const api = {
     request<GovernanceDashboardData>("/governance/dashboard", {
       token,
     }),
-  fetchUsers: (token: string) =>
-    request<AuthUser[]>("/admin/users", {
-      token,
-    }),
+  fetchUsers: (
+    token: string,
+    options: {
+      page?: number;
+      per_page?: number;
+    } = {},
+  ) => {
+    const params = new URLSearchParams();
+
+    if (options.page) {
+      params.set("page", String(options.page));
+    }
+
+    if (options.per_page) {
+      params.set("per_page", String(options.per_page));
+    }
+
+    const query = params.toString();
+
+    return request<PaginatedData<AuthUser>>(
+      query ? `/admin/users?${query}` : "/admin/users",
+      {
+        token,
+      },
+    );
+  },
   createUser: (token: string, body: InternalUserPayload) =>
     request<AuthUser>("/admin/users", {
       method: "POST",
       token,
       body,
+    }),
+  updateUser: (token: string, userId: number, body: AdminUserUpdatePayload) =>
+    request<AuthUser>(`/admin/users/${userId}`, {
+      method: "PATCH",
+      token,
+      body,
+    }),
+  deactivateUser: (token: string, userId: number) =>
+    request<AuthUser>(`/admin/users/${userId}/deactivate`, {
+      method: "PATCH",
+      token,
+    }),
+  deleteUser: (token: string, userId: number) =>
+    request<MessageResponse>(`/admin/users/${userId}`, {
+      method: "DELETE",
+      token,
     }),
 };

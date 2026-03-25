@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateUserRequest;
+use App\Http\Requests\UpdateUserRequest;
+use App\Models\CaseFile;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,13 +15,17 @@ class AdminUserController extends Controller
 {
     #[OA\Get(
         path: '/api/admin/users',
-        operationId: 'listInternalUsers',
-        summary: 'List provisioned users',
+        operationId: 'listProvisionedUsers',
+        summary: 'List users with pagination',
         description: 'Returns the user directory. This endpoint is restricted to the system administrator.',
         tags: ['Administration'],
         security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 8)),
+        ],
         responses: [
-            new OA\Response(response: 200, description: 'User directory returned.', content: new OA\JsonContent(ref: '#/components/schemas/UserListResponse')),
+            new OA\Response(response: 200, description: 'Paginated user directory returned.', content: new OA\JsonContent(ref: '#/components/schemas/UserDirectoryResponse')),
             new OA\Response(response: 403, description: 'System administrator access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
         ]
     )]
@@ -27,14 +33,26 @@ class AdminUserController extends Controller
     {
         $this->authorizeSystemAdministrator($request);
 
+        $perPage = min(max($request->integer('per_page', 8), 1), 50);
         $users = User::query()
+            ->orderByDesc('is_active')
             ->orderBy('role')
             ->orderBy('name')
-            ->get()
-            ->map(fn (User $user) => $this->transformUser($user));
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
-            'data' => $users,
+            'data' => [
+                'items' => $users->getCollection()->map(fn (User $user) => $this->transformUser($user)),
+                'meta' => [
+                    'current_page' => $users->currentPage(),
+                    'last_page' => $users->lastPage(),
+                    'per_page' => $users->perPage(),
+                    'total' => $users->total(),
+                    'from' => $users->firstItem(),
+                    'to' => $users->lastItem(),
+                ],
+            ],
         ]);
     }
 
@@ -75,13 +93,194 @@ class AdminUserController extends Controller
         ], 201);
     }
 
-    private function authorizeSystemAdministrator(Request $request): void
+    #[OA\Patch(
+        path: '/api/admin/users/{user}',
+        operationId: 'updateUser',
+        summary: 'Edit an existing user',
+        description: 'Updates editable profile fields, status, and optional password for an existing user.',
+        tags: ['Administration'],
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/UpdateUserRequest')),
+        parameters: [
+            new OA\Parameter(name: 'user', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'User updated.', content: new OA\JsonContent(ref: '#/components/schemas/UserMutationResponse')),
+            new OA\Response(response: 422, description: 'Validation failed.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ]
+    )]
+    public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
+        $administrator = $this->authorizeSystemAdministrator($request);
+        $nextIsActive = $request->boolean('is_active');
+
+        $this->guardStatusMutation($administrator, $user, $nextIsActive);
+
+        $payload = [
+            'name' => $request->string('name')->toString(),
+            'email' => $request->string('email')->toString(),
+            'phone' => $request->string('phone')->toString(),
+            'unit' => $user->hasRole(User::ROLE_REPORTER)
+                ? 'Reporter'
+                : ($request->string('unit')->toString() ?: null),
+            'is_active' => $nextIsActive,
+        ];
+
+        if ($request->filled('password')) {
+            $payload['password'] = $request->string('password')->toString();
+        }
+
+        $user->forceFill($payload)->save();
+
+        if (! $user->is_active) {
+            $user->tokens()->delete();
+        }
+
+        return response()->json([
+            'message' => 'User updated successfully.',
+            'data' => $this->transformUser($user->fresh()),
+        ]);
+    }
+
+    #[OA\Patch(
+        path: '/api/admin/users/{user}/deactivate',
+        operationId: 'deactivateUser',
+        summary: 'Deactivate a user',
+        description: 'Marks a user account as inactive and revokes existing API tokens.',
+        tags: ['Administration'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'user', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'User deactivated.', content: new OA\JsonContent(ref: '#/components/schemas/UserMutationResponse')),
+            new OA\Response(response: 422, description: 'Mutation blocked.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ]
+    )]
+    public function deactivate(Request $request, User $user): JsonResponse
+    {
+        $administrator = $this->authorizeSystemAdministrator($request);
+
+        $this->guardStatusMutation($administrator, $user, false);
+
+        $user->forceFill(['is_active' => false])->save();
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'User deactivated successfully.',
+            'data' => $this->transformUser($user->fresh()),
+        ]);
+    }
+
+    #[OA\Delete(
+        path: '/api/admin/users/{user}',
+        operationId: 'deleteUser',
+        summary: 'Delete a user',
+        description: 'Deletes a user account when it is safe to remove it from the directory.',
+        tags: ['Administration'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'user', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'User deleted.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 422, description: 'Mutation blocked.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ]
+    )]
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        $administrator = $this->authorizeSystemAdministrator($request);
+
+        abort_if(
+            $administrator->is($user),
+            422,
+            'You cannot delete your own account.'
+        );
+
+        abort_if(
+            $user->hasRole(User::ROLE_SYSTEM_ADMINISTRATOR)
+                && $this->activeSystemAdministratorCount($user->id) === 0,
+            422,
+            'At least one active system administrator must remain.'
+        );
+
+        abort_if(
+            $this->hasActiveWorkflowResponsibilities($user),
+            422,
+            'User is assigned to active workflow cases. Reassign or complete those cases before deletion.'
+        );
+
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json([
+            'message' => 'User deleted successfully.',
+        ]);
+    }
+
+    private function authorizeSystemAdministrator(Request $request): User
+    {
+        $user = $request->user();
+
         abort_unless(
-            $request->user()?->hasRole(User::ROLE_SYSTEM_ADMINISTRATOR),
+            $user?->hasRole(User::ROLE_SYSTEM_ADMINISTRATOR),
             403,
             'Only the system administrator may manage internal users.'
         );
+
+        return $user;
+    }
+
+    private function guardStatusMutation(User $administrator, User $target, bool $nextIsActive): void
+    {
+        if ($target->is_active && ! $nextIsActive && $administrator->is($target)) {
+            abort(422, 'You cannot deactivate your own account.');
+        }
+
+        if (
+            $target->is_active
+            && ! $nextIsActive
+            && $target->hasRole(User::ROLE_SYSTEM_ADMINISTRATOR)
+            && $this->activeSystemAdministratorCount($target->id) === 0
+        ) {
+            abort(422, 'At least one active system administrator must remain.');
+        }
+
+        if (
+            $target->is_active
+            && ! $nextIsActive
+            && $this->hasActiveWorkflowResponsibilities($target)
+        ) {
+            abort(422, 'User is assigned to active workflow cases. Reassign or complete those cases before deactivation.');
+        }
+    }
+
+    private function activeSystemAdministratorCount(?int $excludingUserId = null): int
+    {
+        return User::query()
+            ->where('role', User::ROLE_SYSTEM_ADMINISTRATOR)
+            ->where('is_active', true)
+            ->when($excludingUserId, fn ($query) => $query->whereKeyNot($excludingUserId))
+            ->count();
+    }
+
+    private function hasActiveWorkflowResponsibilities(User $user): bool
+    {
+        if (! $user->isInternalUser()) {
+            return false;
+        }
+
+        return CaseFile::query()
+            ->where('stage', '!=', 'completed')
+            ->where(function ($query) use ($user) {
+                $query
+                    ->where('verification_supervisor_id', $user->id)
+                    ->orWhere('verificator_id', $user->id)
+                    ->orWhere('investigation_supervisor_id', $user->id)
+                    ->orWhere('investigator_id', $user->id)
+                    ->orWhere('director_id', $user->id);
+            })
+            ->exists();
     }
 
     private function transformUser(User $user): array

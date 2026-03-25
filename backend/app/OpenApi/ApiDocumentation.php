@@ -369,25 +369,59 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
-    schema: 'UserListResponse',
+    schema: 'UpdateUserRequest',
+    type: 'object',
+    required: ['name', 'email', 'phone', 'is_active'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'Investigator One Updated'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'investigator.one.updated@example.test'),
+        new OA\Property(property: 'phone', type: 'string', example: '+62-812-0000-0099'),
+        new OA\Property(property: 'unit', type: 'string', nullable: true, example: 'Special Investigation Desk'),
+        new OA\Property(property: 'is_active', type: 'boolean', example: true),
+        new OA\Property(property: 'password', type: 'string', format: 'password', nullable: true, example: 'Updated123'),
+        new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', nullable: true, example: 'Updated123'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'UserDirectoryResponse',
     type: 'object',
     required: ['data'],
     properties: [
         new OA\Property(
             property: 'data',
-            type: 'array',
-            items: new OA\Items(
-                type: 'object',
-                properties: [
-                    new OA\Property(property: 'id', type: 'integer', example: 1),
-                    new OA\Property(property: 'name', type: 'string', example: 'System Administrator'),
-                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'sysadmin@example.test'),
-                    new OA\Property(property: 'role', type: 'string', example: 'system_administrator'),
-                    new OA\Property(property: 'role_label', type: 'string', example: 'System Administrator'),
-                    new OA\Property(property: 'unit', type: 'string', nullable: true, example: 'System Administration'),
-                    new OA\Property(property: 'is_active', type: 'boolean', example: true),
-                ]
-            )
+            type: 'object',
+            properties: [
+                new OA\Property(
+                    property: 'items',
+                    type: 'array',
+                    items: new OA\Items(
+                        type: 'object',
+                        properties: [
+                            new OA\Property(property: 'id', type: 'integer', example: 1),
+                            new OA\Property(property: 'name', type: 'string', example: 'System Administrator'),
+                            new OA\Property(property: 'email', type: 'string', format: 'email', example: 'sysadmin@example.test'),
+                            new OA\Property(property: 'phone', type: 'string', example: '+62-812-0000-0001'),
+                            new OA\Property(property: 'role', type: 'string', example: 'system_administrator'),
+                            new OA\Property(property: 'role_label', type: 'string', example: 'System Administrator'),
+                            new OA\Property(property: 'unit', type: 'string', nullable: true, example: 'System Administration'),
+                            new OA\Property(property: 'is_active', type: 'boolean', example: true),
+                            new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true, example: '2026-03-25T08:15:00Z'),
+                        ]
+                    )
+                ),
+                new OA\Property(
+                    property: 'meta',
+                    type: 'object',
+                    properties: [
+                        new OA\Property(property: 'current_page', type: 'integer', example: 1),
+                        new OA\Property(property: 'last_page', type: 'integer', example: 2),
+                        new OA\Property(property: 'per_page', type: 'integer', example: 8),
+                        new OA\Property(property: 'total', type: 'integer', example: 12),
+                        new OA\Property(property: 'from', type: 'integer', nullable: true, example: 1),
+                        new OA\Property(property: 'to', type: 'integer', nullable: true, example: 8),
+                    ]
+                ),
+            ]
         ),
     ]
 )]
