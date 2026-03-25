@@ -64,6 +64,49 @@ class AdminUserManagementTest extends TestCase
             ->assertJsonCount(5, 'data.items');
     }
 
+    public function test_system_administrator_can_search_and_filter_user_directory(): void
+    {
+        $administrator = $this->createAdministrator();
+
+        User::query()->create([
+            'name' => 'Active Investigator',
+            'email' => 'active.investigator@example.test',
+            'phone' => '+62-812-0000-0011',
+            'role' => User::ROLE_INVESTIGATOR,
+            'unit' => 'Investigation Desk',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        User::query()->create([
+            'name' => 'Inactive Investigator',
+            'email' => 'inactive.investigator@example.test',
+            'phone' => '+62-812-0000-0012',
+            'role' => User::ROLE_INVESTIGATOR,
+            'unit' => 'Investigation Desk',
+            'is_active' => false,
+            'password' => 'Password123',
+        ]);
+
+        User::query()->create([
+            'name' => 'Reporter Match',
+            'email' => 'reporter.match@example.test',
+            'phone' => '+62-812-0000-0013',
+            'role' => User::ROLE_REPORTER,
+            'unit' => 'Reporter',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        Sanctum::actingAs($administrator, [$administrator->role]);
+
+        $this->getJson('/api/admin/users?search=inactive&role=investigator&status=inactive')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.email', 'inactive.investigator@example.test')
+            ->assertJsonPath('data.items.0.is_active', false);
+    }
+
     public function test_system_administrator_can_update_and_deactivate_user(): void
     {
         $administrator = $this->createAdministrator();

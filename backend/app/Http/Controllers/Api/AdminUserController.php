@@ -23,6 +23,9 @@ class AdminUserController extends Controller
         parameters: [
             new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 8)),
+            new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'role', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'status', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['active', 'inactive'])),
         ],
         responses: [
             new OA\Response(response: 200, description: 'Paginated user directory returned.', content: new OA\JsonContent(ref: '#/components/schemas/UserDirectoryResponse')),
@@ -34,7 +37,34 @@ class AdminUserController extends Controller
         $this->authorizeSystemAdministrator($request);
 
         $perPage = min(max($request->integer('per_page', 8), 1), 50);
+        $search = trim($request->string('search')->toString());
+        $role = $request->string('role')->toString();
+        $status = $request->string('status')->toString();
+
         $users = User::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($nested) use ($search) {
+                    $like = "%{$search}%";
+
+                    $nested
+                        ->where('name', 'like', $like)
+                        ->orWhere('email', 'like', $like)
+                        ->orWhere('phone', 'like', $like)
+                        ->orWhere('unit', 'like', $like);
+                });
+            })
+            ->when(
+                array_key_exists($role, config('wbs.roles', [])),
+                fn ($query) => $query->where('role', $role)
+            )
+            ->when(
+                $status === 'active',
+                fn ($query) => $query->where('is_active', true)
+            )
+            ->when(
+                $status === 'inactive',
+                fn ($query) => $query->where('is_active', false)
+            )
             ->orderByDesc('is_active')
             ->orderBy('role')
             ->orderBy('name')

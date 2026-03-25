@@ -198,6 +198,9 @@ export const api = {
     options: {
       page?: number;
       per_page?: number;
+      search?: string;
+      role?: string;
+      status?: "active" | "inactive";
     } = {},
   ) => {
     const params = new URLSearchParams();
@@ -208,6 +211,18 @@ export const api = {
 
     if (options.per_page) {
       params.set("per_page", String(options.per_page));
+    }
+
+    if (options.search) {
+      params.set("search", options.search);
+    }
+
+    if (options.role) {
+      params.set("role", options.role);
+    }
+
+    if (options.status) {
+      params.set("status", options.status);
     }
 
     const query = params.toString();

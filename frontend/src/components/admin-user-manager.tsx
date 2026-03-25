@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
 import { internalRoleOptions } from "@/lib/demo-data";
@@ -13,9 +19,19 @@ import type {
   AuthUser,
   InternalUserPayload,
   PaginatedData,
+  UserRole,
 } from "@/lib/types";
 
 const PAGE_SIZE = 8;
+
+type DirectoryRoleFilter = "all" | UserRole;
+type DirectoryStatusFilter = "all" | "active" | "inactive";
+type NoticeState =
+  | {
+      tone: "success" | "error";
+      text: string;
+    }
+  | null;
 
 const emptyDirectory: PaginatedData<AuthUser> = {
   items: [],
@@ -39,22 +55,52 @@ const initialCreateForm: InternalUserPayload = {
   password_confirmation: "",
 };
 
+const roleFilterOptions: Array<{ value: DirectoryRoleFilter; label: string }> = [
+  { value: "all", label: "All roles" },
+  { value: "reporter", label: "Reporter" },
+  ...internalRoleOptions,
+];
+
+const statusFilterOptions: Array<{
+  value: DirectoryStatusFilter;
+  label: string;
+}> = [
+  { value: "all", label: "All statuses" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
+
 type EditFormState = AdminUserUpdatePayload & {
   id: number;
   role: AuthUser["role"];
   role_label: string;
 };
 
+function noticeClasses(tone: "success" | "error") {
+  if (tone === "success") {
+    return "border border-[rgba(19,19,19,0.08)] bg-white text-[var(--foreground)]";
+  }
+
+  return "border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] text-[var(--secondary-strong)]";
+}
+
 export function AdminUserManager() {
   const { isReady, isAuthenticated, token, user } = useAuth();
   const [directory, setDirectory] = useState<PaginatedData<AuthUser>>(emptyDirectory);
   const [createForm, setCreateForm] = useState<InternalUserPayload>(initialCreateForm);
   const [editingUser, setEditingUser] = useState<EditFormState | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [createNotice, setCreateNotice] = useState<NoticeState>(null);
+  const [directoryNotice, setDirectoryNotice] = useState<NoticeState>(null);
   const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+  const [roleFilter, setRoleFilter] = useState<DirectoryRoleFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<DirectoryStatusFilter>("all");
+  const editorRef = useRef<HTMLFormElement | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const isAdmin = isSystemAdministrator(user?.role);
+  const currentUserId = user?.id ?? null;
 
   useEffect(() => {
     if (!token || !isAdmin) {
@@ -68,6 +114,9 @@ export function AdminUserManager() {
         const data = await api.fetchUsers(token, {
           page,
           per_page: PAGE_SIZE,
+          search: deferredSearchTerm.trim() || undefined,
+          role: roleFilter !== "all" ? roleFilter : undefined,
+          status: statusFilter !== "all" ? statusFilter : undefined,
         });
 
         if (!active) {
@@ -83,11 +132,13 @@ export function AdminUserManager() {
         setDirectory(data);
       } catch (error) {
         if (active) {
-          setMessage(
-            error instanceof Error
-              ? error.message
-              : "Internal user data could not be loaded.",
-          );
+          setDirectoryNotice({
+            tone: "error",
+            text:
+              error instanceof Error
+                ? error.message
+                : "Internal user data could not be loaded.",
+          });
         }
       }
     };
@@ -97,7 +148,18 @@ export function AdminUserManager() {
     return () => {
       active = false;
     };
-  }, [token, isAdmin, page]);
+  }, [token, isAdmin, page, deferredSearchTerm, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    if (!editingUser || !editorRef.current) {
+      return;
+    }
+
+    editorRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [editingUser]);
 
   const updateCreateField = <K extends keyof InternalUserPayload>(
     field: K,
@@ -121,6 +183,9 @@ export function AdminUserManager() {
     const data = await api.fetchUsers(token, {
       page: targetPage,
       per_page: PAGE_SIZE,
+      search: deferredSearchTerm.trim() || undefined,
+      role: roleFilter !== "all" ? roleFilter : undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
     });
 
     if (data.items.length === 0 && targetPage > 1) {
@@ -134,10 +199,13 @@ export function AdminUserManager() {
 
   const handleCreate = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setMessage(null);
+    setCreateNotice(null);
 
     if (!token) {
-      setMessage("System administrator authentication is required.");
+      setCreateNotice({
+        tone: "error",
+        text: "System administrator authentication is required.",
+      });
 
       return;
     }
@@ -148,13 +216,22 @@ export function AdminUserManager() {
         setPage(1);
         await reloadUsers(1);
         setCreateForm(initialCreateForm);
-        setMessage("Internal user created successfully.");
+        setCreateNotice({
+          tone: "success",
+          text: "Internal user created successfully.",
+        });
+        setDirectoryNotice({
+          tone: "success",
+          text: "Directory refreshed with the newly created user.",
+        });
       } catch (error) {
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "Internal user could not be created.",
-        );
+        setCreateNotice({
+          tone: "error",
+          text:
+            error instanceof Error
+              ? error.message
+              : "Internal user could not be created.",
+        });
       }
     });
   };
@@ -172,15 +249,21 @@ export function AdminUserManager() {
       password: "",
       password_confirmation: "",
     });
-    setMessage(null);
+    setDirectoryNotice({
+      tone: "success",
+      text: `Editing ${account.email}.`,
+    });
   };
 
   const handleUpdate = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setMessage(null);
+    setDirectoryNotice(null);
 
     if (!token || !editingUser) {
-      setMessage("Select a user to edit first.");
+      setDirectoryNotice({
+        tone: "error",
+        text: "Select a user to edit first.",
+      });
 
       return;
     }
@@ -216,38 +299,74 @@ export function AdminUserManager() {
               }
             : current,
         );
-        setMessage("User updated successfully.");
+        setDirectoryNotice({
+          tone: "success",
+          text: "User updated successfully.",
+        });
       } catch (error) {
-        setMessage(
-          error instanceof Error ? error.message : "User update could not be completed.",
-        );
+        setDirectoryNotice({
+          tone: "error",
+          text:
+            error instanceof Error
+              ? error.message
+              : "User update could not be completed.",
+        });
       }
     });
   };
 
-  const handleDeactivate = (account: AuthUser) => {
-    if (!token || !account.is_active) {
+  const handleStatusToggle = (account: AuthUser) => {
+    if (!token) {
       return;
     }
 
-    setMessage(null);
+    const nextIsActive = !account.is_active;
+    const actionLabel = nextIsActive ? "activate" : "deactivate";
+
+    if (
+      !window.confirm(
+        `${nextIsActive ? "Activate" : "Deactivate"} ${account.email}?`,
+      )
+    ) {
+      return;
+    }
+
+    setDirectoryNotice(null);
 
     startTransition(async () => {
       try {
-        await api.deactivateUser(token, account.id);
+        if (nextIsActive) {
+          await api.updateUser(token, account.id, {
+            name: account.name,
+            email: account.email,
+            phone: account.phone,
+            unit: account.unit ?? "",
+            is_active: true,
+          });
+        } else {
+          await api.deactivateUser(token, account.id);
+        }
+
         await reloadUsers();
 
         if (editingUser?.id === account.id) {
           setEditingUser((current) =>
-            current ? { ...current, is_active: false } : current,
+            current ? { ...current, is_active: nextIsActive } : current,
           );
         }
 
-        setMessage("User deactivated successfully.");
+        setDirectoryNotice({
+          tone: "success",
+          text: `User ${actionLabel}d successfully.`,
+        });
       } catch (error) {
-        setMessage(
-          error instanceof Error ? error.message : "User could not be deactivated.",
-        );
+        setDirectoryNotice({
+          tone: "error",
+          text:
+            error instanceof Error
+              ? error.message
+              : `User could not be ${actionLabel}d.`,
+        });
       }
     });
   };
@@ -261,7 +380,7 @@ export function AdminUserManager() {
       return;
     }
 
-    setMessage(null);
+    setDirectoryNotice(null);
 
     startTransition(async () => {
       try {
@@ -272,11 +391,18 @@ export function AdminUserManager() {
           setEditingUser(null);
         }
 
-        setMessage("User deleted successfully.");
+        setDirectoryNotice({
+          tone: "success",
+          text: "User deleted successfully.",
+        });
       } catch (error) {
-        setMessage(
-          error instanceof Error ? error.message : "User could not be deleted.",
-        );
+        setDirectoryNotice({
+          tone: "error",
+          text:
+            error instanceof Error
+              ? error.message
+              : "User could not be deleted.",
+        });
       }
     });
   };
@@ -317,7 +443,7 @@ export function AdminUserManager() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+    <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
       <form className="panel rounded-[1rem] p-8" onSubmit={handleCreate}>
         <p className="eyebrow">Create Internal User</p>
         <h2 className="mt-4 text-3xl">Provision a workflow role account</h2>
@@ -403,15 +529,9 @@ export function AdminUserManager() {
           </label>
         </div>
 
-        {message ? (
-          <p
-            className={`mt-5 rounded-[0.65rem] px-4 py-3 text-sm ${
-              message.includes("successfully")
-                ? "bg-emerald-100 text-emerald-900"
-                : "border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] text-[var(--secondary-strong)]"
-            }`}
-          >
-            {message}
+        {createNotice ? (
+          <p className={`mt-5 rounded-[0.65rem] px-4 py-3 text-sm ${noticeClasses(createNotice.tone)}`}>
+            {createNotice.text}
           </p>
         ) : null}
 
@@ -431,146 +551,28 @@ export function AdminUserManager() {
             Directory Controls
           </p>
           <p className="mt-4 text-sm leading-7 text-white/72">
-            Use the paginated directory to edit user profiles, deactivate accounts, or delete removable records without breaking active workflow ownership.
+            Search by name, email, phone, or unit. Filter by role and status, then edit, activate, deactivate, or delete user accounts without breaking active workflow ownership.
           </p>
         </aside>
 
-        <div className="panel rounded-[1rem] p-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="eyebrow">Provisioned Users</p>
-              <h2 className="mt-4 text-3xl">Paginated user directory</h2>
-            </div>
-            <div className="text-right">
-              <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Total users
-              </p>
-              <p className="mt-2 text-3xl font-semibold">{directory.meta.total}</p>
-            </div>
-          </div>
-
-          <div className="mt-6 overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0 text-left">
-              <thead>
-                <tr className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">User</th>
-                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">Role</th>
-                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">Unit</th>
-                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">Status</th>
-                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">Created</th>
-                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {directory.items.length > 0 ? (
-                  directory.items.map((account) => (
-                    <tr key={account.id} className="align-top">
-                      <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                        <p className="font-semibold">{account.name}</p>
-                        <p className="muted mt-2 text-sm">{account.email}</p>
-                        <p className="muted mt-1 text-sm">{account.phone}</p>
-                      </td>
-                      <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                        <StatusBadge value={account.role} label={account.role_label} />
-                      </td>
-                      <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4 text-sm">
-                        {account.unit ?? "Not assigned"}
-                      </td>
-                      <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                        <StatusBadge
-                          value={account.is_active ? "active" : "inactive"}
-                          label={account.is_active ? "Active" : "Inactive"}
-                        />
-                      </td>
-                      <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4 text-sm text-[var(--muted)]">
-                        {formatDateTime(account.created_at)}
-                      </td>
-                      <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openEditor(account)}
-                            className="ghost-button px-3 py-2 text-[0.65rem]"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeactivate(account)}
-                            disabled={isPending || !account.is_active || account.id === user.id}
-                            className="secondary-button px-3 py-2 text-[0.65rem] disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            Deactivate
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(account)}
-                            disabled={isPending || account.id === user.id}
-                            className="ghost-button px-3 py-2 text-[0.65rem] text-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-8 text-sm leading-7 text-[var(--muted)]"
-                    >
-                      No users are available in the current directory page.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--panel-border)] pt-5">
-            <p className="text-sm text-[var(--muted)]">
-              Showing {directory.meta.from ?? 0} to {directory.meta.to ?? 0} of{" "}
-              {directory.meta.total} users
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((current) => Math.max(current - 1, 1))}
-                disabled={isPending || directory.meta.current_page <= 1}
-                className="ghost-button px-3 py-2 text-[0.65rem] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setPage((current) =>
-                    Math.min(current + 1, directory.meta.last_page),
-                  )
-                }
-                disabled={
-                  isPending || directory.meta.current_page >= directory.meta.last_page
-                }
-                className="ghost-button px-3 py-2 text-[0.65rem] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
-
         {editingUser ? (
-          <form className="panel rounded-[1rem] p-8" onSubmit={handleUpdate}>
+          <form
+            ref={editorRef}
+            className="panel rounded-[1rem] p-8"
+            onSubmit={handleUpdate}
+          >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="eyebrow">Edit User</p>
                 <h2 className="mt-4 text-3xl">{editingUser.name}</h2>
+                <p className="muted mt-3 text-sm">
+                  Changes are applied directly on behalf of the selected user.
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingUser(null)}
-                className="ghost-button px-3 py-2 text-[0.65rem]"
+                className="ghost-button cursor-pointer px-3 py-2 text-[0.65rem]"
               >
                 Close
               </button>
@@ -651,7 +653,7 @@ export function AdminUserManager() {
                 type="checkbox"
                 checked={editingUser.is_active}
                 onChange={(event) => updateEditField("is_active", event.target.checked)}
-                disabled={editingUser.id === user.id}
+                disabled={editingUser.id === currentUserId}
               />
               Account is active
             </label>
@@ -663,13 +665,218 @@ export function AdminUserManager() {
               <button
                 type="button"
                 onClick={() => setEditingUser(null)}
-                className="ghost-button"
+                className="ghost-button cursor-pointer"
               >
                 Cancel
               </button>
             </div>
           </form>
         ) : null}
+
+        <div className="panel rounded-[1rem] p-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow">Provisioned Users</p>
+              <h2 className="mt-4 text-3xl">Paginated user directory</h2>
+            </div>
+            <div className="text-right">
+              <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                Total users
+              </p>
+              <p className="mt-2 text-3xl font-semibold">{directory.meta.total}</p>
+            </div>
+          </div>
+
+          {directoryNotice ? (
+            <p className={`mt-5 rounded-[0.65rem] px-4 py-3 text-sm ${noticeClasses(directoryNotice.tone)}`}>
+              {directoryNotice.text}
+            </p>
+          ) : null}
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold">Search</span>
+              <input
+                className="field"
+                value={searchTerm}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search name, email, phone, or unit"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold">Role</span>
+              <select
+                className="field"
+                value={roleFilter}
+                onChange={(event) => {
+                  setRoleFilter(event.target.value as DirectoryRoleFilter);
+                  setPage(1);
+                }}
+              >
+                {roleFilterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold">Status</span>
+              <select
+                className="field"
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value as DirectoryStatusFilter);
+                  setPage(1);
+                }}
+              >
+                {statusFilterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="mt-6 overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-0 text-left">
+              <thead>
+                <tr className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                    User
+                  </th>
+                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                    Role
+                  </th>
+                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                    Unit
+                  </th>
+                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                    Status
+                  </th>
+                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                    Created
+                  </th>
+                  <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {directory.items.length > 0 ? (
+                  directory.items.map((account) => {
+                    const isEditingThisRow = editingUser?.id === account.id;
+                    const canMutateSelf = account.id !== currentUserId;
+
+                    return (
+                      <tr
+                        key={account.id}
+                        className={`align-top ${
+                          isEditingThisRow ? "bg-[rgba(239,47,39,0.05)]" : ""
+                        }`}
+                      >
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          <p className="font-semibold">{account.name}</p>
+                          <p className="muted mt-2 text-sm">{account.email}</p>
+                          <p className="muted mt-1 text-sm">{account.phone}</p>
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          <StatusBadge value={account.role} label={account.role_label} />
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4 text-sm">
+                          {account.unit ?? "Not assigned"}
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          <StatusBadge
+                            value={account.is_active ? "active" : "inactive"}
+                            label={account.is_active ? "Active" : "Inactive"}
+                          />
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4 text-sm text-[var(--muted)]">
+                          {formatDateTime(account.created_at)}
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          <div className="relative z-10 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEditor(account)}
+                              className="ghost-button cursor-pointer px-3 py-2 text-[0.65rem]"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleStatusToggle(account)}
+                              disabled={isPending || !canMutateSelf}
+                              className="secondary-button cursor-pointer px-3 py-2 text-[0.65rem] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {account.is_active ? "Deactivate" : "Activate"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(account)}
+                              disabled={isPending || !canMutateSelf}
+                              className="ghost-button cursor-pointer px-3 py-2 text-[0.65rem] text-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-8 text-sm leading-7 text-[var(--muted)]"
+                    >
+                      No users match the current search or filter settings.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--panel-border)] pt-5">
+            <p className="text-sm text-[var(--muted)]">
+              Showing {directory.meta.from ?? 0} to {directory.meta.to ?? 0} of{" "}
+              {directory.meta.total} users
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                Page {directory.meta.current_page} of {directory.meta.last_page}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.max(current - 1, 1))}
+                disabled={isPending || directory.meta.current_page <= 1}
+                className="ghost-button cursor-pointer px-3 py-2 text-[0.65rem] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setPage((current) =>
+                    Math.min(current + 1, directory.meta.last_page),
+                  )
+                }
+                disabled={
+                  isPending || directory.meta.current_page >= directory.meta.last_page
+                }
+                className="ghost-button cursor-pointer px-3 py-2 text-[0.65rem] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
