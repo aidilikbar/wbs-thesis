@@ -1,8 +1,8 @@
 import { AppShell } from "@/components/app-shell";
-import { ReportForm } from "@/components/report-form";
+import { ReporterReportEditor } from "@/components/reporter-report-editor";
 
 export const metadata = {
-  title: "Edit Report",
+  title: "Report Detail",
 };
 
 export default async function SubmitEditPage({
@@ -16,13 +16,14 @@ export default async function SubmitEditPage({
     <AppShell>
       <section className="max-w-5xl">
         <p className="eyebrow">Reporter Workspace</p>
-        <h1 className="mt-4 text-[clamp(3rem,7vw,5.4rem)]">Edit Report Record.</h1>
+        <h1 className="mt-4 text-[clamp(3rem,7vw,5.4rem)]">Report Detail.</h1>
         <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Revise the selected report from a dedicated edit screen. Saving or cancelling returns to the reporter transaction index.
+          Review the selected submission, follow its case status directly on this page,
+          and revise the filing content from a simplified authenticated reporter view.
         </p>
       </section>
       <section className="mt-8">
-        <ReportForm mode="edit" reportId={Number(reportId)} />
+        <ReporterReportEditor reportId={Number(reportId)} />
       </section>
     </AppShell>
   );

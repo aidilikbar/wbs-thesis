@@ -135,7 +135,7 @@ class ReporterReportController extends Controller
         $user = $this->authorizeOwnedReport($request, $report);
 
         return response()->json([
-            'data' => $this->transformDetail($report->fresh('caseFile'), $user),
+            'data' => $this->transformDetail($report->fresh(['caseFile', 'timelineEvents']), $user),
         ]);
     }
 
@@ -228,14 +228,27 @@ class ReporterReportController extends Controller
     {
         return [
             ...$this->transformSummary($report),
+            'category_label' => config("wbs.categories.{$report->category}", $report->category),
             'description' => $report->description,
             'incident_date' => $report->incident_date?->toDateString(),
             'incident_location' => $report->incident_location,
             'accused_party' => $report->accused_party,
             'evidence_summary' => $report->evidence_summary,
+            'last_public_update_at' => $report->last_public_update_at?->toISOString(),
             'requested_follow_up' => $report->requested_follow_up,
             'witness_available' => $report->witness_available,
             'governance_tags' => array_values($report->governance_tags ?? []),
+            'timeline' => $report->timelineEvents
+                ->where('visibility', 'public')
+                ->values()
+                ->map(fn ($event) => [
+                    'stage' => $event->stage,
+                    'stage_label' => config("wbs.case_stages.{$event->stage}", $event->stage),
+                    'headline' => $event->headline,
+                    'detail' => $event->detail,
+                    'actor_role' => $event->actor_role,
+                    'occurred_at' => $event->occurred_at?->toISOString(),
+                ]),
             'reporter' => [
                 'name' => $user->name,
                 'email' => $user->email,

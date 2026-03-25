@@ -159,16 +159,6 @@ export function ReportForm({
     });
   };
 
-  const reporterProfile = record?.reporter
-    ? record.reporter
-    : user
-      ? {
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-        }
-      : null;
-
   if (!isReady || isLoading) {
     return (
       <div className="panel rounded-[1rem] p-8">
@@ -283,33 +273,19 @@ export function ReportForm({
           </div>
         </div>
 
-        {reporterProfile ? (
-          <div className="accent-card rounded-[1rem] border border-[var(--panel-border)] p-6">
-            <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary-strong)]">
-              Reporter Profile
-            </p>
-            <div className="mt-4 space-y-3 text-sm leading-7">
-              <div>
-                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Name
-                </p>
-                <p>{reporterProfile.name}</p>
-              </div>
-              <div>
-                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Email
-                </p>
-                <p>{reporterProfile.email}</p>
-              </div>
-              <div>
-                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Phone
-                </p>
-                <p>{reporterProfile.phone}</p>
-              </div>
-            </div>
+        <div className="accent-card rounded-[1rem] border border-[var(--panel-border)] p-6">
+          <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary-strong)]">
+            Reporter Account
+          </p>
+          <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
+            Account identity is now managed from the top-right profile page so the filing screen can stay focused on the allegation itself.
+          </p>
+          <div className="mt-5">
+            <Link href="/profile" className="ghost-button">
+              Open Profile
+            </Link>
           </div>
-        ) : null}
+        </div>
 
         {record ? (
           <div className="panel rounded-[1rem] p-6">
@@ -563,19 +539,8 @@ export function ReportForm({
                   </select>
                 </label>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-[0.8rem] border border-white/10 bg-white/5 p-4">
-                    <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/56">
-                      Registered Name
-                    </p>
-                    <p className="mt-2 text-sm text-white">{reporterProfile?.name}</p>
-                  </div>
-                  <div className="rounded-[0.8rem] border border-white/10 bg-white/5 p-4">
-                    <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/56">
-                      Contact Channel
-                    </p>
-                    <p className="mt-2 text-sm text-white">{reporterProfile?.email}</p>
-                  </div>
+                <div className="rounded-[0.8rem] border border-white/10 bg-white/5 p-4 text-sm leading-7 text-white/72">
+                  Reporter identity and contact details are available from `/profile` and stay outside the main submission form.
                 </div>
               </div>
             </div>

@@ -118,14 +118,17 @@ export type ReporterReportSummary = {
 };
 
 export type ReporterReportDetail = ReporterReportSummary & {
+  category_label: string;
   description: string;
   incident_date: string | null;
   incident_location: string | null;
   accused_party: string | null;
   evidence_summary: string | null;
+  last_public_update_at: string | null;
   requested_follow_up: boolean;
   witness_available: boolean;
   governance_tags: string[];
+  timeline: TrackingTimelineEntry[];
   reporter: {
     name: string;
     email: string;

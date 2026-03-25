@@ -9,7 +9,6 @@ import {
   isInternalRole,
   isReporter,
   isSystemAdministrator,
-  roleHomePath,
 } from "@/lib/roles";
 
 type NavItem = {
@@ -115,20 +114,30 @@ export function AppShell({ children }: PropsWithChildren) {
               {isReady ? (
                 isAuthenticated && user ? (
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="outline-panel rounded-[0.7rem] px-4 py-3 text-sm text-[var(--muted)]">
-                      <p className="font-mono text-[0.66rem] uppercase tracking-[0.22em] text-[var(--primary)]">
-                        Confidential Access
-                      </p>
-                      <p className="mt-1 font-semibold text-[var(--foreground)]">
-                        {user.name}
-                      </p>
-                      <p>
-                        {user.role_label}
-                        {user.unit ? ` · ${user.unit}` : ""}
-                      </p>
-                    </div>
-                    <Link href={roleHomePath(user.role)} className="ghost-button">
-                      Workspace
+                    <Link
+                      href="/profile"
+                      className={`outline-panel flex items-center gap-3 rounded-[0.8rem] px-4 py-3 text-sm transition ${
+                        pathname === "/profile"
+                          ? "border-[rgba(239,47,39,0.24)] bg-[rgba(239,47,39,0.06)]"
+                          : ""
+                      }`}
+                    >
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(239,47,39,0.1)] font-mono text-xs font-bold uppercase text-[var(--primary)]">
+                        {user.name
+                          .split(" ")
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((part) => part[0]?.toUpperCase())
+                          .join("") || "U"}
+                      </span>
+                      <span className="text-left text-[var(--muted)]">
+                        <span className="block font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--primary)]">
+                          Profile
+                        </span>
+                        <span className="mt-1 block font-semibold text-[var(--foreground)]">
+                          {user.name}
+                        </span>
+                      </span>
                     </Link>
                     <button
                       type="button"

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CaseFile;
+use App\Models\CaseTimelineEvent;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -166,7 +167,9 @@ class ReportSubmissionTest extends TestCase
             ->getJson("/api/reporter/reports/{$report->id}")
             ->assertOk()
             ->assertJsonPath('data.id', $report->id)
-            ->assertJsonPath('data.is_editable', true);
+            ->assertJsonPath('data.is_editable', true)
+            ->assertJsonPath('data.category_label', 'Procurement fraud')
+            ->assertJsonPath('data.timeline.0.headline', 'Report received');
 
         $this->withToken($token)
             ->patchJson("/api/reporter/reports/{$report->id}", [
@@ -272,7 +275,7 @@ class ReportSubmissionTest extends TestCase
             'last_public_update_at' => now()->subDay(),
         ], $attributes));
 
-        CaseFile::query()->create(array_merge([
+        $caseFile = CaseFile::query()->create(array_merge([
             'report_id' => $report->id,
             'case_number' => 'CASE-2026-T' . fake()->unique()->numerify('####'),
             'stage' => 'submitted',
@@ -285,6 +288,18 @@ class ReportSubmissionTest extends TestCase
             'notes' => $report->description,
         ], $caseAttributes));
 
-        return $report->fresh('caseFile');
+        CaseTimelineEvent::query()->create([
+            'report_id' => $report->id,
+            'case_file_id' => $caseFile->id,
+            'visibility' => 'public',
+            'stage' => $caseFile->stage,
+            'headline' => 'Report received',
+            'detail' => 'The submission entered the secure KPK whistleblowing queue and is awaiting workflow handling.',
+            'actor_role' => $caseFile->current_role,
+            'actor_name' => 'System',
+            'occurred_at' => $report->submitted_at,
+        ]);
+
+        return $report->fresh(['caseFile', 'timelineEvents']);
     }
 }
