@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\GovernanceDashboardController;
 use App\Http\Controllers\Api\PublicReportController;
+use App\Http\Controllers\Api\ReportAttachmentController;
 use App\Http\Controllers\Api\ReporterReportController;
 use App\Http\Controllers\Api\WorkflowCaseController;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/reports', [ReporterReportController::class, 'store']);
         Route::get('/reports/{report}', [ReporterReportController::class, 'show']);
         Route::patch('/reports/{report}', [ReporterReportController::class, 'update']);
+        Route::post('/reports/{report}/attachments', [ReportAttachmentController::class, 'reporterStore']);
+        Route::delete('/reports/{report}/attachments/{attachment}', [ReportAttachmentController::class, 'reporterDestroy']);
+        Route::get('/reports/{report}/attachments/{attachment}/download', [ReportAttachmentController::class, 'reporterDownload']);
     });
 
     Route::prefix('workflow')->group(function () {
@@ -36,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/cases/{caseFile}/submit-investigation', [WorkflowCaseController::class, 'submitInvestigation']);
         Route::patch('/cases/{caseFile}/review-investigation', [WorkflowCaseController::class, 'reviewInvestigation']);
         Route::patch('/cases/{caseFile}/director-review', [WorkflowCaseController::class, 'directorReview']);
+        Route::get('/cases/{caseFile}/attachments/{attachment}/download', [ReportAttachmentController::class, 'workflowDownload']);
     });
 
     Route::prefix('admin')->group(function () {

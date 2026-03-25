@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
+import { ReporterAttachmentManager } from "@/components/reporter-attachment-manager";
 import { StatusBadge } from "@/components/status-badge";
 import {
   categoryOptions,
@@ -91,6 +92,17 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
   const [isPending, startTransition] = useTransition();
 
   const isReporterUser = isReporter(user?.role);
+
+  const refreshRecord = async () => {
+    if (!token || !isReporterUser || Number.isNaN(reportId)) {
+      return;
+    }
+
+    const data = await api.fetchReporterReport(token, reportId);
+    setRecord(data);
+    setForm(buildPayloadFromReport(data));
+    setMessage(null);
+  };
 
   useEffect(() => {
     if (!isReady) {
@@ -188,7 +200,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
     );
   }
 
-  if (!isAuthenticated || !isReporterUser || !user) {
+  if (!isAuthenticated || !token || !isReporterUser || !user) {
     return (
       <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="panel rounded-[1rem] p-8">
@@ -723,6 +735,14 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
           </section>
         </div>
       </div>
+
+      <ReporterAttachmentManager
+        token={token}
+        reportId={record.id}
+        attachments={record.attachments}
+        canMutate={!editLocked}
+        onRefresh={refreshRecord}
+      />
     </div>
   );
 }

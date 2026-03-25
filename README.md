@@ -14,9 +14,9 @@ wbs-thesis/
 ```
 
 - `frontend`: Next.js user interface for reporter access, tracking, workflow, governance, and administration.
-- `backend`: Laravel API for authentication, role-based workflow, governance controls, and audit trail management.
+- `backend`: Laravel API for authentication, role-based workflow, governance controls, audit trail management, and attachment storage.
 - `docs`: thesis-facing architecture and API notes.
-- `docker-compose.yml`: optional Docker services, currently only Redis.
+- `docker-compose.yml`: optional supporting services for local MinIO object storage and Redis.
 
 ## Implemented Business Roles
 
@@ -50,6 +50,7 @@ Business process implemented in the prototype:
 - public reference and tracking token based tracking
 - role-based workflow actions for verification, investigation, and director review
 - governance metrics, controls, and recent audit activity
+- private attachment storage with MinIO-compatible S3 APIs in development
 - Swagger UI for API exploration
 - PostgreSQL-backed local data for thesis analysis
 
@@ -58,6 +59,7 @@ Business process implemented in the prototype:
 - frontend: Next.js 16
 - backend: Laravel 13
 - database: PostgreSQL on `localhost:5432`
+- object storage: MinIO on `localhost:9000` with console on `localhost:9001`
 - optional cache: Redis via Docker Compose profile `cache`
 - API documentation: L5 Swagger / OpenAPI
 
@@ -85,7 +87,21 @@ Direct database access:
 psql -h localhost -p 5432 -U postgres -d wbs_thesis
 ```
 
-### 2. Start Backend
+### 2. Start MinIO
+
+```bash
+docker compose up -d minio minio_init
+```
+
+MinIO development settings used by the backend:
+
+- endpoint: `http://127.0.0.1:9000`
+- console: `http://127.0.0.1:9001`
+- access key: `minioadmin`
+- secret key: `minioadmin`
+- bucket: `wbs-attachments-dev`
+
+### 3. Start Backend
 
 ```bash
 cd backend
@@ -96,7 +112,9 @@ php artisan migrate:fresh --seed
 php artisan serve
 ```
 
-### 3. Start Frontend
+The backend `.env` is already configured for the local MinIO bucket through the `attachments` disk.
+
+### 4. Start Frontend
 
 ```bash
 cd frontend
@@ -105,7 +123,7 @@ npm install
 npm run dev
 ```
 
-### 4. Optional Redis
+### 5. Optional Redis
 
 ```bash
 docker compose --profile cache up -d
@@ -117,6 +135,8 @@ docker compose --profile cache up -d
 - backend API: `http://localhost:8000`
 - Swagger UI: `http://localhost:8000/api/documentation`
 - OpenAPI JSON: `http://localhost:8000/docs`
+- MinIO S3 endpoint: `http://localhost:9000`
+- MinIO console: `http://localhost:9001`
 
 ## Seeded Demo Accounts
 
@@ -154,6 +174,11 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 
 - `GET /api/reporter/reports`
 - `POST /api/reporter/reports`
+- `GET /api/reporter/reports/{report}`
+- `PATCH /api/reporter/reports/{report}`
+- `POST /api/reporter/reports/{report}/attachments`
+- `DELETE /api/reporter/reports/{report}/attachments/{attachment}`
+- `GET /api/reporter/reports/{report}/attachments/{attachment}/download`
 
 ### Public Tracking
 
@@ -170,6 +195,7 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 - `PATCH /api/workflow/cases/{caseFile}/submit-investigation`
 - `PATCH /api/workflow/cases/{caseFile}/review-investigation`
 - `PATCH /api/workflow/cases/{caseFile}/director-review`
+- `GET /api/workflow/cases/{caseFile}/attachments/{attachment}/download`
 
 ### Administration and Governance
 
@@ -181,6 +207,7 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 
 - `users`
 - `reports`
+- `report_attachments`
 - `case_files`
 - `case_timeline_events`
 - `audit_logs`
@@ -193,6 +220,7 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 - `cd backend && php artisan migrate:fresh --seed`
 - `cd frontend && npm run lint`
 - `cd frontend && npm run build:webpack`
+- `docker compose up -d minio minio_init`
 
 ## Additional Documentation
 

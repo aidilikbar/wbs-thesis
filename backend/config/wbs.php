@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'attachments' => [
+        'disk' => env('WBS_ATTACHMENTS_DISK', 'attachments'),
+        'max_kilobytes' => (int) env('WBS_ATTACHMENT_MAX_KILOBYTES', 20480),
+    ],
     'roles' => [
         'reporter' => 'Reporter',
         'supervisor_of_verificator' => 'Supervisor of Verificator',

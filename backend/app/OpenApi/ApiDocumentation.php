@@ -213,6 +213,29 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'AttachmentObject',
+    type: 'object',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'uuid', type: 'string', example: '1f296e68-d509-4c86-8b74-86b6cd4b48f0'),
+        new OA\Property(property: 'original_name', type: 'string', example: 'invoice-comparison.pdf'),
+        new OA\Property(property: 'mime_type', type: 'string', example: 'application/pdf'),
+        new OA\Property(property: 'extension', type: 'string', nullable: true, example: 'pdf'),
+        new OA\Property(property: 'size_bytes', type: 'integer', example: 248331),
+        new OA\Property(property: 'checksum_sha256', type: 'string', nullable: true, example: 'd7f0f35ad8f4d43ff1b3ddc6dcf4d4ea174740a456f7f6d8fa8c7308c0c34437'),
+        new OA\Property(property: 'uploaded_at', type: 'string', format: 'date-time', nullable: true, example: '2026-03-25T14:15:00Z'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'AttachmentMutationResponse',
+    type: 'object',
+    required: ['message', 'data'],
+    properties: [
+        new OA\Property(property: 'message', type: 'string', example: 'Attachment uploaded successfully.'),
+        new OA\Property(property: 'data', ref: '#/components/schemas/AttachmentObject'),
+    ]
+)]
+#[OA\Schema(
     schema: 'ReporterReportDirectoryResponse',
     type: 'object',
     required: ['data'],
@@ -290,6 +313,7 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'edit_lock_reason', type: 'string', nullable: true, example: null),
                 new OA\Property(property: 'case', type: 'object', additionalProperties: true),
                 new OA\Property(property: 'timeline', type: 'array', items: new OA\Items(type: 'object', additionalProperties: true)),
+                new OA\Property(property: 'attachments', type: 'array', items: new OA\Items(ref: '#/components/schemas/AttachmentObject')),
                 new OA\Property(property: 'reporter', type: 'object', additionalProperties: true),
             ]
         ),
@@ -388,6 +412,7 @@ use OpenApi\Attributes as OA;
                     new OA\Property(property: 'assigned_to', type: 'string', nullable: true, example: 'Sinta Pramudita'),
                     new OA\Property(property: 'assigned_unit', type: 'string', nullable: true, example: 'Verification Supervision'),
                     new OA\Property(property: 'available_actions', type: 'array', items: new OA\Items(type: 'string'), example: ['delegate_verification']),
+                    new OA\Property(property: 'attachments', type: 'array', items: new OA\Items(ref: '#/components/schemas/AttachmentObject')),
                 ]
             )
         ),

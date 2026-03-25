@@ -59,6 +59,26 @@ Creates a report for the authenticated reporter and returns:
 
 Reporter registration is mandatory before this endpoint can be used.
 
+### `GET /reporter/reports/{report}`
+
+Returns the authenticated reporter's full report detail, including:
+
+- current case snapshot
+- public-safe timeline
+- attachment metadata
+
+### `PATCH /reporter/reports/{report}`
+
+Updates a reporter-owned report while it remains editable.
+
+### Attachment Management
+
+- `POST /reporter/reports/{report}/attachments`
+- `DELETE /reporter/reports/{report}/attachments/{attachment}`
+- `GET /reporter/reports/{report}/attachments/{attachment}/download`
+
+Attachments are stored in private S3-compatible object storage and linked to the report by metadata in PostgreSQL.
+
 ## Public Tracking
 
 ### `POST /tracking`
@@ -102,6 +122,12 @@ Returns active assignee candidates for supervisor delegation.
 ### Director Stage
 
 - `PATCH /workflow/cases/{case}/director-review`
+
+### Evidence Download
+
+- `GET /workflow/cases/{case}/attachments/{attachment}/download`
+
+Internal attachment access is restricted to the assigned workflow roles or system administrator.
 
 ## Administration
 

@@ -86,6 +86,7 @@ export type SubmissionPayload = {
 };
 
 export type SubmissionReceipt = {
+  report_id: number;
   public_reference: string;
   tracking_token: string;
   case_number: string;
@@ -93,6 +94,17 @@ export type SubmissionReceipt = {
   severity: string;
   submitted_at: string;
   next_steps: string[];
+};
+
+export type ReportAttachment = {
+  id: number;
+  uuid: string;
+  original_name: string;
+  mime_type: string | null;
+  extension: string | null;
+  size_bytes: number;
+  checksum_sha256: string | null;
+  uploaded_at: string | null;
 };
 
 export type ReporterReportSummary = {
@@ -129,6 +141,7 @@ export type ReporterReportDetail = ReporterReportSummary & {
   witness_available: boolean;
   governance_tags: string[];
   timeline: TrackingTimelineEntry[];
+  attachments: ReportAttachment[];
   reporter: {
     name: string;
     email: string;
@@ -203,6 +216,7 @@ export type WorkflowCase = {
     investigator: string | null;
     director: string | null;
   };
+  attachments: ReportAttachment[];
   sla_due_at: string | null;
   last_activity_at: string | null;
   latest_internal_event: string | null;

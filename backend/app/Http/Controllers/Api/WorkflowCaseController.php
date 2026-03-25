@@ -35,7 +35,7 @@ class WorkflowCaseController extends Controller
 
         $cases = CaseFile::query()
             ->with([
-                'report',
+                'report.attachments',
                 'timelineEvents',
                 'verificationSupervisor',
                 'verificator',
@@ -383,6 +383,18 @@ class WorkflowCaseController extends Controller
                 'investigator' => $caseFile->investigator?->name,
                 'director' => $caseFile->director?->name,
             ],
+            'attachments' => ($caseFile->report?->attachments ?? collect())
+                ->values()
+                ->map(fn ($attachment) => [
+                    'id' => $attachment->id,
+                    'uuid' => $attachment->uuid,
+                    'original_name' => $attachment->original_name,
+                    'mime_type' => $attachment->mime_type,
+                    'extension' => $attachment->extension,
+                    'size_bytes' => $attachment->size_bytes,
+                    'checksum_sha256' => $attachment->checksum_sha256,
+                    'uploaded_at' => $attachment->created_at?->toISOString(),
+                ]),
             'sla_due_at' => $caseFile->sla_due_at?->toISOString(),
             'last_activity_at' => $caseFile->last_activity_at?->toISOString(),
             'latest_internal_event' => $internalEvents->last()?->headline,

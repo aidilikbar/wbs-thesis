@@ -6,6 +6,7 @@ Laravel API for the role-based KPK Whistleblowing System prototype.
 
 - reporter registration and shared authentication
 - authenticated report intake
+- private attachment intake and download via S3-compatible object storage
 - public reference and tracking token lookup
 - role-based case workflow orchestration
 - system administrator user provisioning
@@ -39,6 +40,11 @@ Reporter accounts register through `POST /api/auth/register`. All internal roles
 
 - `GET /api/reporter/reports`
 - `POST /api/reporter/reports`
+- `GET /api/reporter/reports/{report}`
+- `PATCH /api/reporter/reports/{report}`
+- `POST /api/reporter/reports/{report}/attachments`
+- `DELETE /api/reporter/reports/{report}/attachments/{attachment}`
+- `GET /api/reporter/reports/{report}/attachments/{attachment}/download`
 
 ### Public Tracking
 
@@ -55,6 +61,7 @@ Reporter accounts register through `POST /api/auth/register`. All internal roles
 - `PATCH /api/workflow/cases/{case}/submit-investigation`
 - `PATCH /api/workflow/cases/{case}/review-investigation`
 - `PATCH /api/workflow/cases/{case}/director-review`
+- `GET /api/workflow/cases/{case}/attachments/{attachment}/download`
 
 ### Administration and Governance
 
@@ -78,6 +85,7 @@ php artisan l5-swagger:generate
 ```bash
 cp .env.example .env
 composer install
+docker compose up -d minio minio_init
 php artisan key:generate
 php artisan migrate:fresh --seed
 php artisan serve
@@ -90,6 +98,13 @@ PostgreSQL configuration:
 - database: `wbs_thesis`
 - username: `postgres`
 - password: `postgres`
+
+Attachment storage configuration:
+
+- disk: `attachments`
+- endpoint: `http://127.0.0.1:9000`
+- bucket: `wbs-attachments-dev`
+- console: `http://127.0.0.1:9001`
 
 ## Seeded Accounts
 
@@ -110,3 +125,4 @@ All seeded accounts use password `Password123`.
 - `php artisan test`
 - `php artisan migrate:fresh --seed`
 - `php artisan l5-swagger:generate`
+- `docker compose up -d minio minio_init`

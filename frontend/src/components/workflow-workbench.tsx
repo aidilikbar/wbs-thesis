@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
+import { WorkflowAttachmentPanel } from "@/components/workflow-attachment-panel";
 import { api } from "@/lib/api";
 import { demoWorkflowCases } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
@@ -314,7 +315,7 @@ export function WorkflowWorkbench() {
     );
   }
 
-  if (!isAuthenticated || !isInternalUser || !user) {
+  if (!isAuthenticated || !token || !isInternalUser || !user) {
     return (
       <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="panel rounded-[1rem] p-8">
@@ -608,6 +609,14 @@ export function WorkflowWorkbench() {
             </p>
           )}
         </section>
+
+        {selectedCase ? (
+          <WorkflowAttachmentPanel
+            token={token}
+            caseId={selectedCase.id}
+            attachments={selectedCase.attachments}
+          />
+        ) : null}
 
         <section className="dark-card rounded-[1rem] border border-white/8 p-7">
           <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">

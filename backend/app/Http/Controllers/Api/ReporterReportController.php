@@ -135,7 +135,7 @@ class ReporterReportController extends Controller
         $user = $this->authorizeOwnedReport($request, $report);
 
         return response()->json([
-            'data' => $this->transformDetail($report->fresh(['caseFile', 'timelineEvents']), $user),
+            'data' => $this->transformDetail($report->fresh(['caseFile', 'timelineEvents', 'attachments']), $user),
         ]);
     }
 
@@ -166,7 +166,7 @@ class ReporterReportController extends Controller
         CaseWorkflowService $workflow,
     ): JsonResponse {
         $user = $this->authorizeOwnedReport($request, $report);
-        $updatedReport = $workflow->updateReporterReport($report->fresh('caseFile'), $user, $request->validated());
+        $updatedReport = $workflow->updateReporterReport($report->fresh(['caseFile', 'attachments']), $user, $request->validated());
 
         return response()->json([
             'message' => 'Reporter report updated successfully.',
@@ -249,11 +249,28 @@ class ReporterReportController extends Controller
                     'actor_role' => $event->actor_role,
                     'occurred_at' => $event->occurred_at?->toISOString(),
                 ]),
+            'attachments' => $report->attachments
+                ->values()
+                ->map(fn ($attachment) => $this->transformAttachment($attachment)),
             'reporter' => [
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
             ],
+        ];
+    }
+
+    private function transformAttachment($attachment): array
+    {
+        return [
+            'id' => $attachment->id,
+            'uuid' => $attachment->uuid,
+            'original_name' => $attachment->original_name,
+            'mime_type' => $attachment->mime_type,
+            'extension' => $attachment->extension,
+            'size_bytes' => $attachment->size_bytes,
+            'checksum_sha256' => $attachment->checksum_sha256,
+            'uploaded_at' => $attachment->created_at?->toISOString(),
         ];
     }
 }

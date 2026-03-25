@@ -68,4 +68,9 @@ class Report extends Model
     {
         return $this->hasMany(AuditLog::class)->orderByDesc('happened_at');
     }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ReportAttachment::class)->orderByDesc('created_at');
+    }
 }

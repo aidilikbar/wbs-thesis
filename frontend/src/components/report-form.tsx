@@ -446,6 +446,14 @@ export function ReportForm({
               </label>
             </div>
 
+            {!isEditMode ? (
+              <div className="mt-6 rounded-[0.85rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.12)] px-5 py-4 text-sm leading-7 text-[var(--secondary-strong)]">
+                Evidence files are uploaded after the report is created. Once you submit
+                this report, open the report detail page to upload PDFs, images, office
+                documents, and other supporting files into private MinIO object storage.
+              </div>
+            ) : null}
+
             <div className="mt-8">
               <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                 Governance Flags

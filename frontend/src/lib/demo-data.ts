@@ -87,9 +87,9 @@ export const architectureLayers = [
   },
   {
     kicker: "Infrastructure",
-    title: "Local PostgreSQL deployment",
+    title: "PostgreSQL plus private object storage",
     description:
-      "Persists operational data in native PostgreSQL, with optional Redis and Docker only for supporting services.",
+      "Persists operational data in native PostgreSQL, with local MinIO object storage and optional Redis for supporting services.",
   },
 ];
 
@@ -321,6 +321,18 @@ export const demoWorkflowCases: WorkflowCase[] = [
       investigator: null,
       director: "Nadia Prabowo",
     },
+    attachments: [
+      {
+        id: 101,
+        uuid: "demo-attachment-101",
+        original_name: "vendor_meeting_note.pdf",
+        mime_type: "application/pdf",
+        extension: "pdf",
+        size_bytes: 842112,
+        checksum_sha256: null,
+        uploaded_at: "2026-03-18T09:10:00.000Z",
+      },
+    ],
     sla_due_at: "2026-03-24T10:00:00.000Z",
     last_activity_at: "2026-03-18T09:00:00.000Z",
     latest_internal_event: "Report submitted by registered reporter",
@@ -355,6 +367,28 @@ export const demoWorkflowCases: WorkflowCase[] = [
       investigator: null,
       director: "Nadia Prabowo",
     },
+    attachments: [
+      {
+        id: 102,
+        uuid: "demo-attachment-102",
+        original_name: "panel_attendance.csv",
+        mime_type: "text/csv",
+        extension: "csv",
+        size_bytes: 18432,
+        checksum_sha256: null,
+        uploaded_at: "2026-03-19T07:50:00.000Z",
+      },
+      {
+        id: 103,
+        uuid: "demo-attachment-103",
+        original_name: "conflict_declaration_scan.jpg",
+        mime_type: "image/jpeg",
+        extension: "jpg",
+        size_bytes: 512904,
+        checksum_sha256: null,
+        uploaded_at: "2026-03-19T08:00:00.000Z",
+      },
+    ],
     sla_due_at: "2026-03-22T10:00:00.000Z",
     last_activity_at: "2026-03-19T07:45:00.000Z",
     latest_internal_event: "Verification submitted to supervisor",
@@ -390,6 +424,18 @@ export const demoWorkflowCases: WorkflowCase[] = [
       investigator: "Ayu Wicaksono",
       director: "Nadia Prabowo",
     },
+    attachments: [
+      {
+        id: 104,
+        uuid: "demo-attachment-104",
+        original_name: "duplicate_reimbursement_bundle.zip",
+        mime_type: "application/zip",
+        extension: "zip",
+        size_bytes: 2842112,
+        checksum_sha256: null,
+        uploaded_at: "2026-03-18T14:35:00.000Z",
+      },
+    ],
     sla_due_at: "2026-03-23T10:00:00.000Z",
     last_activity_at: "2026-03-18T14:30:00.000Z",
     latest_internal_event: "Investigation delegated",

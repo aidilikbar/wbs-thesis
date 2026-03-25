@@ -8,6 +8,7 @@ import type {
   LoginPayload,
   MessageResponse,
   PaginatedData,
+  ReportAttachment,
   RegisterReporterPayload,
   ReporterReportDetail,
   ReporterReportSummary,
@@ -53,6 +54,34 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   return (payload?.data ?? payload) as T;
+}
+
+async function requestBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
+  const { body, token, headers, ...init } = options;
+  const isFormData = body instanceof FormData;
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    body:
+      body === undefined
+        ? undefined
+        : isFormData
+          ? body
+          : JSON.stringify(body),
+    headers: {
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(headers ?? {}),
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.message ?? "Request failed");
+  }
+
+  return response.blob();
 }
 
 export const api = {
@@ -127,6 +156,32 @@ export const api = {
       method: "PATCH",
       token,
       body,
+    }),
+  uploadReporterAttachment: (token: string, reportId: number, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return request<ReportAttachment>(`/reporter/reports/${reportId}/attachments`, {
+      method: "POST",
+      token,
+      body: formData,
+    });
+  },
+  deleteReporterAttachment: (token: string, reportId: number, attachmentId: number) =>
+    request<MessageResponse>(
+      `/reporter/reports/${reportId}/attachments/${attachmentId}`,
+      {
+        method: "DELETE",
+        token,
+      },
+    ),
+  downloadReporterAttachment: (
+    token: string,
+    reportId: number,
+    attachmentId: number,
+  ) =>
+    requestBlob(`/reporter/reports/${reportId}/attachments/${attachmentId}/download`, {
+      token,
     }),
   trackReport: (body: { reference: string; token: string }) =>
     request<TrackingRecord>("/tracking", {
@@ -231,6 +286,14 @@ export const api = {
       method: "PATCH",
       token,
       body,
+    }),
+  downloadWorkflowAttachment: (
+    token: string,
+    caseId: number,
+    attachmentId: number,
+  ) =>
+    requestBlob(`/workflow/cases/${caseId}/attachments/${attachmentId}/download`, {
+      token,
     }),
   fetchGovernanceDashboard: (token: string) =>
     request<GovernanceDashboardData>("/governance/dashboard", {
