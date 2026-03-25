@@ -1,6 +1,19 @@
 # KPK Whistleblowing System
 
-KPK Whistleblowing System is a thesis prototype for **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**. It models the KPK whistleblowing business process with explicit role separation, authenticated reporter submission, public-safe tracking, governance dashboards, and audit logging.
+KPK Whistleblowing System is a thesis prototype for **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**. It models the KPK whistleblowing business process with explicit role separation, authenticated reporter submission, public-safe tracking, governance dashboards, audit logging, and private evidence storage.
+
+## Current Release
+
+Current prototype release includes:
+
+- authenticated reporter registration, login, profile access, and protected report ownership
+- reporter report directory at `/submit` with search, status filter, and 10-row pagination
+- dedicated reporter filing pages at `/submit/create` and `/submit/{reportId}/edit`
+- integrated file upload on create and edit forms, validated during form submission
+- public-safe tracking at `/track` using the issued reference and tracking token
+- internal workflow workbench at `/workflow` for the KPK role-based verification and investigation flow
+- system administrator directory at `/admin` with search, filters, pagination, create, edit, activate, deactivate, and delete
+- governance dashboard, audit trail visibility, Swagger documentation, PostgreSQL persistence, and MinIO-based attachment storage for development
 
 ## Repository Structure
 
@@ -45,10 +58,15 @@ Business process implemented in the prototype:
 ## Current Capabilities
 
 - reporter self-registration and shared login
-- internal user provisioning by system administrator
+- reporter profile management through a dedicated page
+- reporter report directory with search, status filters, and 10-row pagination
 - authenticated reporter submission only
+- separate create and edit pages for report filing
+- file upload validation inside the main reporter filing form
 - public reference and tracking token based tracking
 - role-based workflow actions for verification, investigation, and director review
+- internal workflow access to reporter evidence for authorized roles only
+- system administrator user provisioning and paginated user management
 - governance metrics, controls, and recent audit activity
 - private attachment storage with MinIO-compatible S3 APIs in development
 - Swagger UI for API exploration
@@ -180,7 +198,7 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 - `DELETE /api/reporter/reports/{report}/attachments/{attachment}`
 - `GET /api/reporter/reports/{report}/attachments/{attachment}/download`
 
-`POST /api/reporter/reports` and `PATCH /api/reporter/reports/{report}` now accept multipart form submissions so the main filing form can validate and upload attachments in the same save action.
+`POST /api/reporter/reports` and `PATCH /api/reporter/reports/{report}` accept multipart form submissions so the main filing form can validate and upload attachments in the same save action.
 
 ### Public Tracking
 
@@ -223,6 +241,32 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 - `cd frontend && npm run lint`
 - `cd frontend && npm run build:webpack`
 - `docker compose up -d minio minio_init`
+
+## Main User Flows
+
+### Reporter
+
+- register at `/register`
+- login at `/login`
+- review owned reports at `/submit`
+- create a report at `/submit/create`
+- edit and track a report at `/submit/{reportId}/edit`
+- upload evidence files as part of the create or edit form submit
+- use `/track` for public-safe token-based lookup
+
+### Internal Roles
+
+- login at `/login`
+- process cases at `/workflow`
+- download evidence files if assigned to the case
+- review governance indicators at `/governance`
+
+### System Administrator
+
+- login at `/login`
+- manage user directory at `/admin`
+- create new internal users at `/admin/create`
+- edit existing users at `/admin/{userId}/edit`
 
 ## Additional Documentation
 
