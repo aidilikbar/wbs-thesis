@@ -79,7 +79,7 @@ export type SubmissionPayload = {
   incident_location: string;
   accused_party: string;
   evidence_summary: string;
-  confidentiality_level: "confidential" | "identified";
+  confidentiality_level: "anonymous" | "identified";
   requested_follow_up: boolean;
   witness_available: boolean;
   governance_tags: string[];
@@ -194,6 +194,7 @@ export type WorkflowCase = {
     name: string | null;
     email: string | null;
     phone: string | null;
+    is_protected?: boolean;
   };
   workflow: {
     verification_supervisor: string | null;

@@ -57,7 +57,7 @@ class GovernanceDashboardController extends Controller
                     'completed_cases' => $caseFiles->where('stage', 'completed')->count(),
                     'confidential_share' => $reports->isEmpty()
                         ? 0
-                        : round(($reports->where('anonymity_level', 'confidential')->count() / $reports->count()) * 100, 1),
+                        : round(($reports->where('anonymity_level', 'anonymous')->count() / $reports->count()) * 100, 1),
                     'overdue_cases' => $caseFiles
                         ->where('stage', '!=', 'completed')
                         ->filter(fn (CaseFile $caseFile) => $caseFile->sla_due_at && $caseFile->sla_due_at->isPast())

@@ -190,7 +190,7 @@ export const governanceTagOptions = [
 ];
 
 export const confidentialityOptions = [
-  { value: "confidential", label: "Confidential identity" },
+  { value: "anonymous", label: "Anonymous reporter" },
   { value: "identified", label: "Identified reporter" },
 ] as const;
 
@@ -214,7 +214,7 @@ export const initialSubmissionPayload: SubmissionPayload = {
   incident_location: "",
   accused_party: "",
   evidence_summary: "",
-  confidentiality_level: "confidential",
+  confidentiality_level: "anonymous",
   requested_follow_up: true,
   witness_available: false,
   governance_tags: [],
@@ -230,7 +230,7 @@ export const demoReporterReports: ReporterReportSummary[] = [
     status: "investigation_in_progress",
     severity: "high",
     submitted_at: "2026-03-11T10:00:00.000Z",
-    confidentiality_level: "confidential",
+    confidentiality_level: "anonymous",
     is_editable: true,
     edit_lock_reason: null,
     case: {
@@ -252,7 +252,7 @@ export const demoTrackingRecord: TrackingRecord = {
   status: "investigation_in_progress",
   severity: "high",
   submitted_at: "2026-03-04T08:30:00.000Z",
-  confidentiality_level: "confidential",
+  confidentiality_level: "anonymous",
   case: {
     case_number: "CASE-2026-DEMO",
     stage: "investigation_in_progress",
@@ -307,11 +307,12 @@ export const demoWorkflowCases: WorkflowCase[] = [
     title: "Request for unofficial payment before vendor evaluation",
     category: "procurement",
     governance_tags: ["procurement", "financial-loss"],
-    confidentiality_level: "confidential",
+    confidentiality_level: "anonymous",
     reporter: {
-      name: "Laila N",
-      email: "reporter.1@example.test",
-      phone: "+62-812-1000-1001",
+      name: null,
+      email: null,
+      phone: null,
+      is_protected: true,
     },
     workflow: {
       verification_supervisor: "Sinta Pramudita",
@@ -375,11 +376,12 @@ export const demoWorkflowCases: WorkflowCase[] = [
     title: "Repeated duplicate reimbursement patterns in finance unit",
     category: "fraud",
     governance_tags: ["financial-loss", "data-integrity"],
-    confidentiality_level: "confidential",
+    confidentiality_level: "anonymous",
     reporter: {
-      name: "Rina Maharani",
-      email: "reporter.3@example.test",
-      phone: "+62-812-1000-1003",
+      name: null,
+      email: null,
+      phone: null,
+      is_protected: true,
     },
     workflow: {
       verification_supervisor: "Sinta Pramudita",

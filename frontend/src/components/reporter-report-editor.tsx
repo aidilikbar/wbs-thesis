@@ -527,27 +527,34 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
               <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                 Protection
               </p>
-              <label className="mt-4 block">
-                <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                  Confidentiality
+              <label className="mt-4 block rounded-[0.8rem] border border-[var(--panel-border)] bg-white p-4">
+                <span className="flex items-start gap-4">
+                  <input
+                    type="checkbox"
+                    checked={form.confidentiality_level === "anonymous"}
+                    onChange={(event) =>
+                      updateField(
+                        "confidentiality_level",
+                        event.target.checked ? "anonymous" : "identified",
+                      )
+                    }
+                    disabled={editLocked}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                      Anonymous Submission
+                    </span>
+                    <span className="mt-2 block text-sm font-semibold text-[var(--foreground)]">
+                      {form.confidentiality_level === "anonymous"
+                        ? "Case handlers cannot view your identity."
+                        : "Authorized case handlers can view your identity."}
+                    </span>
+                    <span className="muted mt-3 block text-sm leading-7">
+                      The report still belongs to your authenticated reporter account, so you can continue to access, edit, and track it normally.
+                    </span>
+                  </span>
                 </span>
-                <select
-                  className="field"
-                  value={form.confidentiality_level}
-                  onChange={(event) =>
-                    updateField(
-                      "confidentiality_level",
-                      event.target.value as SubmissionPayload["confidentiality_level"],
-                    )
-                  }
-                  disabled={editLocked}
-                >
-                  {confidentialityOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
               </label>
 
               <div className="mt-5 space-y-3 text-sm">

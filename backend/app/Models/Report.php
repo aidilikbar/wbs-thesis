@@ -38,6 +38,9 @@ class Report extends Model
     {
         return [
             'incident_date' => 'date',
+            'reporter_name' => 'encrypted',
+            'reporter_email' => 'encrypted',
+            'reporter_phone' => 'encrypted',
             'requested_follow_up' => 'boolean',
             'witness_available' => 'boolean',
             'governance_tags' => 'array',

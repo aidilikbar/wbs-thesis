@@ -37,7 +37,7 @@ return [
         'data-integrity' => 'Data integrity concern',
     ],
     'confidentiality_levels' => [
-        'confidential' => 'Confidential identity',
+        'anonymous' => 'Anonymous reporter',
         'identified' => 'Identified reporter',
     ],
     'case_stages' => [
@@ -51,7 +51,7 @@ return [
         'completed' => 'Completed',
     ],
     'governance_principles' => [
-        'confidentiality' => 'Require registered reporters while preserving confidential identity handling in the workflow.',
+        'confidentiality' => 'Require registered reporters while preserving encrypted identity handling and optional anonymous exposure in the workflow.',
         'traceability' => 'Record every delegation, approval, rejection, and completion as audit evidence.',
         'segregation' => 'Separate reporting, verification, investigation, direction, and administration duties by role.',
         'timeliness' => 'Track SLAs across verification, investigation, and director review.',

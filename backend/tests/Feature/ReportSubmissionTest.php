@@ -7,6 +7,7 @@ use App\Models\CaseTimelineEvent;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -30,7 +31,7 @@ class ReportSubmissionTest extends TestCase
             'title' => 'Unusual payment request before vendor evaluation',
             'category' => 'procurement',
             'description' => 'A procurement officer requested a personal transfer before confirming that a vendor submission would move to the next review stage.',
-            'confidentiality_level' => 'confidential',
+            'confidentiality_level' => 'anonymous',
         ])->assertUnauthorized();
 
         $registration = $this->postJson('/api/auth/register', [
@@ -55,7 +56,7 @@ class ReportSubmissionTest extends TestCase
             'incident_location' => 'Procurement Unit',
             'accused_party' => 'Procurement Officer',
             'evidence_summary' => 'Email excerpts and witness details can be provided on request.',
-            'confidentiality_level' => 'confidential',
+            'confidentiality_level' => 'anonymous',
             'requested_follow_up' => true,
             'witness_available' => true,
             'governance_tags' => ['procurement', 'financial-loss'],
@@ -68,10 +69,16 @@ class ReportSubmissionTest extends TestCase
 
         $this->assertDatabaseHas('reports', [
             'title' => 'Unusual payment request before vendor evaluation',
-            'reporter_email' => 'reporter@example.test',
-            'anonymity_level' => 'confidential',
+            'anonymity_level' => 'anonymous',
             'status' => 'submitted',
         ]);
+
+        $storedEmail = DB::table('reports')
+            ->where('title', 'Unusual payment request before vendor evaluation')
+            ->value('reporter_email');
+
+        $this->assertIsString($storedEmail);
+        $this->assertNotSame('reporter@example.test', $storedEmail);
 
         $this->assertDatabaseHas('case_files', [
             'stage' => 'submitted',
@@ -236,7 +243,7 @@ class ReportSubmissionTest extends TestCase
                 'incident_location' => 'Finance Unit',
                 'accused_party' => 'Finance Supervisor',
                 'evidence_summary' => 'Blocked update payload.',
-                'confidentiality_level' => 'confidential',
+                'confidentiality_level' => 'anonymous',
                 'requested_follow_up' => true,
                 'witness_available' => false,
                 'governance_tags' => ['financial-loss'],
@@ -262,7 +269,7 @@ class ReportSubmissionTest extends TestCase
             'incident_location' => 'Procurement Unit',
             'accused_party' => 'Procurement Officer',
             'evidence_summary' => 'Supporting evidence exists for this seeded test record.',
-            'anonymity_level' => 'confidential',
+            'anonymity_level' => 'anonymous',
             'reporter_name' => $reporter->name,
             'reporter_email' => $reporter->email,
             'reporter_phone' => $reporter->phone,
@@ -283,7 +290,7 @@ class ReportSubmissionTest extends TestCase
             'disposition' => 'submitted',
             'assigned_unit' => 'Verification Supervision',
             'assigned_to' => 'Verification Supervisor',
-            'confidentiality_level' => 'confidential',
+            'confidentiality_level' => 'anonymous',
             'last_activity_at' => now()->subDay(),
             'notes' => $report->description,
         ], $caseAttributes));

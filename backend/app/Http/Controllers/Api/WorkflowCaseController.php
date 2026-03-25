@@ -35,7 +35,7 @@ class WorkflowCaseController extends Controller
 
         $cases = CaseFile::query()
             ->with([
-                'report.reporter',
+                'report',
                 'timelineEvents',
                 'verificationSupervisor',
                 'verificator',
@@ -352,6 +352,7 @@ class WorkflowCaseController extends Controller
     {
         $internalEvents = $caseFile->timelineEvents->where('visibility', 'internal')->values();
         $publicEvents = $caseFile->timelineEvents->where('visibility', 'public')->values();
+        $reporterVisible = $caseFile->confidentiality_level !== 'anonymous';
 
         return [
             'id' => $caseFile->id,
@@ -370,9 +371,10 @@ class WorkflowCaseController extends Controller
             'governance_tags' => $caseFile->report?->governance_tags ?? [],
             'confidentiality_level' => $caseFile->confidentiality_level,
             'reporter' => [
-                'name' => $caseFile->report?->reporter?->name,
-                'email' => $caseFile->report?->reporter?->email,
-                'phone' => $caseFile->report?->reporter?->phone,
+                'name' => $reporterVisible ? $caseFile->report?->reporter_name : null,
+                'email' => $reporterVisible ? $caseFile->report?->reporter_email : null,
+                'phone' => $reporterVisible ? $caseFile->report?->reporter_phone : null,
+                'is_protected' => ! $reporterVisible,
             ],
             'workflow' => [
                 'verification_supervisor' => $caseFile->verificationSupervisor?->name,

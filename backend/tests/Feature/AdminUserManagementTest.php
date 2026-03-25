@@ -223,7 +223,7 @@ class AdminUserManagementTest extends TestCase
             'assigned_to' => $supervisor->name,
             'assigned_unit' => $supervisor->unit,
             'verification_supervisor_id' => $supervisor->id,
-            'confidentiality_level' => 'confidential',
+            'confidentiality_level' => 'anonymous',
         ]);
 
         Sanctum::actingAs($administrator, [$administrator->role]);

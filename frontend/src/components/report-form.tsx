@@ -6,7 +6,6 @@ import { useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
 import {
   categoryOptions,
-  confidentialityOptions,
   governanceTagOptions,
   initialSubmissionPayload,
 } from "@/lib/demo-data";
@@ -516,31 +515,38 @@ export function ReportForm({
               </div>
 
               <div className="space-y-4">
-                <label className="block">
-                  <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em] text-white/56">
-                    Confidentiality Mode
+                <label className="block rounded-[0.85rem] border border-white/10 bg-white/5 p-5 text-white">
+                  <span className="flex items-start gap-4">
+                    <input
+                      type="checkbox"
+                      checked={form.confidentiality_level === "anonymous"}
+                      onChange={(event) =>
+                        updateField(
+                          "confidentiality_level",
+                          event.target.checked ? "anonymous" : "identified",
+                        )
+                      }
+                      disabled={editLocked}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block font-mono text-[0.64rem] uppercase tracking-[0.22em] text-white/56">
+                        Anonymous Submission
+                      </span>
+                      <span className="mt-2 block text-sm font-semibold">
+                        {form.confidentiality_level === "anonymous"
+                          ? "Case handlers cannot view your identity."
+                          : "Authorized case handlers can view your identity."}
+                      </span>
+                      <span className="mt-3 block text-sm leading-7 text-white/72">
+                        Your account remains authenticated either way. The reporter can still access, review, and track the report normally from the reporter workspace.
+                      </span>
+                    </span>
                   </span>
-                  <select
-                    className="field border-white/10 bg-white/10 text-white"
-                    value={form.confidentiality_level}
-                    onChange={(event) =>
-                      updateField(
-                        "confidentiality_level",
-                        event.target.value as SubmissionPayload["confidentiality_level"],
-                      )
-                    }
-                    disabled={editLocked}
-                  >
-                    {confidentialityOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
                 </label>
 
                 <div className="rounded-[0.8rem] border border-white/10 bg-white/5 p-4 text-sm leading-7 text-white/72">
-                  Reporter identity and contact details are available from `/profile` and stay outside the main submission form.
+                  Reporter identity data remains confidential in the system. Anonymous mode hides it from internal case handlers, while identified mode allows normal role-based handling.
                 </div>
               </div>
             </div>

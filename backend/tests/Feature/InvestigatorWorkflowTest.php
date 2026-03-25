@@ -55,7 +55,7 @@ class InvestigatorWorkflowTest extends TestCase
             'incident_location' => 'Permit Approval Desk',
             'accused_party' => 'Permit Officer',
             'evidence_summary' => 'Messaging screenshots and approval timestamps are available.',
-            'confidentiality_level' => 'confidential',
+            'confidentiality_level' => 'anonymous',
             'requested_follow_up' => true,
             'witness_available' => false,
             'governance_tags' => ['leadership'],
@@ -64,6 +64,12 @@ class InvestigatorWorkflowTest extends TestCase
         $caseFile = CaseFile::query()->firstOrFail();
 
         Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+
+        $this->getJson('/api/workflow/cases')
+            ->assertOk()
+            ->assertJsonPath('data.0.reporter.name', null)
+            ->assertJsonPath('data.0.reporter.email', null)
+            ->assertJsonPath('data.0.reporter.is_protected', true);
 
         $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
             'assignee_user_id' => $verificator->id,
@@ -152,6 +158,37 @@ class InvestigatorWorkflowTest extends TestCase
             'visibility' => 'public',
             'headline' => 'Report completed',
         ]);
+    }
+
+    public function test_identified_reports_remain_visible_to_internal_case_handlers(): void
+    {
+        $supervisor = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.visible@example.test',
+            'Verification Supervision'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.visible@example.test',
+            'Reporter'
+        );
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+
+        $this->postJson('/api/reporter/reports', [
+            'title' => 'Identified reporter visibility test',
+            'category' => 'bribery',
+            'description' => 'The reporter is intentionally identified so internal case handlers can view the registered identity in the workflow workbench.',
+            'confidentiality_level' => 'identified',
+        ])->assertCreated();
+
+        Sanctum::actingAs($supervisor, [$supervisor->role]);
+
+        $this->getJson('/api/workflow/cases')
+            ->assertOk()
+            ->assertJsonPath('data.0.reporter.name', $reporter->name)
+            ->assertJsonPath('data.0.reporter.email', $reporter->email)
+            ->assertJsonPath('data.0.reporter.is_protected', false);
     }
 
     private function createUser(string $role, string $email, string $unit): User

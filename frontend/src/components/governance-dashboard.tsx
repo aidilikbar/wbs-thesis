@@ -14,7 +14,7 @@ const metricLabels: Record<string, string> = {
   total_reports: "Total reports",
   open_cases: "Open cases",
   completed_cases: "Completed cases",
-  confidential_share: "Confidential share",
+  confidential_share: "Anonymous share",
   overdue_cases: "Overdue cases",
   average_triage_hours: "Avg triage hours",
   verification_queue: "Verification queue",

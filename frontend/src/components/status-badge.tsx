@@ -30,6 +30,7 @@ function badgeClasses(value: string) {
       "verification_review",
       "verified",
       "submitted",
+      "anonymous",
       "identified",
     ].includes(normalized)
   ) {

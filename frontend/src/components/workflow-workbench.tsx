@@ -32,6 +32,18 @@ const actionLabels: Record<string, string> = {
   director_review: "Director review",
 };
 
+function identityModeLabel(value: string) {
+  if (value === "anonymous") {
+    return "Anonymous reporter";
+  }
+
+  if (value === "identified") {
+    return "Identified reporter";
+  }
+
+  return value.replaceAll("_", " ");
+}
+
 function buildInitialActionState(selectedCase: WorkflowCase | null) {
   const nextAction = selectedCase?.available_actions[0];
 
@@ -496,7 +508,10 @@ export function WorkflowWorkbench() {
                     Reporter
                   </p>
                   <p className="mt-2 text-sm">
-                    {selectedCase.reporter.name ?? "Protected reporter"}
+                    {selectedCase.reporter.name ??
+                      (selectedCase.reporter.is_protected
+                        ? "Anonymous reporter"
+                        : "Protected reporter")}
                   </p>
                 </article>
                 <article className="outline-panel rounded-[0.85rem] p-4">
@@ -545,7 +560,7 @@ export function WorkflowWorkbench() {
                         Confidentiality
                       </p>
                       <p className="mt-2 text-sm text-white/92">
-                        {selectedCase.confidentiality_level}
+                        {identityModeLabel(selectedCase.confidentiality_level)}
                       </p>
                     </div>
                     <div>
