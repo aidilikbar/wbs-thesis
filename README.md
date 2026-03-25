@@ -180,6 +180,8 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 - `DELETE /api/reporter/reports/{report}/attachments/{attachment}`
 - `GET /api/reporter/reports/{report}/attachments/{attachment}/download`
 
+`POST /api/reporter/reports` and `PATCH /api/reporter/reports/{report}` now accept multipart form submissions so the main filing form can validate and upload attachments in the same save action.
+
 ### Public Tracking
 
 - `POST /api/tracking`

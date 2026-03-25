@@ -23,6 +23,9 @@ class StoreReportRequest extends FormRequest
      */
     public function rules(): array
     {
+        $maxKilobytes = (int) config('wbs.attachments.max_kilobytes', 20480);
+        $acceptedMimeTypes = implode(',', config('wbs.attachments.accepted_mimetypes', []));
+
         return [
             'title' => ['required', 'string', 'max:120'],
             'category' => ['required', 'string', Rule::in(array_keys(config('wbs.categories')))],
@@ -36,6 +39,8 @@ class StoreReportRequest extends FormRequest
             'witness_available' => ['sometimes', 'boolean'],
             'governance_tags' => ['nullable', 'array', 'max:6'],
             'governance_tags.*' => ['string', Rule::in(array_keys(config('wbs.governance_tags')))],
+            'attachments' => ['sometimes', 'array', 'max:'.config('wbs.attachments.max_files', 10)],
+            'attachments.*' => ['file', "max:{$maxKilobytes}", "mimetypes:{$acceptedMimeTypes}"],
         ];
     }
 }

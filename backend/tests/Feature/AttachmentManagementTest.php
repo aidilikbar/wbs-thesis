@@ -68,6 +68,83 @@ class AttachmentManagementTest extends TestCase
         ]);
     }
 
+    public function test_reporter_can_submit_report_with_attachments_in_main_form_request(): void
+    {
+        Storage::fake('attachments');
+
+        User::query()->create([
+            'name' => 'Verification Supervisor',
+            'email' => 'supervisor.form@example.test',
+            'phone' => '+62-812-0000-0911',
+            'role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'unit' => 'Verification Supervision',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        $reporter = $this->createReporter('reporter.form.create@example.test');
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+
+        $response = $this->post('/api/reporter/reports', [
+            'title' => 'Bundled evidence submission',
+            'category' => 'fraud',
+            'description' => 'A complete chronology is provided together with initial evidence files attached in the same filing submission.',
+            'incident_date' => now()->subDay()->toDateString(),
+            'incident_location' => 'Finance Bureau',
+            'accused_party' => 'Finance Supervisor',
+            'evidence_summary' => 'Invoice comparison and internal memo.',
+            'confidentiality_level' => 'anonymous',
+            'requested_follow_up' => '1',
+            'witness_available' => '0',
+            'governance_tags' => ['financial-loss'],
+            'attachments' => [
+                UploadedFile::fake()->create('invoice-comparison.pdf', 128, 'application/pdf'),
+                UploadedFile::fake()->create('internal-memo.txt', 16, 'text/plain'),
+            ],
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.report_id', 1);
+
+        $this->assertDatabaseCount('report_attachments', 2);
+    }
+
+    public function test_reporter_can_update_report_with_attachments_in_main_form_request(): void
+    {
+        Storage::fake('attachments');
+
+        $reporter = $this->createReporter('reporter.form.update@example.test');
+        $report = $this->createReporterReport($reporter);
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+
+        $this->post("/api/reporter/reports/{$report->id}", [
+            '_method' => 'PATCH',
+            'title' => 'Updated attachment-backed filing',
+            'category' => 'procurement',
+            'description' => 'The updated filing includes a fuller chronology together with evidence uploaded in the same save action.',
+            'incident_date' => now()->subDays(2)->toDateString(),
+            'incident_location' => 'Procurement Unit',
+            'accused_party' => 'Procurement Officer',
+            'evidence_summary' => 'Signed checklist and pricing matrix.',
+            'confidentiality_level' => 'identified',
+            'requested_follow_up' => '1',
+            'witness_available' => '1',
+            'governance_tags' => ['procurement'],
+            'attachments' => [
+                UploadedFile::fake()->create('pricing-matrix.xlsx', 256, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+            ],
+        ])->assertOk()
+            ->assertJsonPath('data.attachments.0.original_name', 'pricing-matrix.xlsx');
+
+        $this->assertDatabaseHas('report_attachments', [
+            'report_id' => $report->id,
+            'original_name' => 'pricing-matrix.xlsx',
+        ]);
+    }
+
     public function test_assigned_internal_role_can_download_case_attachment(): void
     {
         Storage::fake('attachments');

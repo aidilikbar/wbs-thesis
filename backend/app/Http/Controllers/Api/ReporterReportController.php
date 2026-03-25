@@ -7,8 +7,11 @@ use App\Http\Requests\StoreReportRequest;
 use App\Models\Report;
 use App\Models\User;
 use App\Services\CaseWorkflowService;
+use App\Services\ReportAttachmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use OpenApi\Attributes as OA;
 
 class ReporterReportController extends Controller
@@ -81,7 +84,13 @@ class ReporterReportController extends Controller
         security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: '#/components/schemas/ReportSubmissionRequest')
+            content: [
+                new OA\JsonContent(ref: '#/components/schemas/ReportSubmissionRequest'),
+                new OA\MediaType(
+                    mediaType: 'multipart/form-data',
+                    schema: new OA\Schema(ref: '#/components/schemas/ReportSubmissionRequest')
+                ),
+            ]
         ),
         responses: [
             new OA\Response(response: 201, description: 'Report submitted successfully.', content: new OA\JsonContent(ref: '#/components/schemas/ReportSubmissionResponse')),
@@ -89,16 +98,40 @@ class ReporterReportController extends Controller
             new OA\Response(response: 422, description: 'Validation failed.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
         ]
     )]
-    public function store(StoreReportRequest $request, CaseWorkflowService $workflow): JsonResponse
+    public function store(
+        StoreReportRequest $request,
+        CaseWorkflowService $workflow,
+        ReportAttachmentService $attachments,
+    ): JsonResponse
     {
         $user = $this->authorizeReporter($request);
-        $result = $workflow->submitReport($user, $request->validated());
-        $report = $result['report'];
+        $uploadedPaths = [];
+
+        try {
+            $result = DB::transaction(function () use ($attachments, $request, $user, $workflow, &$uploadedPaths) {
+                $result = $workflow->submitReport($user, $request->safe()->except('attachments'));
+                $report = $result['report'];
+
+                foreach ($request->file('attachments', []) as $file) {
+                    $attachment = $attachments->storeUploadedFile($report, $user, $file);
+                    $uploadedPaths[] = ['disk' => $attachment->disk, 'path' => $attachment->object_key];
+                }
+
+                return $result;
+            });
+        } catch (\Throwable $exception) {
+            $this->cleanupUploadedObjects($uploadedPaths);
+
+            throw $exception;
+        }
+
+        $report = $result['report']->fresh(['attachments']);
         $caseFile = $result['caseFile'];
 
         return response()->json([
             'message' => 'Report submitted successfully.',
             'data' => [
+                'report_id' => $report->id,
                 'public_reference' => $report->public_reference,
                 'tracking_token' => $report->tracking_token,
                 'case_number' => $caseFile->case_number,
@@ -151,7 +184,13 @@ class ReporterReportController extends Controller
         ],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: '#/components/schemas/ReportSubmissionRequest')
+            content: [
+                new OA\JsonContent(ref: '#/components/schemas/ReportSubmissionRequest'),
+                new OA\MediaType(
+                    mediaType: 'multipart/form-data',
+                    schema: new OA\Schema(ref: '#/components/schemas/ReportSubmissionRequest')
+                ),
+            ]
         ),
         responses: [
             new OA\Response(response: 200, description: 'Reporter report updated.', content: new OA\JsonContent(ref: '#/components/schemas/ReporterReportMutationResponse')),
@@ -164,9 +203,31 @@ class ReporterReportController extends Controller
         StoreReportRequest $request,
         Report $report,
         CaseWorkflowService $workflow,
+        ReportAttachmentService $attachments,
     ): JsonResponse {
         $user = $this->authorizeOwnedReport($request, $report);
-        $updatedReport = $workflow->updateReporterReport($report->fresh(['caseFile', 'attachments']), $user, $request->validated());
+        $uploadedPaths = [];
+
+        try {
+            $updatedReport = DB::transaction(function () use ($attachments, $report, $request, $user, $workflow, &$uploadedPaths) {
+                $updatedReport = $workflow->updateReporterReport(
+                    $report->fresh(['caseFile', 'attachments']),
+                    $user,
+                    $request->safe()->except('attachments')
+                );
+
+                foreach ($request->file('attachments', []) as $file) {
+                    $attachment = $attachments->storeUploadedFile($updatedReport, $user, $file);
+                    $uploadedPaths[] = ['disk' => $attachment->disk, 'path' => $attachment->object_key];
+                }
+
+                return $updatedReport->fresh(['caseFile', 'timelineEvents', 'attachments']);
+            });
+        } catch (\Throwable $exception) {
+            $this->cleanupUploadedObjects($uploadedPaths);
+
+            throw $exception;
+        }
 
         return response()->json([
             'message' => 'Reporter report updated successfully.',
@@ -197,6 +258,17 @@ class ReporterReportController extends Controller
         return $report->status === 'completed'
             ? 'Completed reports can no longer be edited by the reporter.'
             : null;
+    }
+
+    private function cleanupUploadedObjects(array $uploadedPaths): void
+    {
+        foreach ($uploadedPaths as $uploadedPath) {
+            if (! isset($uploadedPath['disk'], $uploadedPath['path'])) {
+                continue;
+            }
+
+            Storage::disk($uploadedPath['disk'])->delete($uploadedPath['path']);
+        }
     }
 
     private function transformSummary(Report $report): array

@@ -4,6 +4,23 @@ return [
     'attachments' => [
         'disk' => env('WBS_ATTACHMENTS_DISK', 'attachments'),
         'max_kilobytes' => (int) env('WBS_ATTACHMENT_MAX_KILOBYTES', 20480),
+        'max_files' => 10,
+        'accepted_mimetypes' => [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'text/plain',
+            'text/csv',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/zip',
+            'application/x-zip-compressed',
+        ],
     ],
     'roles' => [
         'reporter' => 'Reporter',

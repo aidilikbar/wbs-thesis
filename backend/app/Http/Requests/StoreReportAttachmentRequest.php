@@ -18,13 +18,14 @@ class StoreReportAttachmentRequest extends FormRequest
     public function rules(): array
     {
         $maxKilobytes = (int) config('wbs.attachments.max_kilobytes', 20480);
+        $acceptedMimeTypes = implode(',', config('wbs.attachments.accepted_mimetypes', []));
 
         return [
             'file' => [
                 'required',
                 'file',
                 "max:{$maxKilobytes}",
-                'mimetypes:application/pdf,image/jpeg,image/png,image/webp,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/zip,application/x-zip-compressed',
+                "mimetypes:{$acceptedMimeTypes}",
             ],
         ];
     }

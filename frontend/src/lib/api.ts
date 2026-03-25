@@ -84,6 +84,44 @@ async function requestBlob(path: string, options: RequestOptions = {}): Promise<
   return response.blob();
 }
 
+function buildSubmissionFormData(body: SubmissionPayload, attachments: File[]) {
+  const formData = new FormData();
+
+  formData.append("title", body.title);
+  formData.append("category", body.category);
+  formData.append("description", body.description);
+
+  if (body.incident_date) {
+    formData.append("incident_date", body.incident_date);
+  }
+
+  if (body.incident_location) {
+    formData.append("incident_location", body.incident_location);
+  }
+
+  if (body.accused_party) {
+    formData.append("accused_party", body.accused_party);
+  }
+
+  if (body.evidence_summary) {
+    formData.append("evidence_summary", body.evidence_summary);
+  }
+
+  formData.append("confidentiality_level", body.confidentiality_level);
+  formData.append("requested_follow_up", body.requested_follow_up ? "1" : "0");
+  formData.append("witness_available", body.witness_available ? "1" : "0");
+
+  for (const tag of body.governance_tags) {
+    formData.append("governance_tags[]", tag);
+  }
+
+  for (const file of attachments) {
+    formData.append("attachments[]", file);
+  }
+
+  return formData;
+}
+
 export const api = {
   fetchCatalog: () => request<CatalogData>("/catalog"),
   registerReporter: (body: RegisterReporterPayload) =>
@@ -145,18 +183,27 @@ export const api = {
     request<ReporterReportDetail>(`/reporter/reports/${reportId}`, {
       token,
     }),
-  submitReport: (token: string, body: SubmissionPayload) =>
+  submitReport: (token: string, body: SubmissionPayload, attachments: File[] = []) =>
     request<SubmissionReceipt>("/reporter/reports", {
       method: "POST",
       token,
-      body,
+      body: buildSubmissionFormData(body, attachments),
     }),
-  updateReporterReport: (token: string, reportId: number, body: SubmissionPayload) =>
-    request<ReporterReportDetail>(`/reporter/reports/${reportId}`, {
-      method: "PATCH",
+  updateReporterReport: (
+    token: string,
+    reportId: number,
+    body: SubmissionPayload,
+    attachments: File[] = [],
+  ) => {
+    const formData = buildSubmissionFormData(body, attachments);
+    formData.append("_method", "PATCH");
+
+    return request<ReporterReportDetail>(`/reporter/reports/${reportId}`, {
+      method: "POST",
       token,
-      body,
-    }),
+      body: formData,
+    });
+  },
   uploadReporterAttachment: (token: string, reportId: number, file: File) => {
     const formData = new FormData();
     formData.append("file", file);

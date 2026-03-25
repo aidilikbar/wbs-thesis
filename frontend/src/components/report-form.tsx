@@ -4,20 +4,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
+import { ReportAttachmentField } from "@/components/report-attachment-field";
 import {
   categoryOptions,
   governanceTagOptions,
   initialSubmissionPayload,
 } from "@/lib/demo-data";
+import { validateAttachmentSelection } from "@/lib/attachment-validation";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { triggerBlobDownload } from "@/lib/file-utils";
 import { isReporter } from "@/lib/roles";
-import type { ReporterReportDetail, SubmissionPayload } from "@/lib/types";
+import type { ReportAttachment, ReporterReportDetail, SubmissionPayload } from "@/lib/types";
 
 const filingSteps = [
   "Allegation",
   "Context",
-  "Governance",
+  "Evidence Files",
   "Identity Protection",
 ];
 
@@ -48,6 +51,8 @@ export function ReportForm({
   const { isReady, isAuthenticated, token, user } = useAuth();
   const [form, setForm] = useState<SubmissionPayload>(initialSubmissionPayload);
   const [record, setRecord] = useState<ReporterReportDetail | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [attachmentFeedback, setAttachmentFeedback] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(mode === "edit");
   const [isPending, startTransition] = useTransition();
@@ -121,6 +126,45 @@ export function ReportForm({
     }));
   };
 
+  const handleSelectedFilesChange = (files: File[]) => {
+    setSelectedFiles(files);
+    setAttachmentFeedback(validateAttachmentSelection(files));
+  };
+
+  const handleDownloadAttachment = async (attachment: ReportAttachment) => {
+    if (!token || !record) {
+      return;
+    }
+
+    try {
+      const blob = await api.downloadReporterAttachment(token, record.id, attachment.id);
+      triggerBlobDownload(blob, attachment.original_name);
+      setFeedback(null);
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : "Attachment download failed.",
+      );
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: number) => {
+    if (!token || !record) {
+      return;
+    }
+
+    try {
+      await api.deleteReporterAttachment(token, record.id, attachmentId);
+      const updatedRecord = await api.fetchReporterReport(token, record.id);
+      setRecord(updatedRecord);
+      setForm(buildPayloadFromReport(updatedRecord));
+      setFeedback("Attachment deleted successfully.");
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : "Attachment deletion failed.",
+      );
+    }
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFeedback(null);
@@ -131,17 +175,24 @@ export function ReportForm({
       return;
     }
 
+    const attachmentError = validateAttachmentSelection(selectedFiles);
+    setAttachmentFeedback(attachmentError);
+
+    if (attachmentError) {
+      return;
+    }
+
     startTransition(async () => {
       try {
         if (isEditMode && reportId) {
-          await api.updateReporterReport(token, reportId, form);
+          await api.updateReporterReport(token, reportId, form, selectedFiles);
           router.push("/submit?notice=updated");
           router.refresh();
 
           return;
         }
 
-        const data = await api.submitReport(token, form);
+        const data = await api.submitReport(token, form, selectedFiles);
         router.push(
           `/submit?notice=created&reference=${encodeURIComponent(data.public_reference)}&trackingToken=${encodeURIComponent(data.tracking_token)}`,
         );
@@ -168,7 +219,7 @@ export function ReportForm({
     );
   }
 
-  if (!isAuthenticated || !isReporterUser || !user) {
+  if (!isAuthenticated || !token || !isReporterUser || !user) {
     return (
       <div className="grid gap-6 xl:grid-cols-[260px_1fr]">
         <aside className="space-y-4">
@@ -446,14 +497,6 @@ export function ReportForm({
               </label>
             </div>
 
-            {!isEditMode ? (
-              <div className="mt-6 rounded-[0.85rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.12)] px-5 py-4 text-sm leading-7 text-[var(--secondary-strong)]">
-                Evidence files are uploaded after the report is created. Once you submit
-                this report, open the report detail page to upload PDFs, images, office
-                documents, and other supporting files into private MinIO object storage.
-              </div>
-            ) : null}
-
             <div className="mt-8">
               <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                 Governance Flags
@@ -512,10 +555,21 @@ export function ReportForm({
             </div>
           </section>
 
+          <ReportAttachmentField
+            selectedFiles={selectedFiles}
+            existingAttachments={record?.attachments ?? []}
+            canMutate={!editLocked}
+            isBusy={isPending}
+            validationMessage={attachmentFeedback}
+            onSelectedFilesChange={handleSelectedFilesChange}
+            onDownloadAttachment={record ? handleDownloadAttachment : undefined}
+            onDeleteAttachment={record ? handleDeleteAttachment : undefined}
+          />
+
           <section className="dark-card rounded-[1rem] border border-[rgba(0,0,0,0.3)] p-8">
             <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
               <div>
-                <p className="eyebrow text-[var(--secondary)]">Step 03</p>
+                <p className="eyebrow text-[var(--secondary)]">Step 04</p>
                 <h2 className="mt-3 text-4xl text-white">Identity Protection</h2>
                 <p className="mt-5 text-sm leading-8 text-white/72">
                   Choose how your identity is handled in the case record. The account remains authenticated, while public tracking discloses only safe milestones.

@@ -4,15 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreReportAttachmentRequest;
-use App\Models\AuditLog;
 use App\Models\CaseFile;
 use App\Models\Report;
 use App\Models\ReportAttachment;
 use App\Models\User;
+use App\Services\ReportAttachmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use OpenApi\Attributes as OA;
 
 class ReportAttachmentController extends Controller
@@ -45,56 +44,15 @@ class ReportAttachmentController extends Controller
             new OA\Response(response: 422, description: 'Validation failed.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
         ]
     )]
-    public function reporterStore(StoreReportAttachmentRequest $request, Report $report): JsonResponse
+    public function reporterStore(
+        StoreReportAttachmentRequest $request,
+        Report $report,
+        ReportAttachmentService $attachments,
+    ): JsonResponse
     {
         $user = $this->authorizeOwnedReport($request, $report);
         abort_if($report->status === 'completed', 422, 'Completed reports can no longer accept new attachments.');
-
-        $file = $request->file('file');
-        $diskName = config('wbs.attachments.disk', 'attachments');
-        $disk = Storage::disk($diskName);
-        $uuid = (string) Str::uuid();
-        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: '');
-        $path = sprintf(
-            'reports/%s/attachments/%s%s',
-            $report->uuid,
-            $uuid,
-            $extension !== '' ? ".{$extension}" : ''
-        );
-
-        $stream = fopen($file->getRealPath(), 'r');
-        $disk->writeStream($path, $stream, [
-            'visibility' => 'private',
-            'ContentType' => $file->getMimeType(),
-        ]);
-        if (is_resource($stream)) {
-            fclose($stream);
-        }
-
-        $attachment = $report->attachments()->create([
-            'uploaded_by_user_id' => $user->id,
-            'uuid' => $uuid,
-            'disk' => $diskName,
-            'bucket' => config("filesystems.disks.{$diskName}.bucket"),
-            'object_key' => $path,
-            'original_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
-            'extension' => $extension !== '' ? $extension : null,
-            'size_bytes' => $file->getSize(),
-            'checksum_sha256' => hash_file('sha256', $file->getRealPath()),
-        ]);
-
-        $this->recordAudit(
-            action: 'attachment_uploaded_by_reporter',
-            report: $report,
-            actor: $user,
-            auditableId: $attachment->id,
-            context: [
-                'attachment_id' => $attachment->id,
-                'original_name' => $attachment->original_name,
-                'size_bytes' => $attachment->size_bytes,
-            ],
-        );
+        $attachment = $attachments->storeUploadedFile($report, $user, $request->file('file'));
 
         return response()->json([
             'message' => 'Attachment uploaded successfully.',
@@ -120,27 +78,17 @@ class ReportAttachmentController extends Controller
             new OA\Response(response: 422, description: 'Deletion blocked.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
         ]
     )]
-    public function reporterDestroy(Request $request, Report $report, ReportAttachment $attachment): JsonResponse
+    public function reporterDestroy(
+        Request $request,
+        Report $report,
+        ReportAttachment $attachment,
+        ReportAttachmentService $attachments,
+    ): JsonResponse
     {
         $user = $this->authorizeOwnedReport($request, $report);
         $this->authorizeAttachmentForReport($report, $attachment);
         abort_if($report->status === 'completed', 422, 'Completed reports can no longer remove attachments.');
-
-        Storage::disk($attachment->disk)->delete($attachment->object_key);
-        $attachmentId = $attachment->id;
-        $attachmentName = $attachment->original_name;
-        $attachment->delete();
-
-        $this->recordAudit(
-            action: 'attachment_deleted_by_reporter',
-            report: $report,
-            actor: $user,
-            auditableId: $attachmentId,
-            context: [
-                'attachment_id' => $attachmentId,
-                'original_name' => $attachmentName,
-            ],
-        );
+        $attachments->deleteAttachment($attachment, $user);
 
         return response()->json([
             'message' => 'Attachment deleted successfully.',
@@ -255,26 +203,5 @@ class ReportAttachmentController extends Controller
         abort_unless($authorized, 403, 'You do not have access to this case attachment.');
 
         return $user;
-    }
-
-    private function recordAudit(
-        string $action,
-        Report $report,
-        User $actor,
-        int $auditableId,
-        array $context
-    ): void
-    {
-        AuditLog::query()->create([
-            'auditable_type' => ReportAttachment::class,
-            'auditable_id' => $auditableId,
-            'report_id' => $report->id,
-            'case_file_id' => $report->caseFile?->id,
-            'actor_role' => $actor->role,
-            'actor_name' => $actor->name,
-            'action' => $action,
-            'context' => $context,
-            'happened_at' => now(),
-        ]);
     }
 }

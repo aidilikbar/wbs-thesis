@@ -46,6 +46,8 @@ Reporter accounts register through `POST /api/auth/register`. All internal roles
 - `DELETE /api/reporter/reports/{report}/attachments/{attachment}`
 - `GET /api/reporter/reports/{report}/attachments/{attachment}/download`
 
+The create and update report endpoints also accept multipart form submissions with `attachments[]`, so the reporter filing screens can validate files during the main form submit.
+
 ### Public Tracking
 
 - `POST /api/tracking`

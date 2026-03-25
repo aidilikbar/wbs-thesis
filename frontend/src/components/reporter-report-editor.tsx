@@ -4,17 +4,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { ReporterAttachmentManager } from "@/components/reporter-attachment-manager";
+import { ReportAttachmentField } from "@/components/report-attachment-field";
 import { StatusBadge } from "@/components/status-badge";
 import {
   categoryOptions,
   confidentialityOptions,
   governanceTagOptions,
 } from "@/lib/demo-data";
+import { validateAttachmentSelection } from "@/lib/attachment-validation";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { triggerBlobDownload } from "@/lib/file-utils";
 import { isReporter } from "@/lib/roles";
-import type { ReporterReportDetail, SubmissionPayload } from "@/lib/types";
+import type {
+  ReportAttachment,
+  ReporterReportDetail,
+  SubmissionPayload,
+} from "@/lib/types";
 
 const workflowMilestones = [
   {
@@ -87,6 +93,8 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
   const { isReady, isAuthenticated, token, user } = useAuth();
   const [record, setRecord] = useState<ReporterReportDetail | null>(null);
   const [form, setForm] = useState<SubmissionPayload | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [attachmentMessage, setAttachmentMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
@@ -168,6 +176,43 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
     );
   };
 
+  const handleSelectedFilesChange = (files: File[]) => {
+    setSelectedFiles(files);
+    setAttachmentMessage(validateAttachmentSelection(files));
+  };
+
+  const handleDownloadAttachment = async (attachment: ReportAttachment) => {
+    if (!token || !record) {
+      return;
+    }
+
+    try {
+      const blob = await api.downloadReporterAttachment(token, record.id, attachment.id);
+      triggerBlobDownload(blob, attachment.original_name);
+      setMessage(null);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Attachment download failed.",
+      );
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: number) => {
+    if (!token || !record) {
+      return;
+    }
+
+    try {
+      await api.deleteReporterAttachment(token, record.id, attachmentId);
+      await refreshRecord();
+      setMessage("Attachment deleted successfully.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Attachment deletion failed.",
+      );
+    }
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -177,11 +222,18 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
       return;
     }
 
+    const selectedFilesError = validateAttachmentSelection(selectedFiles);
+    setAttachmentMessage(selectedFilesError);
+
+    if (selectedFilesError) {
+      return;
+    }
+
     setMessage(null);
 
     startTransition(async () => {
       try {
-        await api.updateReporterReport(token, reportId, form);
+        await api.updateReporterReport(token, reportId, form, selectedFiles);
         router.push("/submit?notice=updated");
         router.refresh();
       } catch (error) {
@@ -623,6 +675,19 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
             </div>
           </div>
 
+          <div className="mt-8">
+            <ReportAttachmentField
+              selectedFiles={selectedFiles}
+              existingAttachments={record.attachments}
+              canMutate={!editLocked}
+              isBusy={isPending}
+              validationMessage={attachmentMessage}
+              onSelectedFilesChange={handleSelectedFilesChange}
+              onDownloadAttachment={handleDownloadAttachment}
+              onDeleteAttachment={handleDeleteAttachment}
+            />
+          </div>
+
           {message ? (
             <p className="mt-6 rounded-[0.8rem] border border-amber-200 bg-amber-100 px-4 py-4 text-sm text-amber-900">
               {message}
@@ -736,13 +801,6 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
         </div>
       </div>
 
-      <ReporterAttachmentManager
-        token={token}
-        reportId={record.id}
-        attachments={record.attachments}
-        canMutate={!editLocked}
-        onRefresh={refreshRecord}
-      />
     </div>
   );
 }

@@ -189,6 +189,11 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'requested_follow_up', type: 'boolean', example: true),
         new OA\Property(property: 'witness_available', type: 'boolean', example: true),
         new OA\Property(property: 'governance_tags', type: 'array', items: new OA\Items(type: 'string'), example: ['leadership', 'financial-loss']),
+        new OA\Property(
+            property: 'attachments',
+            type: 'array',
+            items: new OA\Items(type: 'string', format: 'binary')
+        ),
     ]
 )]
 #[OA\Schema(
@@ -201,6 +206,7 @@ use OpenApi\Attributes as OA;
             property: 'data',
             type: 'object',
             properties: [
+                new OA\Property(property: 'report_id', type: 'integer', example: 1),
                 new OA\Property(property: 'public_reference', type: 'string', example: 'WBS-2026-0001'),
                 new OA\Property(property: 'tracking_token', type: 'string', example: 'ABCD1234EFGH'),
                 new OA\Property(property: 'case_number', type: 'string', example: 'CASE-2026-0001'),

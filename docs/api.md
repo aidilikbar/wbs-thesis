@@ -58,6 +58,7 @@ Creates a report for the authenticated reporter and returns:
 - next steps
 
 Reporter registration is mandatory before this endpoint can be used.
+The endpoint accepts JSON or multipart form-data. When using multipart form-data, `attachments[]` may be included in the same submission.
 
 ### `GET /reporter/reports/{report}`
 
@@ -70,6 +71,7 @@ Returns the authenticated reporter's full report detail, including:
 ### `PATCH /reporter/reports/{report}`
 
 Updates a reporter-owned report while it remains editable.
+The endpoint accepts JSON or multipart form-data. When using multipart form-data, `attachments[]` may be included in the same save action.
 
 ### Attachment Management
 
