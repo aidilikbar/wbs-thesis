@@ -185,8 +185,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="outline-panel rounded-[0.9rem] px-4 py-4">
-                <p className="mb-2 font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  
+                <p className="mb-2 font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">  
                 </p>
                 <Image
                   src="/logos/kpk_logo_footer.png"
@@ -198,7 +197,6 @@ export function AppShell({ children }: PropsWithChildren) {
               </div>
               <div className="outline-panel rounded-[0.9rem] px-4 py-4">
                 <p className="mb-2 font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  
                 </p>
                 <Image
                   src="/logos/utwente_logo_footer.png"
@@ -213,7 +211,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
           <div className="mt-8 flex flex-col gap-3 border-t border-[var(--panel-border)] pt-4 font-mono text-[0.68rem] uppercase tracking-[0.24em] sm:flex-row sm:items-center sm:justify-between">
             <p>KPK Whistleblowing System · Secure & Encrypted</p>
-            <p>Next.js frontend · Laravel backend · PostgreSQL</p>
+            <p>&copy; 2026 <a href="https://github.com/aidilikbar/wbs-thesis" target="_blank" rel="noreferrer">WBS Thesis Project</a></p>
           </div>
         </footer>
       </div>

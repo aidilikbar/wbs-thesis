@@ -1,18 +1,14 @@
 # API Notes
 
-Base URL: `http://localhost:8000/api`
-
-Swagger UI: `http://localhost:8000/api/documentation`
-
+Base URL: `http://localhost:8000/api`  
+Swagger UI: `http://localhost:8000/api/documentation`  
 OpenAPI JSON: `http://localhost:8000/docs`
 
 ## Authentication
 
 ### `POST /auth/register`
 
-Registers a reporter account and immediately returns a bearer token.
-
-This path is only for the `Reporter` role.
+Registers a `Reporter` account and returns a bearer token.
 
 ### `POST /auth/login`
 
@@ -20,11 +16,11 @@ Shared login for reporter and internal users.
 
 ### `GET /auth/me`
 
-Returns the current authenticated user.
+Returns the current authenticated user and role metadata.
 
 ### `POST /auth/logout`
 
-Deletes the current personal access token.
+Revokes the current personal access token.
 
 ## Reference Data
 
@@ -32,11 +28,10 @@ Deletes the current personal access token.
 
 Returns:
 
-- roles
-- internal roles
+- roles and internal roles
 - categories
 - governance tags
-- confidentiality levels
+- anonymity modes
 - case stages
 - governance principles
 
@@ -44,7 +39,14 @@ Returns:
 
 ### `GET /reporter/reports`
 
-Lists the current reporter's own submissions.
+Paginated list of the current reporter's own submissions.
+
+Supported query parameters:
+
+- `page`
+- `per_page`
+- `search`
+- `status`
 
 ### `POST /reporter/reports`
 
@@ -57,21 +59,20 @@ Creates a report for the authenticated reporter and returns:
 - severity
 - next steps
 
-Reporter registration is mandatory before this endpoint can be used.
-The endpoint accepts JSON or multipart form-data. When using multipart form-data, `attachments[]` may be included in the same submission.
+Reporter registration is mandatory. This endpoint accepts JSON or `multipart/form-data`. When using multipart form submission, `attachments[]` can be sent in the same request.
 
 ### `GET /reporter/reports/{report}`
 
-Returns the authenticated reporter's full report detail, including:
+Returns full reporter detail, including:
 
-- current case snapshot
+- editable report fields
+- case snapshot
 - public-safe timeline
 - attachment metadata
 
 ### `PATCH /reporter/reports/{report}`
 
-Updates a reporter-owned report while it remains editable.
-The endpoint accepts JSON or multipart form-data. When using multipart form-data, `attachments[]` may be included in the same save action.
+Updates a reporter-owned report while it remains editable. This endpoint also accepts JSON or `multipart/form-data` with `attachments[]`.
 
 ### Attachment Management
 
@@ -79,93 +80,99 @@ The endpoint accepts JSON or multipart form-data. When using multipart form-data
 - `DELETE /reporter/reports/{report}/attachments/{attachment}`
 - `GET /reporter/reports/{report}/attachments/{attachment}/download`
 
-Attachments are stored in private S3-compatible object storage and linked to the report by metadata in PostgreSQL.
+Attachments are stored in private S3-compatible object storage, while metadata remains in PostgreSQL.
 
 ## Public Tracking
 
 ### `POST /tracking`
 
-Looks up a report by public reference and tracking token and returns only public-safe case information:
+Looks up a report by public reference and tracking token and returns only public-safe information:
 
-- title and category
+- report title and category
 - current public status
-- confidentiality level
 - case snapshot
-- public timeline events
+- public timeline entries
 
 ## Workflow
 
-All workflow endpoints require authentication and are restricted by role.
+All workflow endpoints require authentication and are restricted to internal roles.
 
 ### `GET /workflow/cases`
 
-Returns the case list visible to the current internal role.
+Paginated workflow directory for the authenticated internal role.
 
-Optional query parameter:
+Supported query parameters:
 
+- `view=queue|approval`
+- `search`
 - `stage`
+- `page`
+- `per_page`
+
+`queue` is used for delegation, verification, and investigation work.  
+`approval` is used for Supervisor of Verificator, Supervisor of Investigator, and Director approvals.
+
+### `GET /workflow/cases/{case}`
+
+Returns a single visible workflow case with:
+
+- allegation detail
+- reporter visibility state
+- workflow ownership
+- attachments
+- timeline
+- available actions
 
 ### `GET /workflow/assignees?role=verificator|investigator`
 
-Returns active assignee candidates for supervisor delegation.
+Returns active assignee candidates for delegation.
 
-### Verification Stage
+### Workflow Actions
 
 - `PATCH /workflow/cases/{case}/delegate-verification`
 - `PATCH /workflow/cases/{case}/submit-verification`
 - `PATCH /workflow/cases/{case}/review-verification`
-
-### Investigation Stage
-
 - `PATCH /workflow/cases/{case}/delegate-investigation`
 - `PATCH /workflow/cases/{case}/submit-investigation`
 - `PATCH /workflow/cases/{case}/review-investigation`
-
-### Director Stage
-
 - `PATCH /workflow/cases/{case}/director-review`
 
 ### Evidence Download
 
 - `GET /workflow/cases/{case}/attachments/{attachment}/download`
 
-Internal attachment access is restricted to the assigned workflow roles or system administrator.
+Workflow attachment access is limited to visible case handlers and system administrator oversight.
 
 ## Administration
 
-### `GET /admin/users`
+Restricted to `System Administrator`.
 
-Lists users. Restricted to `System Administrator`.
+- `GET /admin/users`
+- `POST /admin/users`
+- `GET /admin/users/{user}`
+- `PATCH /admin/users/{user}`
+- `PATCH /admin/users/{user}/deactivate`
+- `DELETE /admin/users/{user}`
 
-### `POST /admin/users`
+The user directory supports:
 
-Creates internal users for:
+- pagination
+- search
+- role filter
+- status filter
 
-- Supervisor of Verificator
-- Verificator
-- Supervisor of Investigator
-- Investigator
-- Director
-- System Administrator
-
-Reporter creation is excluded from this endpoint.
+Reporter creation is not allowed through administration; reporters register themselves.
 
 ## Governance
 
 ### `GET /governance/dashboard`
 
-Returns:
+Returns current governance metrics, including:
 
 - total reports
-- open cases
-- completed cases
-- confidential share
+- open and completed cases
 - overdue cases
-- average triage hours
-- verification queue
-- investigation queue
-- director review queue
-- risk distribution
-- status breakdown
-- governance control catalogue
-- recent audit log events
+- verification, investigation, and director-review queue counts
+- risk and status distribution
+- governance controls
+- recent audit activity

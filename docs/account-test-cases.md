@@ -1,424 +1,344 @@
 # KPK Whistleblowing System Account Test Cases
 
-This document provides manual test cases for the seeded accounts created by `php artisan migrate:fresh --seed`.
-
-## Preconditions
-
-- Backend is running at `http://localhost:8000`
-- Frontend is running at `http://localhost:3000`
-- Database has been refreshed with the demo seed:
+This document provides manual test cases for the seeded accounts created by:
 
 ```bash
 cd backend
 php artisan migrate:fresh --seed
 ```
 
-- All seeded accounts use password `Password123`
-- Reset the database between workflow scenarios if you want deterministic results
+All seeded accounts use password `Password123`.
+
+## Preconditions
+
+- frontend is running at `http://localhost:3000`
+- backend is running at `http://localhost:8000`
+- MinIO is running for attachment scenarios
+- database has been reset with the latest seed before formal workflow testing
 
 ## Account Access Matrix
 
-| ID | Account | Role | Default route after login | Expected seeded state |
+| ID | Account | Role | Default route | Current seeded expectation |
 | --- | --- | --- | --- | --- |
-| ACC-01 | `reporter.1@example.test` | Reporter | `/submit` | Sees one submitted report waiting for verification delegation |
-| ACC-02 | `reporter.2@example.test` | Reporter | `/submit` | Sees one report at `verification_review` |
-| ACC-03 | `reporter.3@example.test` | Reporter | `/submit` | Sees one report at `investigation_in_progress` |
-| ACC-04 | `reporter.4@example.test` | Reporter | `/submit` | Sees one completed report |
-| ACC-05 | `sysadmin@kpk-wbs.test` | System Administrator | `/admin` | Can list users and create new internal accounts |
-| ACC-06 | `supervisor.verificator@kpk-wbs.test` | Supervisor of Verificator | `/workflow` | Sees all seeded cases under verification supervision; actionable on submitted and verification-review stages |
-| ACC-07 | `verificator.1@kpk-wbs.test` | Verificator | `/workflow` | Sees cases historically assigned to Verificator 1; default seed is mostly read-only until a case is returned or delegated |
-| ACC-08 | `verificator.2@kpk-wbs.test` | Verificator | `/workflow` | Sees cases historically assigned to Verificator 2; default seed is mostly read-only until a new delegation occurs |
-| ACC-09 | `supervisor.investigator@kpk-wbs.test` | Supervisor of Investigator | `/workflow` | Sees all seeded cases under investigation supervision; default seed has visibility but no immediately actionable case |
-| ACC-10 | `investigator.1@kpk-wbs.test` | Investigator | `/workflow` | Has one actionable case in `investigation_in_progress` |
-| ACC-11 | `investigator.2@kpk-wbs.test` | Investigator | `/workflow` | Sees completed history assigned to Investigator 2; no immediate action in the default seed |
-| ACC-12 | `director@kpk-wbs.test` | Director | `/workflow` | Sees director-owned cases; no immediate action in the default seed because no seeded case is at `director_review` |
+| ACC-01 | `reporter.1@example.test` | Reporter | `/submit` | Sees a paginated report ledger with multiple seeded reports |
+| ACC-02 | `reporter.2@example.test` | Reporter | `/submit` | Sees a paginated report ledger with multiple seeded reports |
+| ACC-03 | `reporter.3@example.test` | Reporter | `/submit` | Sees a paginated report ledger with multiple seeded reports |
+| ACC-04 | `reporter.4@example.test` | Reporter | `/submit` | Sees a paginated report ledger with multiple seeded reports |
+| ACC-05 | `sysadmin@kpk-wbs.test` | System Administrator | `/admin` | Can manage the paginated user directory |
+| ACC-06 | `supervisor.verificator@kpk-wbs.test` | Supervisor of Verificator | `/workflow` | Uses workflow queue and approval queue |
+| ACC-07 | `verificator.1@kpk-wbs.test` | Verificator | `/workflow` | Uses workflow queue only |
+| ACC-08 | `verificator.2@kpk-wbs.test` | Verificator | `/workflow` | Uses workflow queue only |
+| ACC-09 | `supervisor.investigator@kpk-wbs.test` | Supervisor of Investigator | `/workflow` | Uses workflow queue and approval queue |
+| ACC-10 | `investigator.1@kpk-wbs.test` | Investigator | `/workflow` | Uses workflow queue only |
+| ACC-11 | `investigator.2@kpk-wbs.test` | Investigator | `/workflow` | Uses workflow queue only |
+| ACC-12 | `director@kpk-wbs.test` | Director | `/workflow` | Uses approval queue for final decisions |
 
 ## Shared Authentication Test
 
-### TC-AUTH-01: Login and role routing for all seeded accounts
+### TC-AUTH-01: Login and role routing
 
-**Objective**
-Verify that each seeded account can authenticate and is routed to the correct role workspace.
-
-**Accounts**
-Use all accounts in `ACC-01` through `ACC-12`.
+**Objective**  
+Verify that each seeded account can authenticate and is routed to the correct workspace.
 
 **Steps**
-1. Open `http://localhost:3000/login`
-2. Enter the selected email and `Password123`
-3. Submit the login form
-4. Observe the page route and visible workspace
 
-**Expected result**
+1. Open `http://localhost:3000/login`
+2. Sign in with one seeded account and `Password123`
+3. Observe the post-login route
+
+**Expected Result**
+
 - Reporter accounts are redirected to `/submit`
 - System Administrator is redirected to `/admin`
-- All other internal accounts are redirected to `/workflow`
-- No unauthorized or role-mismatch message is displayed
+- All other internal roles are redirected to `/workflow`
 
 ## Reporter Test Cases
 
-### TC-RPT-01: Reporter 1 can view submitted report
+### TC-RPT-01: Reporter ledger supports search and pagination
 
-**Account**
-`reporter.1@example.test`
+**Accounts**  
+Run separately for `reporter.1@example.test` through `reporter.4@example.test`
 
-**Objective**
-Verify that a reporter can see the seeded report that is still in the submitted stage.
-
-**Steps**
-1. Log in as `reporter.1@example.test`
-2. Open `/submit`
-3. Review the reporter report list or recent submissions area
-
-**Expected result**
-- One seeded report is visible
-- Status remains `submitted`
-- The report shows a public reference and current workflow ownership under verification supervision
-
-### TC-RPT-02: Reporter 2 can view verification-review status
-
-**Account**
-`reporter.2@example.test`
-
-**Objective**
-Verify visibility of a report that has already been verified by a verificator and is pending supervisory review.
+**Objective**  
+Verify the reporter report directory.
 
 **Steps**
-1. Log in as `reporter.2@example.test`
-2. Open `/submit`
-3. Inspect the seeded report details
 
-**Expected result**
-- One report is visible
-- Status is `verification_review`
-- The report reflects progress beyond initial submission
-
-### TC-RPT-03: Reporter 3 can view investigation-in-progress status
-
-**Account**
-`reporter.3@example.test`
-
-**Objective**
-Verify visibility of a report already delegated into investigation.
-
-**Steps**
-1. Log in as `reporter.3@example.test`
-2. Open `/submit`
-3. Inspect the report summary
-
-**Expected result**
-- One report is visible
-- Status is `investigation_in_progress`
-- Current role is aligned to investigator handling
-
-### TC-RPT-04: Reporter 4 can view completed report
-
-**Account**
-`reporter.4@example.test`
-
-**Objective**
-Verify visibility of a fully completed case.
-
-**Steps**
-1. Log in as `reporter.4@example.test`
-2. Open `/submit`
-3. Inspect the report summary
-
-**Expected result**
-- One report is visible
-- Status is `completed`
-- The report shows the final completed state
-
-### TC-RPT-05: Reporter can submit a new report and receive tracking credentials
-
-**Accounts**
-Run separately for any reporter account
-
-**Objective**
-Verify successful authenticated submission and issuance of tracking credentials.
-
-**Steps**
 1. Log in as a reporter
 2. Open `/submit`
-3. Complete the report form with valid data
-4. Submit the report
-5. Record the generated public reference and tracking token from the receipt panel
+3. Confirm the report ledger is rendered as a table
+4. Confirm pagination is limited to 10 rows per page
+5. Use search and status filter
 
-**Expected result**
-- Submission succeeds
-- A receipt is shown
-- Public reference is generated
-- Tracking token is generated
-- The new case appears in the reporter report list
+**Expected Result**
 
-### TC-RPT-06: Reporter can track a case using the issued reference and token
+- The reporter sees only their own reports
+- The ledger supports search and status filtering
+- Pagination is 10 rows per page
+- Each row opens a dedicated detail page at `/submit/{reportId}/edit`
 
-**Accounts**
-Use the reporter account from `TC-RPT-05`
+### TC-RPT-02: Reporter creates a report with attachments
 
-**Objective**
-Verify the public tracking workflow.
+**Objective**  
+Verify authenticated report submission from the dedicated create page.
 
 **Steps**
-1. Complete `TC-RPT-05`
+
+1. Log in as any reporter
+2. Open `/submit/create`
+3. Complete the form with valid allegation data
+4. Select valid files in the attachment section
+5. Submit the report
+
+**Expected Result**
+
+- Submission succeeds
+- A public reference and tracking token are issued
+- The new report appears in `/submit`
+- Attachments are accepted only when they pass validation
+
+### TC-RPT-03: Reporter views tracking state inside the authenticated detail page
+
+**Objective**  
+Verify that authenticated reporters can track their case without leaving the report detail page.
+
+**Steps**
+
+1. Log in as any reporter
+2. Open `/submit`
+3. Open one report detail page
+
+**Expected Result**
+
+- The page shows report detail plus case status
+- Public-safe timeline is visible
+- The reporter can still use `/track` separately if needed
+
+### TC-RPT-04: Reporter uses public tracking
+
+**Objective**  
+Verify public-safe token-based tracking.
+
+**Steps**
+
+1. Obtain a report public reference and tracking token from the authenticated workspace
 2. Open `/track`
-3. Enter the public reference and tracking token from the submission receipt
-4. Submit the tracking form
+3. Submit the reference and token
 
-**Expected result**
-- Tracking record loads successfully
-- Public-safe timeline is displayed
-- No internal-only workflow note is exposed
+**Expected Result**
 
-## Administration Test Case
+- Tracking succeeds
+- Only public-safe information is displayed
+- Internal notes are not disclosed
 
-### TC-ADM-01: System Administrator can create an internal user
+## Administration Test Cases
 
-**Account**
+### TC-ADM-01: System Administrator uses the paginated user directory
+
+**Account**  
 `sysadmin@kpk-wbs.test`
 
-**Objective**
-Verify internal-user provisioning by the system administrator.
+**Objective**  
+Verify the administration index.
 
 **Steps**
-1. Log in as `sysadmin@kpk-wbs.test`
-2. Open `/admin`
-3. Create a new internal account with a unique email
-4. Save the form
-5. Verify the new account appears in the user directory
 
-**Expected result**
-- User creation succeeds
-- New account is listed in the provisioned users panel
-- Created account can later log in through `/login`
+1. Log in as system administrator
+2. Open `/admin`
+3. Confirm table rendering, search, filters, and pagination
+
+**Expected Result**
+
+- The user directory is shown as a table
+- Pagination is 10 rows per page
+- Search, role filter, and status filter work
+
+### TC-ADM-02: System Administrator creates and edits an internal user
+
+**Objective**  
+Verify dedicated create and edit pages.
+
+**Steps**
+
+1. From `/admin`, open `/admin/create`
+2. Create an internal user with a unique email
+3. Return to `/admin`
+4. Open the new row in `/admin/{userId}/edit`
+5. Modify the user and save
+
+**Expected Result**
+
+- Create and edit run on dedicated pages
+- Save redirects back to `/admin`
+- The user directory reflects the changes
 
 ## Workflow Test Cases
 
-### TC-WF-01: Supervisor of Verificator delegates Reporter 1 case to Verificator 2
+### TC-WF-01: Supervisor of Verificator uses the workflow queue
 
-**Accounts**
-- `supervisor.verificator@kpk-wbs.test`
-- `verificator.2@kpk-wbs.test`
+**Account**  
+`supervisor.verificator@kpk-wbs.test`
 
-**Objective**
-Verify delegation from submitted stage into verification work.
+**Objective**  
+Verify the queue page structure.
 
 **Steps**
-1. Log in as `supervisor.verificator@kpk-wbs.test`
+
+1. Log in as Supervisor of Verificator
 2. Open `/workflow`
-3. Select Reporter 1 seeded case: `Request for unofficial payment before vendor evaluation`
-4. Execute `Delegate to verificator`
-5. Choose `verificator.2@kpk-wbs.test`
-6. Save the action
-7. Log in as `verificator.2@kpk-wbs.test`
-8. Confirm the delegated case is now visible and actionable
+3. Confirm table rendering, search, stage filter, and pagination
 
-**Expected result**
-- Case stage changes from `submitted` to `verification_in_progress`
-- Current role becomes Verificator
-- Verificator 2 can see the case and has the `submit_verification` action available
+**Expected Result**
 
-### TC-WF-02: Verificator 2 submits verification for Reporter 1 case
+- The workflow queue is shown as a table
+- Pagination is 10 rows per page
+- Search and stage filtering work
+- Actionable rows open `/workflow/{caseId}/edit`
+
+### TC-WF-02: Supervisor of Verificator delegates a case from a dedicated page
 
 **Accounts**
-- `verificator.2@kpk-wbs.test`
+
 - `supervisor.verificator@kpk-wbs.test`
+- `verificator.1@kpk-wbs.test` or `verificator.2@kpk-wbs.test`
 
-**Precondition**
-`TC-WF-01` completed
-
-**Objective**
-Verify verification submission back to the supervisor.
+**Objective**  
+Verify delegation from the workflow queue.
 
 **Steps**
-1. Stay logged in as `verificator.2@kpk-wbs.test`
-2. Open the delegated Reporter 1 case
-3. Enter an internal note
-4. Optionally publish a public-safe update
-5. Submit verification
-6. Log in as `supervisor.verificator@kpk-wbs.test`
-7. Confirm the same case is now pending review
 
-**Expected result**
-- Case stage becomes `verification_review`
-- Current role becomes Supervisor of Verificator
-- Supervisor can see `review_verification` as the available action
+1. Log in as Supervisor of Verificator
+2. Open an actionable queue record from `/workflow`
+3. Confirm the page route is `/workflow/{caseId}/edit`
+4. Delegate the case to a verificator
+5. Return to `/workflow`
 
-### TC-WF-03: Supervisor rejects Reporter 2 verification and Verificator 1 resubmits
+**Expected Result**
+
+- Delegation is handled on the dedicated edit page
+- Save redirects back to `/workflow`
+- The case moves to `verification_in_progress`
+
+### TC-WF-03: Verificator submits verification from a dedicated page
+
+**Objective**  
+Verify verification submission.
+
+**Steps**
+
+1. Log in as the assigned verificator
+2. Open `/workflow`
+3. Open the actionable case row
+4. Submit verification with an internal note
+
+**Expected Result**
+
+- The route is `/workflow/{caseId}/edit`
+- The case moves to `verification_review`
+- The case leaves the verificator queue
+
+### TC-WF-04: Supervisor of Verificator uses the approval queue
+
+**Objective**  
+Verify that approval is separated from the execution queue.
+
+**Steps**
+
+1. Log in as Supervisor of Verificator
+2. Open `/workflow/approvals`
+3. Open a case waiting for verification approval
+4. Approve or reject it
+
+**Expected Result**
+
+- Approval cases appear under `/workflow/approvals`
+- The case page route is `/workflow/{caseId}/approval`
+- Approval or rejection redirects back to `/workflow/approvals`
+
+### TC-WF-05: Supervisor of Investigator delegates a verified case
+
+**Account**  
+`supervisor.investigator@kpk-wbs.test`
+
+**Objective**  
+Verify delegation into investigation.
+
+**Steps**
+
+1. Open `/workflow`
+2. Locate a verified case
+3. Open its dedicated edit page
+4. Delegate it to an investigator
+
+**Expected Result**
+
+- The case moves to `investigation_in_progress`
+- The assigned investigator can see it in their workflow queue
+
+### TC-WF-06: Investigator submits analysis from the dedicated workflow page
 
 **Accounts**
-- `supervisor.verificator@kpk-wbs.test`
-- `verificator.1@kpk-wbs.test`
 
-**Objective**
-Verify the rejection loop for the verification stage.
+- `investigator.1@kpk-wbs.test` or `investigator.2@kpk-wbs.test`
 
-**Steps**
-1. Log in as `supervisor.verificator@kpk-wbs.test`
-2. Open Reporter 2 seeded case: `Possible conflict of interest in evaluation panel`
-3. Execute `Review verification`
-4. Choose decision `rejected`
-5. Save the action
-6. Log in as `verificator.1@kpk-wbs.test`
-7. Confirm the same case becomes actionable
-8. Submit verification again with a revised internal note
-
-**Expected result**
-- After supervisor rejection, the case returns to `verification_in_progress`
-- Current role becomes Verificator
-- Verificator 1 regains `submit_verification`
-- After resubmission, the case returns to `verification_review`
-
-### TC-WF-04: Supervisor approves Reporter 2 verification and hands off to investigation supervision
-
-**Accounts**
-- `supervisor.verificator@kpk-wbs.test`
-- `supervisor.investigator@kpk-wbs.test`
-
-**Precondition**
-`TC-WF-03` completed through re-submission
-
-**Objective**
-Verify approval from verification review into the verified state.
+**Objective**  
+Verify investigator analysis submission.
 
 **Steps**
-1. Log in as `supervisor.verificator@kpk-wbs.test`
-2. Open Reporter 2 case
-3. Execute `Review verification`
-4. Choose decision `approved`
-5. Save the action
-6. Log in as `supervisor.investigator@kpk-wbs.test`
-7. Confirm the same case is now visible as a verified case
 
-**Expected result**
-- Case stage becomes `verified`
-- Current role becomes Supervisor of Investigator
-- Supervisor of Investigator has `delegate_investigation` available
+1. Log in as the assigned investigator
+2. Open `/workflow`
+3. Open an actionable case
+4. Submit analysis with an internal note
 
-### TC-WF-05: Supervisor of Investigator delegates Reporter 2 case to Investigator 2
+**Expected Result**
 
-**Accounts**
-- `supervisor.investigator@kpk-wbs.test`
-- `investigator.2@kpk-wbs.test`
+- The route is `/workflow/{caseId}/edit`
+- The case moves to `investigation_review`
 
-**Precondition**
-`TC-WF-04` completed
+### TC-WF-07: Supervisor of Investigator uses the approval queue
 
-**Objective**
-Verify delegation from verified stage into active investigation.
+**Account**  
+`supervisor.investigator@kpk-wbs.test`
+
+**Objective**  
+Verify investigation approval handling.
 
 **Steps**
-1. Log in as `supervisor.investigator@kpk-wbs.test`
-2. Open Reporter 2 case
-3. Execute `Delegate to investigator`
-4. Choose `investigator.2@kpk-wbs.test`
-5. Save the action
-6. Log in as `investigator.2@kpk-wbs.test`
-7. Confirm the case is actionable
 
-**Expected result**
-- Case stage becomes `investigation_in_progress`
-- Current role becomes Investigator
-- Investigator 2 has `submit_investigation` available
+1. Open `/workflow/approvals`
+2. Open a case waiting for investigation approval
+3. Approve or reject the result
 
-### TC-WF-06: Investigator 2 submits, supervisor rejects, investigator resubmits
+**Expected Result**
 
-**Accounts**
-- `investigator.2@kpk-wbs.test`
-- `supervisor.investigator@kpk-wbs.test`
+- Approval is handled from `/workflow/{caseId}/approval`
+- Approved cases move to `director_review`
+- Rejected cases return to `investigation_in_progress`
 
-**Precondition**
-`TC-WF-05` completed
+### TC-WF-08: Director completes a case from the approval queue
 
-**Objective**
-Verify the rejection loop for the investigation stage.
-
-**Steps**
-1. Log in as `investigator.2@kpk-wbs.test`
-2. Submit investigation for Reporter 2 case
-3. Log in as `supervisor.investigator@kpk-wbs.test`
-4. Review the investigation with decision `rejected`
-5. Log in again as `investigator.2@kpk-wbs.test`
-6. Confirm the case is returned and actionable
-7. Resubmit the investigation
-
-**Expected result**
-- First submission changes stage to `investigation_review`
-- Rejection returns the case to `investigation_in_progress`
-- Investigator 2 regains `submit_investigation`
-- Re-submission changes stage back to `investigation_review`
-
-### TC-WF-07: Investigator 1 submits seeded investigation case
-
-**Account**
-`investigator.1@kpk-wbs.test`
-
-**Objective**
-Verify action on the seeded investigation case that is already in progress.
-
-**Steps**
-1. Log in as `investigator.1@kpk-wbs.test`
-2. Open Reporter 3 seeded case: `Repeated duplicate reimbursement patterns in finance unit`
-3. Confirm `submit_investigation` is available
-4. Submit the investigation note
-
-**Expected result**
-- Case stage changes to `investigation_review`
-- Current role becomes Supervisor of Investigator
-
-### TC-WF-08: Supervisor approves Reporter 3 investigation and sends to director
-
-**Accounts**
-- `supervisor.investigator@kpk-wbs.test`
-- `director@kpk-wbs.test`
-
-**Precondition**
-`TC-WF-07` completed
-
-**Objective**
-Verify approval from investigation review into director review.
-
-**Steps**
-1. Log in as `supervisor.investigator@kpk-wbs.test`
-2. Open Reporter 3 case
-3. Execute `Review investigation`
-4. Choose decision `approved`
-5. Save the action
-6. Log in as `director@kpk-wbs.test`
-7. Confirm the case is now actionable for director review
-
-**Expected result**
-- Case stage becomes `director_review`
-- Current role becomes Director
-- Director has `director_review` available
-
-### TC-WF-09: Director completes Reporter 3 case
-
-**Account**
+**Account**  
 `director@kpk-wbs.test`
 
-**Precondition**
-`TC-WF-08` completed
-
-**Objective**
-Verify final approval and completion of a case.
+**Objective**  
+Verify final approval routing.
 
 **Steps**
-1. Log in as `director@kpk-wbs.test`
-2. Open Reporter 3 case
-3. Execute `Director review`
-4. Choose decision `approved`
-5. Save the action
-6. Optionally publish a public-safe completion message
 
-**Expected result**
-- Case stage becomes `completed`
-- Report status becomes `completed`
-- Reporter 3 can later observe the completed state in reporter and tracking views
+1. Log in as Director
+2. Open `/workflow/approvals`
+3. Open a case in `director_review`
+4. Record the final decision
 
-## Notes for Thesis Evaluation
+**Expected Result**
 
-- The default seed intentionally distributes cases across multiple stages, so not every internal role has an immediately actionable item after seeding.
-- Use the seeded-state reporter tests for visibility validation.
-- Use the workflow scenarios for action validation and segregation-of-duties analysis.
-- Re-run `php artisan migrate:fresh --seed` before each formal test cycle to reset the reference state.
+- Final decision is handled on `/workflow/{caseId}/approval`
+- Approved cases move to `completed`
+- Rejected cases return for further investigation
+
+## Notes for Evaluation
+
+- The seed contains multiple report transactions per base reporter account, so reporter table pagination can be evaluated directly.
+- Workflow actions change seeded state, so reset the database before repeating a formal scenario.
+- Approval roles should validate both `/workflow` and `/workflow/approvals`; non-approval roles should validate that only `/workflow` is relevant to their duties.

@@ -2,13 +2,14 @@
 
 ## Thesis Orientation
 
-This prototype treats whistleblowing as a governance capability rather than a standalone submission form. The architecture therefore emphasizes:
+This prototype treats whistleblowing as a governance capability, not only a submission form. The current architecture emphasizes:
 
-- reporter registration before intake
-- confidentiality with controlled public disclosure
+- registered reporter ownership before submission
+- confidential handling of all reporter data
+- anonymous versus identified reporting mode at the case-handling layer
 - segregation of duties across verification, investigation, and approval
-- traceability through audit events
-- measurable governance controls and queue metrics
+- auditability of every workflow transition
+- measurable governance and queue oversight
 
 ## Modular Structure
 
@@ -17,42 +18,48 @@ flowchart LR
     A["Reporter / Internal Role"] --> B["Next.js Frontend"]
     B --> C["Laravel Backend API"]
     C --> D["PostgreSQL"]
-    C --> E["Redis (Optional)"]
+    C --> E["MinIO (S3-Compatible Object Storage)"]
+    C --> F["Redis (Optional)"]
 ```
 
 ## Frontend Modules
 
-- reporter registration and login
-- reporter submission workspace
-- public tracking workspace
-- internal workflow workspace
+- public landing and institutional content
+- reporter authentication and profile
+- reporter report directory at `/submit`
+- dedicated report create and edit pages
+- public-safe tracking at `/track`
+- workflow queue at `/workflow`
+- approval queue at `/workflow/approvals`
+- dedicated workflow execution and approval pages
+- system administrator workspace at `/admin`
 - governance dashboard
-- system administrator workspace
 
 ## Backend Modules
 
-- authentication and role enforcement
-- report intake with authenticated reporter ownership
-- workflow orchestration for verification and investigation
-- director approval routing
-- user provisioning for internal roles
-- audit logging and governance metrics
+- Sanctum-based authentication and role enforcement
+- reporter-owned report intake and update
+- workflow orchestration for verification, investigation, and final approval
+- paginated workflow and administration directories
+- private attachment management backed by MinIO
+- audit logging and timeline events
+- governance dashboard aggregation
 
 ## KPK Role-Based Process Modeled
 
 ```mermaid
 flowchart TD
     A["Reporter Registers and Logs In"] --> B["Reporter Submits Report"]
-    B --> C["Supervisor of Verificator Receives Report"]
+    B --> C["Supervisor of Verificator Queue"]
     C --> D["Delegate to Verificator"]
     D --> E["Verificator Verifies Report"]
-    E --> F["Supervisor of Verificator Reviews"]
-    F -->|Approved| G["Supervisor of Investigator Receives Verified Report"]
+    E --> F["Supervisor of Verificator Approval"]
+    F -->|Approved| G["Supervisor of Investigator Queue"]
     F -->|Rejected| E
     G --> H["Delegate to Investigator"]
-    H --> I["Investigator Analyzes Report"]
-    I --> J["Supervisor of Investigator Reviews"]
-    J -->|Approved| K["Director Reviews"]
+    H --> I["Investigator Analyses Report"]
+    I --> J["Supervisor of Investigator Approval"]
+    J -->|Approved| K["Director Approval"]
     J -->|Rejected| I
     K -->|Approved| L["Report Completed"]
     K -->|Rejected| I
@@ -61,21 +68,22 @@ flowchart TD
 ## Core Data Objects
 
 - `users`: reporter and internal role accounts
-- `reports`: reporter-owned allegations, public reference, tracking token, severity, status
-- `case_files`: internal workflow routing, current role, assignments, SLA, and completion state
-- `case_timeline_events`: public and internal timeline events
-- `audit_logs`: workflow evidence for submission, delegation, approval, rejection, and completion
-- `governance_controls`: explicit governance control catalogue for dashboard reporting
-- `personal_access_tokens`: bearer tokens for authenticated API use
+- `reports`: reporter-owned allegations, public reference, tracking token, status, and encrypted reporter snapshot
+- `report_attachments`: attachment metadata linked to object storage keys
+- `case_files`: workflow stage, assignees, SLA, confidentiality mode, and completion state
+- `case_timeline_events`: public and internal lifecycle events
+- `audit_logs`: immutable records of submission, delegation, approval, rejection, and completion
+- `governance_controls`: governance catalogue for dashboard reporting
+- `personal_access_tokens`: authenticated API access tokens
 
-## Governance Controls Represented
+## Identity Handling
 
-- reporter registration control
-- confidentiality handling
-- segregation of duties
-- workflow timeliness
-- audit trail completeness
+- `anonymous`: reporter identity remains confidential in storage and is not disclosed to internal case handlers
+- `identified`: reporter identity remains confidential in storage but is visible to authorized internal case handlers
+- in both modes, the reporter still owns the report and can access it through the authenticated reporter workspace
 
 ## Infrastructure Position
 
-The operational database runs on local PostgreSQL to support thesis analysis directly from the host environment. Docker is retained only for optional services such as Redis.
+- PostgreSQL runs natively on the host for direct thesis analysis
+- MinIO runs through Docker for local S3-compatible attachment storage
+- Redis remains optional for development
