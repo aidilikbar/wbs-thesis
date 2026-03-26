@@ -54,6 +54,11 @@ class User extends Authenticatable
         return $this->hasMany(Report::class, 'reporter_user_id');
     }
 
+    public function sentCaseMessages(): HasMany
+    {
+        return $this->hasMany(CaseMessage::class, 'sender_user_id');
+    }
+
     public function hasRole(string|array $roles): bool
     {
         return in_array($this->role, (array) $roles, true);

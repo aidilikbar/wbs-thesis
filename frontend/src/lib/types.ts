@@ -107,6 +107,38 @@ export type ReportAttachment = {
   uploaded_at: string | null;
 };
 
+export type CaseMessageAttachment = {
+  id: number;
+  uuid: string;
+  original_name: string;
+  mime_type: string | null;
+  extension: string | null;
+  size_bytes: number;
+  checksum_sha256: string | null;
+  uploaded_at: string | null;
+};
+
+export type CaseMessageRecord = {
+  id: number;
+  sender_role: UserRole;
+  sender_role_label: string;
+  stage: string;
+  stage_label: string;
+  body: string | null;
+  sent_at: string | null;
+  attachments: CaseMessageAttachment[];
+};
+
+export type CaseMessageConversation = {
+  enabled: boolean;
+  active_stage: string | null;
+  active_stage_label: string | null;
+  counterparty_role: UserRole | null;
+  counterparty_role_label: string | null;
+  can_send_message: boolean;
+  messages: CaseMessageRecord[];
+};
+
 export type ReporterReportSummary = {
   id: number;
   public_reference: string;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
+import { CaseMessageBoard } from "@/components/case-message-board";
 import { StatusBadge } from "@/components/status-badge";
 import { WorkflowAttachmentPanel } from "@/components/workflow-attachment-panel";
 import { WorkflowNavigation } from "@/components/workflow-navigation";
@@ -128,6 +129,8 @@ export function WorkflowCaseEditor({
   const [isPending, startTransition] = useTransition();
 
   const isInternalUser = isInternalRole(user?.role);
+  const supportsSecureMessaging =
+    user?.role === "verificator" || user?.role === "investigator";
   const canViewApprovals = workflowHasApprovalMenu(user?.role);
   const backPath = view === "approval" ? "/workflow/approvals" : "/workflow";
 
@@ -821,6 +824,13 @@ export function WorkflowCaseEditor({
           attachments={record.attachments}
         />
       </div>
+
+      {supportsSecureMessaging ? (
+        <CaseMessageBoard
+          token={token}
+          scope={{ kind: "workflow", caseId: record.id }}
+        />
+      ) : null}
 
       <section className="panel rounded-[1rem] p-8">
         <p className="eyebrow">Case Timeline</p>

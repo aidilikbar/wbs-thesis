@@ -2,6 +2,8 @@ import type {
   AdminUserUpdatePayload,
   AuthSession,
   AuthUser,
+  CaseMessageConversation,
+  CaseMessageRecord,
   CatalogData,
   GovernanceDashboardData,
   InternalUserPayload,
@@ -123,6 +125,20 @@ function buildSubmissionFormData(body: SubmissionPayload, attachments: File[]) {
   return formData;
 }
 
+function buildCaseMessageFormData(body: string, attachments: File[]) {
+  const formData = new FormData();
+
+  if (body.trim() !== "") {
+    formData.append("body", body.trim());
+  }
+
+  for (const file of attachments) {
+    formData.append("attachments[]", file);
+  }
+
+  return formData;
+}
+
 export const api = {
   fetchCatalog: () => request<CatalogData>("/catalog"),
   registerReporter: (body: RegisterReporterPayload) =>
@@ -184,6 +200,33 @@ export const api = {
     request<ReporterReportDetail>(`/reporter/reports/${reportId}`, {
       token,
     }),
+  fetchReporterConversation: (token: string, reportId: number) =>
+    request<CaseMessageConversation>(`/reporter/reports/${reportId}/messages`, {
+      token,
+    }),
+  sendReporterConversationMessage: (
+    token: string,
+    reportId: number,
+    body: string,
+    attachments: File[] = [],
+  ) =>
+    request<CaseMessageRecord>(`/reporter/reports/${reportId}/messages`, {
+      method: "POST",
+      token,
+      body: buildCaseMessageFormData(body, attachments),
+    }),
+  downloadReporterConversationAttachment: (
+    token: string,
+    reportId: number,
+    messageId: number,
+    attachmentId: number,
+  ) =>
+    requestBlob(
+      `/reporter/reports/${reportId}/messages/${messageId}/attachments/${attachmentId}/download`,
+      {
+        token,
+      },
+    ),
   submitReport: (token: string, body: SubmissionPayload, attachments: File[] = []) =>
     request<SubmissionReceipt>("/reporter/reports", {
       method: "POST",
@@ -281,6 +324,33 @@ export const api = {
     request<WorkflowCase>(`/workflow/cases/${caseId}`, {
       token,
     }),
+  fetchWorkflowConversation: (token: string, caseId: number) =>
+    request<CaseMessageConversation>(`/workflow/cases/${caseId}/messages`, {
+      token,
+    }),
+  sendWorkflowConversationMessage: (
+    token: string,
+    caseId: number,
+    body: string,
+    attachments: File[] = [],
+  ) =>
+    request<CaseMessageRecord>(`/workflow/cases/${caseId}/messages`, {
+      method: "POST",
+      token,
+      body: buildCaseMessageFormData(body, attachments),
+    }),
+  downloadWorkflowConversationAttachment: (
+    token: string,
+    caseId: number,
+    messageId: number,
+    attachmentId: number,
+  ) =>
+    requestBlob(
+      `/workflow/cases/${caseId}/messages/${messageId}/attachments/${attachmentId}/download`,
+      {
+        token,
+      },
+    ),
   fetchAssignees: (token: string, role: "verificator" | "investigator") =>
     request<WorkflowAssignee[]>(
       `/workflow/assignees?role=${encodeURIComponent(role)}`,

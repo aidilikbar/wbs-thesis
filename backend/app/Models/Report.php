@@ -73,4 +73,9 @@ class Report extends Model
     {
         return $this->hasMany(ReportAttachment::class)->orderByDesc('created_at');
     }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(CaseMessage::class)->orderBy('created_at');
+    }
 }

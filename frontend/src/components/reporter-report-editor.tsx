@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
+import { CaseMessageBoard } from "@/components/case-message-board";
 import { ReportAttachmentField } from "@/components/report-attachment-field";
 import { StatusBadge } from "@/components/status-badge";
 import {
@@ -800,6 +801,11 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
           </section>
         </div>
       </div>
+
+      <CaseMessageBoard
+        token={token}
+        scope={{ kind: "reporter", reportId: record.id }}
+      />
 
     </div>
   );

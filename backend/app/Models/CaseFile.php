@@ -80,4 +80,9 @@ class CaseFile extends Model
     {
         return $this->hasMany(AuditLog::class)->orderByDesc('happened_at');
     }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(CaseMessage::class)->orderBy('created_at');
+    }
 }
