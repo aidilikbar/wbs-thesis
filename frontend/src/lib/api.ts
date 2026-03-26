@@ -17,6 +17,7 @@ import type {
   TrackingRecord,
   WorkflowAssignee,
   WorkflowCase,
+  WorkflowDirectoryView,
 } from "@/lib/types";
 
 const API_BASE_URL =
@@ -235,13 +236,51 @@ export const api = {
       method: "POST",
       body,
     }),
-  fetchWorkflowCases: (token: string, stage?: string) =>
-    request<WorkflowCase[]>(
-      stage ? `/workflow/cases?stage=${encodeURIComponent(stage)}` : "/workflow/cases",
+  listWorkflowCases: (
+    token: string,
+    options: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      stage?: string;
+      view?: WorkflowDirectoryView;
+    } = {},
+  ) => {
+    const params = new URLSearchParams();
+
+    if (options.page) {
+      params.set("page", String(options.page));
+    }
+
+    if (options.per_page) {
+      params.set("per_page", String(options.per_page));
+    }
+
+    if (options.search) {
+      params.set("search", options.search);
+    }
+
+    if (options.stage) {
+      params.set("stage", options.stage);
+    }
+
+    if (options.view) {
+      params.set("view", options.view);
+    }
+
+    const query = params.toString();
+
+    return request<PaginatedData<WorkflowCase>>(
+      query ? `/workflow/cases?${query}` : "/workflow/cases",
       {
         token,
       },
-    ),
+    );
+  },
+  fetchWorkflowCase: (token: string, caseId: number) =>
+    request<WorkflowCase>(`/workflow/cases/${caseId}`, {
+      token,
+    }),
   fetchAssignees: (token: string, role: "verificator" | "investigator") =>
     request<WorkflowAssignee[]>(
       `/workflow/assignees?role=${encodeURIComponent(role)}`,

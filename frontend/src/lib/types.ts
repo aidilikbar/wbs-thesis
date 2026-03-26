@@ -187,6 +187,19 @@ export type WorkflowAssignee = {
   unit: string | null;
 };
 
+export type WorkflowDirectoryView = "queue" | "approval";
+
+export type WorkflowTimelineEntry = {
+  visibility?: "public" | "internal";
+  stage: string;
+  stage_label: string;
+  headline: string;
+  detail: string;
+  actor_role: string;
+  actor_name?: string | null;
+  occurred_at: string | null;
+};
+
 export type WorkflowCase = {
   id: number;
   case_number: string;
@@ -201,6 +214,12 @@ export type WorkflowCase = {
   public_reference: string;
   title: string;
   category: string;
+  category_label?: string | null;
+  description?: string | null;
+  incident_date?: string | null;
+  incident_location?: string | null;
+  accused_party?: string | null;
+  evidence_summary?: string | null;
   governance_tags: string[];
   confidentiality_level: string;
   reporter: {
@@ -219,8 +238,10 @@ export type WorkflowCase = {
   attachments: ReportAttachment[];
   sla_due_at: string | null;
   last_activity_at: string | null;
+  notes?: string | null;
   latest_internal_event: string | null;
   latest_public_event: string | null;
+  timeline?: WorkflowTimelineEntry[];
   available_actions: string[];
 };
 

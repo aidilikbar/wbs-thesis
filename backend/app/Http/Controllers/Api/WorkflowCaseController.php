@@ -9,6 +9,7 @@ use App\Http\Requests\SubmitWorkflowStageRequest;
 use App\Models\CaseFile;
 use App\Models\User;
 use App\Services\CaseWorkflowService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -22,6 +23,10 @@ class WorkflowCaseController extends Controller
         tags: ['Workflow'],
         security: [['bearerAuth' => []]],
         parameters: [
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 10)),
+            new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'view', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['queue', 'approval'], default: 'queue')),
             new OA\Parameter(name: 'stage', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
@@ -32,28 +37,58 @@ class WorkflowCaseController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $this->authorizeInternalUser($request);
+        $perPage = min(max($request->integer('per_page', 10), 1), 50);
+        $search = trim($request->string('search')->toString());
+        $stage = $request->string('stage')->toString();
+        $view = $request->string('view')->toString() ?: 'queue';
 
         $cases = CaseFile::query()
-            ->with([
-                'report.attachments',
-                'timelineEvents',
-                'verificationSupervisor',
-                'verificator',
-                'investigationSupervisor',
-                'investigator',
-                'director',
-            ])
-            ->when($request->string('stage')->isNotEmpty(), fn ($query) => $query->where('stage', $request->string('stage')))
-            ->when(
-                $user->role !== User::ROLE_SYSTEM_ADMINISTRATOR,
-                fn ($query) => $this->scopeCasesForUser($query, $user)
-            )
+            ->with($this->workflowRelations())
+            ->when($stage !== '', fn (Builder $query) => $query->where('stage', $stage))
+            ->when($search !== '', fn (Builder $query) => $this->applySearchFilter($query, $search))
+            ->when($user->role !== User::ROLE_SYSTEM_ADMINISTRATOR, fn (Builder $query) => $this->scopeCasesForUser($query, $user))
+            ->when($view !== '', fn (Builder $query) => $this->scopeCasesForView($query, $user, $view))
             ->orderByDesc('last_activity_at')
-            ->get()
-            ->map(fn (CaseFile $caseFile) => $this->transformCase($caseFile, $user));
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
-            'data' => $cases,
+            'data' => [
+                'items' => $cases->getCollection()->map(fn (CaseFile $caseFile) => $this->transformCase($caseFile, $user)),
+                'meta' => [
+                    'current_page' => $cases->currentPage(),
+                    'last_page' => $cases->lastPage(),
+                    'per_page' => $cases->perPage(),
+                    'total' => $cases->total(),
+                    'from' => $cases->firstItem(),
+                    'to' => $cases->lastItem(),
+                ],
+            ],
+        ]);
+    }
+
+    #[OA\Get(
+        path: '/api/workflow/cases/{caseFile}',
+        operationId: 'showWorkflowCase',
+        summary: 'Get a single workflow case for the authenticated internal role',
+        tags: ['Workflow'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Workflow case returned.', content: new OA\JsonContent(ref: '#/components/schemas/WorkflowCaseRecordResponse')),
+            new OA\Response(response: 403, description: 'Internal role access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Workflow case not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+        ]
+    )]
+    public function show(Request $request, CaseFile $caseFile): JsonResponse
+    {
+        $user = $this->authorizeInternalUser($request);
+        $caseFile = $this->findVisibleCaseOrFail($caseFile, $user);
+
+        return response()->json([
+            'data' => $this->transformCase($caseFile, $user),
         ]);
     }
 
@@ -348,6 +383,93 @@ class WorkflowCaseController extends Controller
         };
     }
 
+    private function scopeCasesForView(Builder $query, User $user, string $view): Builder
+    {
+        $stages = $this->visibleStagesForView($user, $view);
+
+        if ($stages === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn('stage', $stages);
+    }
+
+    private function visibleStagesForView(User $user, string $view): array
+    {
+        $queueStages = match ($user->role) {
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR => ['submitted'],
+            User::ROLE_VERIFICATOR => ['verification_in_progress'],
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR => ['verified'],
+            User::ROLE_INVESTIGATOR => ['investigation_in_progress'],
+            User::ROLE_DIRECTOR => [],
+            User::ROLE_SYSTEM_ADMINISTRATOR => [
+                'submitted',
+                'verification_in_progress',
+                'verified',
+                'investigation_in_progress',
+            ],
+            default => [],
+        };
+
+        $approvalStages = match ($user->role) {
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR => ['verification_review'],
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR => ['investigation_review'],
+            User::ROLE_DIRECTOR => ['director_review'],
+            User::ROLE_SYSTEM_ADMINISTRATOR => [
+                'verification_review',
+                'investigation_review',
+                'director_review',
+            ],
+            default => [],
+        };
+
+        return match ($view) {
+            'approval' => $approvalStages,
+            default => $queueStages,
+        };
+    }
+
+    private function applySearchFilter(Builder $query, string $search): Builder
+    {
+        $like = "%{$search}%";
+
+        return $query->where(function (Builder $nested) use ($like) {
+            $nested
+                ->where('case_number', 'like', $like)
+                ->orWhere('assigned_to', 'like', $like)
+                ->orWhere('assigned_unit', 'like', $like)
+                ->orWhereHas('report', function (Builder $reportQuery) use ($like) {
+                    $reportQuery
+                        ->where('title', 'like', $like)
+                        ->orWhere('public_reference', 'like', $like)
+                        ->orWhere('category', 'like', $like)
+                        ->orWhere('accused_party', 'like', $like);
+                });
+        });
+    }
+
+    private function findVisibleCaseOrFail(CaseFile $caseFile, User $user): CaseFile
+    {
+        return CaseFile::query()
+            ->with($this->workflowRelations())
+            ->whereKey($caseFile->getKey())
+            ->when($user->role !== User::ROLE_SYSTEM_ADMINISTRATOR, fn (Builder $query) => $this->scopeCasesForUser($query, $user))
+            ->firstOrFail();
+    }
+
+    private function workflowRelations(): array
+    {
+        return [
+            'report.attachments',
+            'timelineEvents',
+            'verificationSupervisor',
+            'verificator',
+            'investigationSupervisor',
+            'investigator',
+            'director',
+        ];
+    }
+
     private function transformCase(CaseFile $caseFile, User $viewer): array
     {
         $internalEvents = $caseFile->timelineEvents->where('visibility', 'internal')->values();
@@ -368,6 +490,12 @@ class WorkflowCaseController extends Controller
             'public_reference' => $caseFile->report?->public_reference,
             'title' => $caseFile->report?->title,
             'category' => $caseFile->report?->category,
+            'category_label' => config("wbs.categories.{$caseFile->report?->category}", $caseFile->report?->category),
+            'description' => $caseFile->report?->description,
+            'incident_date' => $caseFile->report?->incident_date?->toDateString(),
+            'incident_location' => $caseFile->report?->incident_location,
+            'accused_party' => $caseFile->report?->accused_party,
+            'evidence_summary' => $caseFile->report?->evidence_summary,
             'governance_tags' => $caseFile->report?->governance_tags ?? [],
             'confidentiality_level' => $caseFile->confidentiality_level,
             'reporter' => [
@@ -397,8 +525,21 @@ class WorkflowCaseController extends Controller
                 ]),
             'sla_due_at' => $caseFile->sla_due_at?->toISOString(),
             'last_activity_at' => $caseFile->last_activity_at?->toISOString(),
+            'notes' => $caseFile->notes,
             'latest_internal_event' => $internalEvents->last()?->headline,
             'latest_public_event' => $publicEvents->last()?->headline,
+            'timeline' => $caseFile->timelineEvents
+                ->values()
+                ->map(fn ($event) => [
+                    'visibility' => $event->visibility,
+                    'stage' => $event->stage,
+                    'stage_label' => config("wbs.case_stages.{$event->stage}", $event->stage),
+                    'headline' => $event->headline,
+                    'detail' => $event->detail,
+                    'actor_role' => $event->actor_role,
+                    'actor_name' => $event->actor_name,
+                    'occurred_at' => $event->occurred_at?->toISOString(),
+                ]),
             'available_actions' => $this->availableActions($caseFile, $viewer),
         ];
     }

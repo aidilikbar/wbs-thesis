@@ -67,9 +67,9 @@ class InvestigatorWorkflowTest extends TestCase
 
         $this->getJson('/api/workflow/cases')
             ->assertOk()
-            ->assertJsonPath('data.0.reporter.name', null)
-            ->assertJsonPath('data.0.reporter.email', null)
-            ->assertJsonPath('data.0.reporter.is_protected', true);
+            ->assertJsonPath('data.items.0.reporter.name', null)
+            ->assertJsonPath('data.items.0.reporter.email', null)
+            ->assertJsonPath('data.items.0.reporter.is_protected', true);
 
         $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
             'assignee_user_id' => $verificator->id,
@@ -186,9 +186,72 @@ class InvestigatorWorkflowTest extends TestCase
 
         $this->getJson('/api/workflow/cases')
             ->assertOk()
-            ->assertJsonPath('data.0.reporter.name', $reporter->name)
-            ->assertJsonPath('data.0.reporter.email', $reporter->email)
-            ->assertJsonPath('data.0.reporter.is_protected', false);
+            ->assertJsonPath('data.items.0.reporter.name', $reporter->name)
+            ->assertJsonPath('data.items.0.reporter.email', $reporter->email)
+            ->assertJsonPath('data.items.0.reporter.is_protected', false);
+    }
+
+    public function test_workflow_directory_supports_queue_and_approval_views_with_pagination(): void
+    {
+        $supervisor = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.workflow@example.test',
+            'Verification Supervision'
+        );
+        $verificator = $this->createUser(
+            User::ROLE_VERIFICATOR,
+            'verificator.workflow@example.test',
+            'Verification Desk'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.workflow@example.test',
+            'Reporter'
+        );
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+
+        $this->postJson('/api/reporter/reports', [
+            'title' => 'Queue stage report',
+            'category' => 'bribery',
+            'description' => 'Queue stage report description.',
+            'confidentiality_level' => 'anonymous',
+        ])->assertCreated();
+
+        $queuedCase = CaseFile::query()->firstOrFail();
+
+        Sanctum::actingAs($supervisor, [$supervisor->role]);
+
+        $this->patchJson("/api/workflow/cases/{$queuedCase->id}/delegate-verification", [
+            'assignee_user_id' => $verificator->id,
+            'assigned_unit' => 'Verification Desk',
+            'due_in_days' => 5,
+        ])->assertOk();
+
+        Sanctum::actingAs($verificator, [$verificator->role]);
+
+        $this->patchJson("/api/workflow/cases/{$queuedCase->id}/submit-verification", [
+            'internal_note' => 'Ready for approval.',
+            'publish_update' => false,
+        ])->assertOk();
+
+        Sanctum::actingAs($supervisor, [$supervisor->role]);
+
+        $this->getJson('/api/workflow/cases?view=queue&per_page=10')
+            ->assertOk()
+            ->assertJsonPath('data.meta.per_page', 10)
+            ->assertJsonCount(0, 'data.items');
+
+        $this->getJson('/api/workflow/cases?view=approval&search=Queue')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.stage', 'verification_review')
+            ->assertJsonPath('data.items.0.available_actions.0', 'review_verification');
+
+        $this->getJson("/api/workflow/cases/{$queuedCase->id}")
+            ->assertOk()
+            ->assertJsonPath('data.case_number', $queuedCase->case_number)
+            ->assertJsonPath('data.timeline.0.visibility', 'public');
     }
 
     private function createUser(string $role, string $email, string $unit): User

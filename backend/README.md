@@ -55,6 +55,7 @@ The create and update report endpoints also accept multipart form submissions wi
 ### Workflow
 
 - `GET /api/workflow/cases`
+- `GET /api/workflow/cases/{case}`
 - `GET /api/workflow/assignees`
 - `PATCH /api/workflow/cases/{case}/delegate-verification`
 - `PATCH /api/workflow/cases/{case}/submit-verification`
@@ -64,6 +65,14 @@ The create and update report endpoints also accept multipart form submissions wi
 - `PATCH /api/workflow/cases/{case}/review-investigation`
 - `PATCH /api/workflow/cases/{case}/director-review`
 - `GET /api/workflow/cases/{case}/attachments/{attachment}/download`
+
+`GET /api/workflow/cases` supports:
+
+- `view=queue|approval`
+- `search=...`
+- `stage=...`
+- `page=...`
+- `per_page=...`
 
 ### Administration and Governance
 

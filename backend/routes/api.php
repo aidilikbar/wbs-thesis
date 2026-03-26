@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('workflow')->group(function () {
         Route::get('/cases', [WorkflowCaseController::class, 'index']);
+        Route::get('/cases/{caseFile}', [WorkflowCaseController::class, 'show']);
         Route::get('/assignees', [WorkflowCaseController::class, 'assignees']);
         Route::patch('/cases/{caseFile}/delegate-verification', [WorkflowCaseController::class, 'delegateVerification']);
         Route::patch('/cases/{caseFile}/submit-verification', [WorkflowCaseController::class, 'submitVerification']);

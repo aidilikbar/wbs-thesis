@@ -11,7 +11,9 @@ Current prototype release includes:
 - dedicated reporter filing pages at `/submit/create` and `/submit/{reportId}/edit`
 - integrated file upload on create and edit forms, validated during form submission
 - public-safe tracking at `/track` using the issued reference and tracking token
-- internal workflow workbench at `/workflow` for the KPK role-based verification and investigation flow
+- internal workflow queue at `/workflow` with search, stage filter, and 10-row pagination
+- internal approval queue at `/workflow/approvals` for Supervisor of Verificator, Supervisor of Investigator, and Director decisions
+- dedicated workflow case pages at `/workflow/{caseId}/edit` and `/workflow/{caseId}/approval`
 - system administrator directory at `/admin` with search, filters, pagination, create, edit, activate, deactivate, and delete
 - governance dashboard, audit trail visibility, Swagger documentation, PostgreSQL persistence, and MinIO-based attachment storage for development
 
@@ -65,6 +67,7 @@ Business process implemented in the prototype:
 - file upload validation inside the main reporter filing form
 - public reference and tracking token based tracking
 - role-based workflow actions for verification, investigation, and director review
+- separate queue and approval menus aligned to the swimlane approval gates
 - internal workflow access to reporter evidence for authorized roles only
 - system administrator user provisioning and paginated user management
 - governance metrics, controls, and recent audit activity
@@ -207,6 +210,7 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 ### Workflow
 
 - `GET /api/workflow/cases`
+- `GET /api/workflow/cases/{caseFile}`
 - `GET /api/workflow/assignees`
 - `PATCH /api/workflow/cases/{caseFile}/delegate-verification`
 - `PATCH /api/workflow/cases/{caseFile}/submit-verification`
@@ -258,6 +262,9 @@ After `php artisan migrate:fresh --seed`, the following accounts are available. 
 
 - login at `/login`
 - process cases at `/workflow`
+- review approval cases at `/workflow/approvals`
+- open workflow execution pages at `/workflow/{caseId}/edit`
+- open workflow approval pages at `/workflow/{caseId}/approval`
 - download evidence files if assigned to the case
 - review governance indicators at `/governance`
 

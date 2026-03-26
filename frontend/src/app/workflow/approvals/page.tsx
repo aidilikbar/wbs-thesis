@@ -2,10 +2,10 @@ import { AppShell } from "@/components/app-shell";
 import { WorkflowDirectory } from "@/components/workflow-directory";
 
 export const metadata = {
-  title: "Workflow",
+  title: "Workflow Approvals",
 };
 
-export default async function WorkflowPage({
+export default async function WorkflowApprovalsPage({
   searchParams,
 }: {
   searchParams: Promise<{ notice?: string }>;
@@ -15,14 +15,14 @@ export default async function WorkflowPage({
   return (
     <AppShell>
       <section className="max-w-5xl">
-        <p className="eyebrow">Role-Based Workflow</p>
-        <h1 className="mt-4 text-5xl">Internal case processing aligned to the KPK business process</h1>
+        <p className="eyebrow">Approval Workflow</p>
+        <h1 className="mt-4 text-5xl">Supervisor and director approval queue</h1>
         <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Search the active queue in table form, then open dedicated case pages to delegate, verify, or analyse in alignment with the KPK whistleblowing swimlane.
+          Review the cases awaiting approval from Supervisor of Verificator, Supervisor of Investigator, or Director, then open a dedicated approval page for the decision.
         </p>
       </section>
       <section className="mt-8">
-        <WorkflowDirectory view="queue" initialNotice={notice ?? null} />
+        <WorkflowDirectory view="approval" initialNotice={notice ?? null} />
       </section>
     </AppShell>
   );

@@ -404,24 +404,54 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(
             property: 'data',
-            type: 'array',
-            items: new OA\Items(
-                type: 'object',
-                properties: [
-                    new OA\Property(property: 'id', type: 'integer', example: 1),
-                    new OA\Property(property: 'case_number', type: 'string', example: 'CASE-2026-0001'),
-                    new OA\Property(property: 'stage', type: 'string', example: 'submitted'),
-                    new OA\Property(property: 'stage_label', type: 'string', example: 'Submitted'),
-                    new OA\Property(property: 'status', type: 'string', example: 'submitted'),
-                    new OA\Property(property: 'current_role', type: 'string', example: 'supervisor_of_verificator'),
-                    new OA\Property(property: 'current_role_label', type: 'string', example: 'Supervisor of Verificator'),
-                    new OA\Property(property: 'assigned_to', type: 'string', nullable: true, example: 'Sinta Pramudita'),
-                    new OA\Property(property: 'assigned_unit', type: 'string', nullable: true, example: 'Verification Supervision'),
-                    new OA\Property(property: 'available_actions', type: 'array', items: new OA\Items(type: 'string'), example: ['delegate_verification']),
-                    new OA\Property(property: 'attachments', type: 'array', items: new OA\Items(ref: '#/components/schemas/AttachmentObject')),
-                ]
-            )
+            type: 'object',
+            properties: [
+                new OA\Property(
+                    property: 'items',
+                    type: 'array',
+                    items: new OA\Items(
+                        type: 'object',
+                        properties: [
+                            new OA\Property(property: 'id', type: 'integer', example: 1),
+                            new OA\Property(property: 'case_number', type: 'string', example: 'CASE-2026-0001'),
+                            new OA\Property(property: 'stage', type: 'string', example: 'submitted'),
+                            new OA\Property(property: 'stage_label', type: 'string', example: 'Submitted'),
+                            new OA\Property(property: 'status', type: 'string', example: 'submitted'),
+                            new OA\Property(property: 'current_role', type: 'string', example: 'supervisor_of_verificator'),
+                            new OA\Property(property: 'current_role_label', type: 'string', example: 'Supervisor of Verificator'),
+                            new OA\Property(property: 'assigned_to', type: 'string', nullable: true, example: 'Sinta Pramudita'),
+                            new OA\Property(property: 'assigned_unit', type: 'string', nullable: true, example: 'Verification Supervision'),
+                            new OA\Property(property: 'public_reference', type: 'string', example: 'WBS-2026-0001'),
+                            new OA\Property(property: 'title', type: 'string', example: 'Potential bribery during permit approval'),
+                            new OA\Property(property: 'category', type: 'string', example: 'bribery'),
+                            new OA\Property(property: 'category_label', type: 'string', example: 'Bribery'),
+                            new OA\Property(property: 'available_actions', type: 'array', items: new OA\Items(type: 'string'), example: ['delegate_verification']),
+                            new OA\Property(property: 'attachments', type: 'array', items: new OA\Items(ref: '#/components/schemas/AttachmentObject')),
+                        ]
+                    )
+                ),
+                new OA\Property(
+                    property: 'meta',
+                    type: 'object',
+                    properties: [
+                        new OA\Property(property: 'current_page', type: 'integer', example: 1),
+                        new OA\Property(property: 'last_page', type: 'integer', example: 2),
+                        new OA\Property(property: 'per_page', type: 'integer', example: 10),
+                        new OA\Property(property: 'total', type: 'integer', example: 15),
+                        new OA\Property(property: 'from', type: 'integer', nullable: true, example: 1),
+                        new OA\Property(property: 'to', type: 'integer', nullable: true, example: 10),
+                    ]
+                ),
+            ]
         ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'WorkflowCaseRecordResponse',
+    type: 'object',
+    required: ['data'],
+    properties: [
+        new OA\Property(property: 'data', type: 'object', additionalProperties: true),
     ]
 )]
 #[OA\Schema(
