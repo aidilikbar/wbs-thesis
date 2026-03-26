@@ -85,15 +85,15 @@ export function AppShell({ children }: PropsWithChildren) {
       <div className="mx-auto max-w-[1520px] px-5 pb-12 sm:px-8">
         <header className="border-b border-[var(--panel-border)] bg-white/72">
           <div className="flex flex-col gap-5 py-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-8">
+            <div className="flex flex-wrap items-center gap-6">
               <Link href="/" className="inline-flex items-center">
                 <Image
-                  src="/logos/kpk-logo-official.jpg"
-                  alt="KPK Komisi Pemberantasan Korupsi"
-                  width={254}
-                  height={88}
+                  src="/logos/kws_logo_header.png"
+                  alt="KPK Whistleblowing System"
+                  width={2869}
+                  height={818}
                   priority
-                  className="h-auto w-[126px] sm:w-[146px]"
+                  className="h-auto w-[112px] sm:w-[124px] lg:w-[136px]"
                 />
               </Link>
 
@@ -186,26 +186,26 @@ export function AppShell({ children }: PropsWithChildren) {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="outline-panel rounded-[0.9rem] px-4 py-4">
                 <p className="mb-2 font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  KPK
+                  
                 </p>
                 <Image
-                  src="/logos/kpk-logo-official.jpg"
+                  src="/logos/kpk_logo_footer.png"
                   alt="KPK Komisi Pemberantasan Korupsi"
-                  width={254}
-                  height={88}
-                  className="h-auto w-[150px] sm:w-[170px]"
+                  width={1191}
+                  height={446}
+                  className="h-auto w-[158px] sm:w-[176px]"
                 />
               </div>
               <div className="outline-panel rounded-[0.9rem] px-4 py-4">
                 <p className="mb-2 font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  University of Twente
+                  
                 </p>
                 <Image
-                  src="/logos/UT_Logo_0072_Black_EN.png"
+                  src="/logos/utwente_logo_footer.png"
                   alt="University of Twente"
-                  width={234}
-                  height={45}
-                  className="h-auto w-[180px]"
+                  width={960}
+                  height={480}
+                  className="h-auto w-[154px] sm:w-[168px]"
                 />
               </div>
             </div>
