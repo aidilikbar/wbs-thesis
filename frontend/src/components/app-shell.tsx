@@ -37,11 +37,6 @@ function navForRole(role?: string | null): NavItem[] {
     items.push({ href: "/admin", label: "Admin" });
   }
 
-  if (!role) {
-    items.push({ href: "/login", label: "Login" });
-    items.push({ href: "/register", label: "Register" });
-  }
-
   return items;
 }
 
@@ -152,14 +147,11 @@ export function AppShell({ children }: PropsWithChildren) {
                   </div>
                 ) : (
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="outline-panel rounded-[0.7rem] px-4 py-3 text-sm text-[var(--muted)]">
-                      Reporters register before submission. Internal users are provisioned by the system administrator.
-                    </div>
                     <Link href="/login" className="ghost-button">
                       Login
                     </Link>
                     <Link href="/register" className="primary-button">
-                      Reporter Register
+                      Register
                     </Link>
                   </div>
                 )
