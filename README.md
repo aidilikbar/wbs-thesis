@@ -2,6 +2,8 @@
 
 KPK Whistleblowing System is a thesis prototype for **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**. It models the KPK whistleblowing process with role separation, authenticated reporter submission, case tracking, workflow approvals, governance controls, audit logging, and private file storage.
 
+Current release: [v0.1.2](https://github.com/aidilikbar/wbs-thesis/releases/tag/v0.1.2)
+
 ## Current Scope
 
 - reporter registration, login, profile, and owned report access

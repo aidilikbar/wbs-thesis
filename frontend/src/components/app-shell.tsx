@@ -16,6 +16,8 @@ type NavItem = {
   label: string;
 };
 
+const CURRENT_RELEASE = "v0.1.2";
+
 function navForRole(role?: string | null): NavItem[] {
   const items: NavItem[] = [
     { href: "/", label: "Dashboard" },
@@ -209,9 +211,8 @@ export function AppShell({ children }: PropsWithChildren) {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-col gap-3 border-t border-[var(--panel-border)] pt-4 font-mono text-[0.68rem] uppercase tracking-[0.24em] sm:flex-row sm:items-center sm:justify-between">
-            <p>KPK Whistleblowing System · Secure & Encrypted</p>
-            <p>&copy; 2026 <a href="https://github.com/aidilikbar/wbs-thesis" target="_blank" rel="noreferrer">WBS Thesis Project</a></p>
+          <div className="mt-8 border-t border-[var(--panel-border)] pt-4 font-mono text-[0.68rem] uppercase tracking-[0.24em]">
+            <p>&copy; 2026 KPK Whistleblowing System - {CURRENT_RELEASE}</p>
           </div>
         </footer>
       </div>
