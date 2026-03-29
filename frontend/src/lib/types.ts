@@ -301,22 +301,51 @@ export type AuditLogEntry = {
   context: Record<string, string | boolean | number | null>;
 };
 
+export type GovernanceMetricCard = {
+  label: string;
+  value: number | string;
+  detail: string;
+  tone: "normal" | "warning" | "critical";
+};
+
+export type GovernanceActionItem = {
+  title: string;
+  detail: string;
+  href: string;
+  count: number;
+  tone: "normal" | "warning" | "critical";
+};
+
+export type GovernanceScopeRow = {
+  is_self: boolean;
+  subject_label: string;
+  role: string;
+  role_label: string;
+  unit: string | null;
+  open_cases: number;
+  pending_queue: number;
+  pending_approvals: number;
+  overdue_cases: number;
+  completed_cases: number;
+  last_activity_at: string | null;
+};
+
 export type GovernanceDashboardData = {
-  metrics: {
-    total_reports: number;
-    open_cases: number;
-    completed_cases: number;
-    confidential_share: number;
-    overdue_cases: number;
-    average_triage_hours: number;
-    verification_queue: number;
-    investigation_queue: number;
-    director_review_queue: number;
+  global: {
+    metrics: GovernanceMetricCard[];
+    queue_snapshot: DistributionItem[];
+    action_items: GovernanceActionItem[];
+    controls: GovernanceControl[];
+    recent_audit_logs: AuditLogEntry[];
   };
-  risk_distribution: DistributionItem[];
-  status_breakdown: DistributionItem[];
-  controls: GovernanceControl[];
-  recent_audit_logs: AuditLogEntry[];
+  specific: {
+    role: string;
+    role_label: string;
+    scope_label: string;
+    metrics: GovernanceMetricCard[];
+    action_items: GovernanceActionItem[];
+    scope_rows: GovernanceScopeRow[];
+  };
 };
 
 export type CatalogData = {

@@ -595,11 +595,8 @@ use OpenApi\Attributes as OA;
             property: 'data',
             type: 'object',
             properties: [
-                new OA\Property(property: 'metrics', type: 'object', additionalProperties: true),
-                new OA\Property(property: 'risk_distribution', type: 'array', items: new OA\Items(type: 'object', additionalProperties: true)),
-                new OA\Property(property: 'status_breakdown', type: 'array', items: new OA\Items(type: 'object', additionalProperties: true)),
-                new OA\Property(property: 'controls', type: 'array', items: new OA\Items(type: 'object', additionalProperties: true)),
-                new OA\Property(property: 'recent_audit_logs', type: 'array', items: new OA\Items(type: 'object', additionalProperties: true)),
+                new OA\Property(property: 'global', type: 'object', additionalProperties: true),
+                new OA\Property(property: 'specific', type: 'object', additionalProperties: true),
             ]
         ),
     ]
