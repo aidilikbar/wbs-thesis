@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\CaseFile;
+use App\Models\Report;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -252,6 +255,126 @@ class InvestigatorWorkflowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.case_number', $queuedCase->case_number)
             ->assertJsonPath('data.timeline.0.visibility', 'public');
+    }
+
+    public function test_public_tracking_history_matches_progressed_workflow_sequence(): void
+    {
+        $supervisorOfVerificator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.timeline@example.test',
+            'Verification Supervision'
+        );
+        $verificator = $this->createUser(
+            User::ROLE_VERIFICATOR,
+            'verificator.timeline@example.test',
+            'Verification Desk'
+        );
+        $supervisorOfInvestigator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            'supervisor.investigator.timeline@example.test',
+            'Investigation Supervision'
+        );
+        $investigator = $this->createUser(
+            User::ROLE_INVESTIGATOR,
+            'investigator.timeline@example.test',
+            'Investigation Desk'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.timeline@example.test',
+            'Reporter'
+        );
+
+        $submittedAt = CarbonImmutable::parse('2026-03-10 08:00:00', 'UTC');
+
+        try {
+            Carbon::setTestNow($submittedAt);
+            Sanctum::actingAs($reporter, [$reporter->role]);
+
+            $this->postJson('/api/reporter/reports', [
+                'title' => 'Timeline progression validation',
+                'category' => 'fraud',
+                'description' => 'Timeline validation report for public-safe tracking sequence.',
+                'incident_date' => $submittedAt->subDays(2)->toDateString(),
+                'incident_location' => 'Finance Bureau',
+                'accused_party' => 'Finance Officer',
+                'evidence_summary' => 'Screenshots and ledger extracts are available.',
+                'confidentiality_level' => 'anonymous',
+                'requested_follow_up' => true,
+                'witness_available' => true,
+                'governance_tags' => ['financial-loss'],
+            ])->assertCreated();
+
+            $report = Report::query()->firstOrFail();
+            $caseFile = CaseFile::query()->firstOrFail();
+
+            Carbon::setTestNow($submittedAt->addHours(6));
+            Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+            $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
+                'assignee_user_id' => $verificator->id,
+                'assigned_unit' => 'Verification Desk',
+                'due_in_days' => 5,
+            ])->assertOk();
+
+            Carbon::setTestNow($submittedAt->addDay());
+            Sanctum::actingAs($verificator, [$verificator->role]);
+            $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-verification", [
+                'internal_note' => 'Ready for supervisory review.',
+                'publish_update' => true,
+                'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+            ])->assertOk();
+
+            Carbon::setTestNow($submittedAt->addDay()->addHours(4));
+            Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+            $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-verification", [
+                'decision' => 'approved',
+                'internal_note' => 'Approved for investigation allocation.',
+                'publish_update' => true,
+                'public_message' => 'Your report has passed verification and is proceeding to investigation allocation.',
+            ])->assertOk();
+
+            Carbon::setTestNow($submittedAt->addDay()->addHours(10));
+            Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+            $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-investigation", [
+                'assignee_user_id' => $investigator->id,
+                'assigned_unit' => 'Investigation Desk',
+                'due_in_days' => 7,
+            ])->assertOk();
+
+            Carbon::setTestNow($submittedAt->addDays(3));
+            Sanctum::actingAs($investigator, [$investigator->role]);
+            $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-investigation", [
+                'internal_note' => 'Investigation completed and awaiting supervisory review.',
+                'publish_update' => true,
+                'public_message' => 'The investigation file has been completed and is pending supervisory review.',
+            ])->assertOk();
+
+            $tracking = $this->postJson('/api/tracking', [
+                'reference' => $report->public_reference,
+                'token' => $report->tracking_token,
+            ])->assertOk();
+
+            $timeline = $tracking->json('data.timeline');
+
+            $this->assertSame([
+                'submitted',
+                'verification_in_progress',
+                'verification_review',
+                'verified',
+                'investigation_in_progress',
+                'investigation_review',
+            ], array_column($timeline, 'stage'));
+
+            for ($index = 1; $index < count($timeline); $index++) {
+                $this->assertTrue(
+                    CarbonImmutable::parse($timeline[$index - 1]['occurred_at'])->lte(
+                        CarbonImmutable::parse($timeline[$index]['occurred_at'])
+                    )
+                );
+            }
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     private function createUser(string $role, string $email, string $unit): User

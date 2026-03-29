@@ -9,9 +9,11 @@ use App\Models\GovernanceControl;
 use App\Models\Report;
 use App\Models\User;
 use App\Services\CaseWorkflowService;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class WbsDemoSeeder extends Seeder
 {
@@ -32,12 +34,15 @@ class WbsDemoSeeder extends Seeder
 
         /** @var CaseWorkflowService $workflow */
         $workflow = app(CaseWorkflowService::class);
+        $timelineFaker = fake('id_ID');
+        $timelineFaker->seed(20260329);
 
-        $submittedCase = $workflow->submitReport($users['reporter_1'], [
+        $submittedCaseSubmittedAt = CarbonImmutable::now('UTC')->subDays(9)->setTime(8, 45, 0);
+        $submittedCase = $this->submitSeededReportAt($workflow, $users['reporter_1'], [
             'title' => 'Request for unofficial payment before vendor evaluation',
             'category' => 'procurement',
             'description' => 'A procurement liaison reported that an unofficial payment was requested before the evaluation committee would release the technical scoring outcome.',
-            'incident_date' => now()->subDays(9)->toDateString(),
+            'incident_date' => $submittedCaseSubmittedAt->subDays(3)->toDateString(),
             'incident_location' => 'Bandung Regional Office',
             'accused_party' => 'Procurement Committee Member',
             'evidence_summary' => 'Meeting notes, screenshots, and two witnesses are available.',
@@ -45,13 +50,15 @@ class WbsDemoSeeder extends Seeder
             'requested_follow_up' => true,
             'witness_available' => true,
             'governance_tags' => ['procurement', 'financial-loss'],
-        ]);
+        ], $submittedCaseSubmittedAt);
 
-        $verificationReviewCase = $workflow->submitReport($users['reporter_2'], [
+        $verificationReviewSubmittedAt = CarbonImmutable::now('UTC')->subDays(6)->setTime(9, 20, 0);
+        $verificationReviewClock = $this->buildWorkflowClock($verificationReviewSubmittedAt, $timelineFaker);
+        $verificationReviewCase = $this->submitSeededReportAt($workflow, $users['reporter_2'], [
             'title' => 'Possible conflict of interest in evaluation panel',
             'category' => 'conflict_of_interest',
             'description' => 'A reviewer appears to have an undeclared family relationship with one of the shortlisted applicants during an evaluation process.',
-            'incident_date' => now()->subDays(6)->toDateString(),
+            'incident_date' => $verificationReviewSubmittedAt->subDays(5)->toDateString(),
             'incident_location' => 'Integrity Review Unit',
             'accused_party' => 'Evaluation Panel Reviewer',
             'evidence_summary' => 'Public registry extracts and social-media evidence support the allegation.',
@@ -59,33 +66,41 @@ class WbsDemoSeeder extends Seeder
             'requested_follow_up' => true,
             'witness_available' => false,
             'governance_tags' => ['conflict-sensitive'],
-        ]);
+        ], $verificationReviewSubmittedAt);
 
-        $workflow->delegateToVerificator(
-            CaseFile::query()->findOrFail($verificationReviewCase['caseFile']->id),
-            $users['supervisor_of_verificator'],
-            $users['verificator_1'],
-            [
-                'assigned_unit' => 'Verification Desk',
-                'due_in_days' => 5,
-            ]
+        $this->executeAt(
+            $verificationReviewClock['delegate_verification'],
+            fn () => $workflow->delegateToVerificator(
+                CaseFile::query()->findOrFail($verificationReviewCase['caseFile']->id),
+                $users['supervisor_of_verificator'],
+                $users['verificator_1'],
+                [
+                    'assigned_unit' => 'Verification Desk',
+                    'due_in_days' => 5,
+                ]
+            )
         );
 
-        $workflow->submitVerification(
-            CaseFile::query()->findOrFail($verificationReviewCase['caseFile']->id),
-            $users['verificator_1'],
-            [
-                'internal_note' => 'Document review is complete and the report is ready for supervisory decision.',
-                'publish_update' => true,
-                'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
-            ]
+        $this->executeAt(
+            $verificationReviewClock['submit_verification'],
+            fn () => $workflow->submitVerification(
+                CaseFile::query()->findOrFail($verificationReviewCase['caseFile']->id),
+                $users['verificator_1'],
+                [
+                    'internal_note' => 'Document review is complete and the report is ready for supervisory decision.',
+                    'publish_update' => true,
+                    'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+                ]
+            )
         );
 
-        $investigationCase = $workflow->submitReport($users['reporter_3'], [
+        $investigationSubmittedAt = CarbonImmutable::now('UTC')->subDays(18)->setTime(10, 10, 0);
+        $investigationClock = $this->buildWorkflowClock($investigationSubmittedAt, $timelineFaker);
+        $investigationCase = $this->submitSeededReportAt($workflow, $users['reporter_3'], [
             'title' => 'Repeated duplicate reimbursement patterns in finance unit',
             'category' => 'fraud',
             'description' => 'Finance staff observed repeated duplicate reimbursement claims with altered timestamps across two reporting periods.',
-            'incident_date' => now()->subDays(18)->toDateString(),
+            'incident_date' => $investigationSubmittedAt->subDays(7)->toDateString(),
             'incident_location' => 'Finance Directorate',
             'accused_party' => 'Project Accountant',
             'evidence_summary' => 'Ledger extracts and approval screenshots are available.',
@@ -93,53 +108,68 @@ class WbsDemoSeeder extends Seeder
             'requested_follow_up' => true,
             'witness_available' => true,
             'governance_tags' => ['financial-loss', 'data-integrity'],
-        ]);
+        ], $investigationSubmittedAt);
 
-        $workflow->delegateToVerificator(
-            CaseFile::query()->findOrFail($investigationCase['caseFile']->id),
-            $users['supervisor_of_verificator'],
-            $users['verificator_2'],
-            [
-                'assigned_unit' => 'Verification Desk',
-                'due_in_days' => 4,
-            ]
+        $this->executeAt(
+            $investigationClock['delegate_verification'],
+            fn () => $workflow->delegateToVerificator(
+                CaseFile::query()->findOrFail($investigationCase['caseFile']->id),
+                $users['supervisor_of_verificator'],
+                $users['verificator_2'],
+                [
+                    'assigned_unit' => 'Verification Desk',
+                    'due_in_days' => 4,
+                ]
+            )
         );
 
-        $workflow->submitVerification(
-            CaseFile::query()->findOrFail($investigationCase['caseFile']->id),
-            $users['verificator_2'],
-            [
-                'internal_note' => 'The material is sufficiently corroborated and should be escalated for investigation.',
-                'publish_update' => false,
-            ]
+        $this->executeAt(
+            $investigationClock['submit_verification'],
+            fn () => $workflow->submitVerification(
+                CaseFile::query()->findOrFail($investigationCase['caseFile']->id),
+                $users['verificator_2'],
+                [
+                    'internal_note' => 'The material is sufficiently corroborated and should be escalated for investigation.',
+                    'publish_update' => true,
+                    'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+                ]
+            )
         );
 
-        $workflow->reviewVerification(
-            CaseFile::query()->findOrFail($investigationCase['caseFile']->id),
-            $users['supervisor_of_verificator'],
-            [
-                'decision' => 'approved',
-                'internal_note' => 'Verification accepted and the report is transferred to the supervisor of investigator.',
-                'publish_update' => true,
-                'public_message' => 'Your report has passed verification and is proceeding to investigation allocation.',
-            ]
+        $this->executeAt(
+            $investigationClock['review_verification'],
+            fn () => $workflow->reviewVerification(
+                CaseFile::query()->findOrFail($investigationCase['caseFile']->id),
+                $users['supervisor_of_verificator'],
+                [
+                    'decision' => 'approved',
+                    'internal_note' => 'Verification accepted and the report is transferred to the supervisor of investigator.',
+                    'publish_update' => true,
+                    'public_message' => 'Your report has passed verification and is proceeding to investigation allocation.',
+                ]
+            )
         );
 
-        $workflow->delegateToInvestigator(
-            CaseFile::query()->findOrFail($investigationCase['caseFile']->id),
-            $users['supervisor_of_investigator'],
-            $users['investigator_1'],
-            [
-                'assigned_unit' => 'Investigation Desk',
-                'due_in_days' => 8,
-            ]
+        $this->executeAt(
+            $investigationClock['delegate_investigation'],
+            fn () => $workflow->delegateToInvestigator(
+                CaseFile::query()->findOrFail($investigationCase['caseFile']->id),
+                $users['supervisor_of_investigator'],
+                $users['investigator_1'],
+                [
+                    'assigned_unit' => 'Investigation Desk',
+                    'due_in_days' => 8,
+                ]
+            )
         );
 
-        $completedCase = $workflow->submitReport($users['reporter_4'], [
+        $completedSubmittedAt = CarbonImmutable::now('UTC')->subDays(12)->setTime(7, 50, 0);
+        $completedClock = $this->buildWorkflowClock($completedSubmittedAt, $timelineFaker);
+        $completedCase = $this->submitSeededReportAt($workflow, $users['reporter_4'], [
             'title' => 'Retaliation threats after reporting travel expense manipulation',
             'category' => 'retaliation',
             'description' => 'A staff member reported retaliatory reassignment threats after raising concerns about manipulated travel expense claims by a supervisor.',
-            'incident_date' => now()->subDays(12)->toDateString(),
+            'incident_date' => $completedSubmittedAt->subDays(4)->toDateString(),
             'incident_location' => 'Head Office',
             'accused_party' => 'Division Supervisor',
             'evidence_summary' => 'Chat transcripts and calendar evidence are available.',
@@ -147,85 +177,103 @@ class WbsDemoSeeder extends Seeder
             'requested_follow_up' => true,
             'witness_available' => true,
             'governance_tags' => ['retaliation-risk', 'leadership'],
-        ]);
+        ], $completedSubmittedAt);
 
-        $workflow->delegateToVerificator(
-            CaseFile::query()->findOrFail($completedCase['caseFile']->id),
-            $users['supervisor_of_verificator'],
-            $users['verificator_1'],
-            [
-                'assigned_unit' => 'Protected Verification Desk',
-                'due_in_days' => 3,
-            ]
+        $this->executeAt(
+            $completedClock['delegate_verification'],
+            fn () => $workflow->delegateToVerificator(
+                CaseFile::query()->findOrFail($completedCase['caseFile']->id),
+                $users['supervisor_of_verificator'],
+                $users['verificator_1'],
+                [
+                    'assigned_unit' => 'Protected Verification Desk',
+                    'due_in_days' => 3,
+                ]
+            )
         );
 
-        $workflow->submitVerification(
-            CaseFile::query()->findOrFail($completedCase['caseFile']->id),
-            $users['verificator_1'],
-            [
-                'internal_note' => 'Retaliation risk is substantiated and the report should move into protected investigation.',
-                'publish_update' => false,
-            ]
+        $this->executeAt(
+            $completedClock['submit_verification'],
+            fn () => $workflow->submitVerification(
+                CaseFile::query()->findOrFail($completedCase['caseFile']->id),
+                $users['verificator_1'],
+                [
+                    'internal_note' => 'Retaliation risk is substantiated and the report should move into protected investigation.',
+                    'publish_update' => true,
+                    'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+                ]
+            )
         );
 
-        $workflow->reviewVerification(
-            CaseFile::query()->findOrFail($completedCase['caseFile']->id),
-            $users['supervisor_of_verificator'],
-            [
-                'decision' => 'approved',
-                'internal_note' => 'Verification approved for protected investigation.',
-                'publish_update' => true,
-                'public_message' => 'Your report has been verified and forwarded into the investigation stage.',
-            ]
+        $this->executeAt(
+            $completedClock['review_verification'],
+            fn () => $workflow->reviewVerification(
+                CaseFile::query()->findOrFail($completedCase['caseFile']->id),
+                $users['supervisor_of_verificator'],
+                [
+                    'decision' => 'approved',
+                    'internal_note' => 'Verification approved for protected investigation.',
+                    'publish_update' => true,
+                    'public_message' => 'Your report has been verified and forwarded into the investigation stage.',
+                ]
+            )
         );
 
-        $workflow->delegateToInvestigator(
-            CaseFile::query()->findOrFail($completedCase['caseFile']->id),
-            $users['supervisor_of_investigator'],
-            $users['investigator_2'],
-            [
-                'assigned_unit' => 'Protected Investigation Desk',
-                'due_in_days' => 5,
-            ]
+        $this->executeAt(
+            $completedClock['delegate_investigation'],
+            fn () => $workflow->delegateToInvestigator(
+                CaseFile::query()->findOrFail($completedCase['caseFile']->id),
+                $users['supervisor_of_investigator'],
+                $users['investigator_2'],
+                [
+                    'assigned_unit' => 'Protected Investigation Desk',
+                    'due_in_days' => 5,
+                ]
+            )
         );
 
-        $workflow->submitInvestigation(
-            CaseFile::query()->findOrFail($completedCase['caseFile']->id),
-            $users['investigator_2'],
-            [
-                'internal_note' => 'The evidence supports retaliation findings and recommended corrective action.',
-                'publish_update' => true,
-                'public_message' => 'The investigation file has been completed and is pending supervisory review.',
-            ]
+        $this->executeAt(
+            $completedClock['submit_investigation'],
+            fn () => $workflow->submitInvestigation(
+                CaseFile::query()->findOrFail($completedCase['caseFile']->id),
+                $users['investigator_2'],
+                [
+                    'internal_note' => 'The evidence supports retaliation findings and recommended corrective action.',
+                    'publish_update' => true,
+                    'public_message' => 'The investigation file has been completed and is pending supervisory review.',
+                ]
+            )
         );
 
-        $workflow->reviewInvestigation(
-            CaseFile::query()->findOrFail($completedCase['caseFile']->id),
-            $users['supervisor_of_investigator'],
-            [
-                'decision' => 'approved',
-                'internal_note' => 'Investigation endorsed and routed to the director for final decision.',
-                'publish_update' => false,
-            ]
+        $this->executeAt(
+            $completedClock['review_investigation'],
+            fn () => $workflow->reviewInvestigation(
+                CaseFile::query()->findOrFail($completedCase['caseFile']->id),
+                $users['supervisor_of_investigator'],
+                [
+                    'decision' => 'approved',
+                    'internal_note' => 'Investigation endorsed and routed to the director for final decision.',
+                    'publish_update' => true,
+                    'public_message' => 'The investigation has been endorsed and is awaiting final director review.',
+                ]
+            )
         );
 
-        $workflow->directorDecision(
-            CaseFile::query()->findOrFail($completedCase['caseFile']->id),
-            $users['director'],
-            [
-                'decision' => 'approved',
-                'internal_note' => 'Final approval granted. The report is completed with follow-up directives.',
-                'publish_update' => true,
-                'public_message' => 'The report has completed the KPK Whistleblowing System review process.',
-            ]
+        $this->executeAt(
+            $completedClock['director_decision'],
+            fn () => $workflow->directorDecision(
+                CaseFile::query()->findOrFail($completedCase['caseFile']->id),
+                $users['director'],
+                [
+                    'decision' => 'approved',
+                    'internal_note' => 'Final approval granted. The report is completed with follow-up directives.',
+                    'publish_update' => true,
+                    'public_message' => 'The report has completed the KPK Whistleblowing System review process.',
+                ]
+            )
         );
 
         $this->seedAdditionalReporterTransactions($users, $workflow);
-
-        // Keep one case at the initial submitted queue for the supervisor of verificator.
-        CaseFile::query()->findOrFail($submittedCase['caseFile']->id)->forceFill([
-            'last_activity_at' => now()->subDays(1),
-        ])->save();
     }
 
     private function seedUsers(): array
@@ -417,19 +465,27 @@ class WbsDemoSeeder extends Seeder
                     $governanceTags,
                     $faker->numberBetween(0, 2)
                 );
+                $submittedAt = CarbonImmutable::now('UTC')
+                    ->subDays($faker->numberBetween(2, 45))
+                    ->setTime(
+                        $faker->numberBetween(7, 16),
+                        $faker->randomElement([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]),
+                        0
+                    );
                 $payload = $this->buildAdditionalTransactionPayload(
                     $category,
                     $selectedTags,
                     $sequence,
                     $faker,
+                    $submittedAt,
                 );
 
-                $result = $workflow->submitReport($users[$reporterKey], [
+                $result = $this->submitSeededReportAt($workflow, $users[$reporterKey], [
                     ...$payload,
                     'confidentiality_level' => $faker->randomElement(['anonymous', 'identified']),
                     'requested_follow_up' => $faker->boolean(70),
                     'witness_available' => $faker->boolean(50),
-                ]);
+                ], $submittedAt);
 
                 $this->advanceSeededCaseToStatus(
                     CaseFile::query()->findOrFail($result['caseFile']->id),
@@ -437,6 +493,7 @@ class WbsDemoSeeder extends Seeder
                     $users,
                     $workflow,
                     $faker,
+                    $this->buildWorkflowClock($submittedAt, $faker),
                 );
             }
         }
@@ -448,6 +505,7 @@ class WbsDemoSeeder extends Seeder
         array $users,
         CaseWorkflowService $workflow,
         \Faker\Generator $faker,
+        array $clock,
     ): void {
         if ($targetStatus === 'submitted') {
             return;
@@ -458,41 +516,52 @@ class WbsDemoSeeder extends Seeder
             $users['verificator_2'],
         ]);
 
-        $workflow->delegateToVerificator(
-            $caseFile->fresh(),
-            $users['supervisor_of_verificator'],
-            $verificator,
-            [
-                'assigned_unit' => $verificator->unit,
-                'due_in_days' => $faker->numberBetween(3, 7),
-            ]
+        $this->executeAt(
+            $clock['delegate_verification'],
+            fn () => $workflow->delegateToVerificator(
+                $caseFile->fresh(),
+                $users['supervisor_of_verificator'],
+                $verificator,
+                [
+                    'assigned_unit' => $verificator->unit,
+                    'due_in_days' => $faker->numberBetween(3, 7),
+                ]
+            )
         );
 
         if ($targetStatus === 'verification_in_progress') {
             return;
         }
 
-        $workflow->submitVerification(
-            $caseFile->fresh(),
-            $verificator,
-            [
-                'internal_note' => 'Seeded verification note for enterprise transaction coverage.',
-                'publish_update' => false,
-            ]
+        $this->executeAt(
+            $clock['submit_verification'],
+            fn () => $workflow->submitVerification(
+                $caseFile->fresh(),
+                $verificator,
+                [
+                    'internal_note' => 'Seeded verification note for enterprise transaction coverage.',
+                    'publish_update' => true,
+                    'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+                ]
+            )
         );
 
         if ($targetStatus === 'verification_review') {
             return;
         }
 
-        $workflow->reviewVerification(
-            $caseFile->fresh(),
-            $users['supervisor_of_verificator'],
-            [
-                'decision' => 'approved',
-                'internal_note' => 'Seeded verification approval for enterprise transaction coverage.',
-                'publish_update' => false,
-            ]
+        $this->executeAt(
+            $clock['review_verification'],
+            fn () => $workflow->reviewVerification(
+                $caseFile->fresh(),
+                $users['supervisor_of_verificator'],
+                [
+                    'decision' => 'approved',
+                    'internal_note' => 'Seeded verification approval for enterprise transaction coverage.',
+                    'publish_update' => true,
+                    'public_message' => 'Your report has passed verification and is proceeding to investigation allocation.',
+                ]
+            )
         );
 
         if ($targetStatus === 'verified') {
@@ -504,55 +573,70 @@ class WbsDemoSeeder extends Seeder
             $users['investigator_2'],
         ]);
 
-        $workflow->delegateToInvestigator(
-            $caseFile->fresh(),
-            $users['supervisor_of_investigator'],
-            $investigator,
-            [
-                'assigned_unit' => $investigator->unit,
-                'due_in_days' => $faker->numberBetween(5, 10),
-            ]
+        $this->executeAt(
+            $clock['delegate_investigation'],
+            fn () => $workflow->delegateToInvestigator(
+                $caseFile->fresh(),
+                $users['supervisor_of_investigator'],
+                $investigator,
+                [
+                    'assigned_unit' => $investigator->unit,
+                    'due_in_days' => $faker->numberBetween(5, 10),
+                ]
+            )
         );
 
         if ($targetStatus === 'investigation_in_progress') {
             return;
         }
 
-        $workflow->submitInvestigation(
-            $caseFile->fresh(),
-            $investigator,
-            [
-                'internal_note' => 'Seeded investigation note for enterprise transaction coverage.',
-                'publish_update' => false,
-            ]
+        $this->executeAt(
+            $clock['submit_investigation'],
+            fn () => $workflow->submitInvestigation(
+                $caseFile->fresh(),
+                $investigator,
+                [
+                    'internal_note' => 'Seeded investigation note for enterprise transaction coverage.',
+                    'publish_update' => true,
+                    'public_message' => 'The investigation file has been completed and is pending supervisory review.',
+                ]
+            )
         );
 
         if ($targetStatus === 'investigation_review') {
             return;
         }
 
-        $workflow->reviewInvestigation(
-            $caseFile->fresh(),
-            $users['supervisor_of_investigator'],
-            [
-                'decision' => 'approved',
-                'internal_note' => 'Seeded investigation approval for enterprise transaction coverage.',
-                'publish_update' => false,
-            ]
+        $this->executeAt(
+            $clock['review_investigation'],
+            fn () => $workflow->reviewInvestigation(
+                $caseFile->fresh(),
+                $users['supervisor_of_investigator'],
+                [
+                    'decision' => 'approved',
+                    'internal_note' => 'Seeded investigation approval for enterprise transaction coverage.',
+                    'publish_update' => true,
+                    'public_message' => 'The investigation has been endorsed and is awaiting final director review.',
+                ]
+            )
         );
 
         if ($targetStatus === 'director_review') {
             return;
         }
 
-        $workflow->directorDecision(
-            $caseFile->fresh(),
-            $users['director'],
-            [
-                'decision' => 'approved',
-                'internal_note' => 'Seeded director approval for enterprise transaction coverage.',
-                'publish_update' => false,
-            ]
+        $this->executeAt(
+            $clock['director_decision'],
+            fn () => $workflow->directorDecision(
+                $caseFile->fresh(),
+                $users['director'],
+                [
+                    'decision' => 'approved',
+                    'internal_note' => 'Seeded director approval for enterprise transaction coverage.',
+                    'publish_update' => true,
+                    'public_message' => 'The report has completed the KPK Whistleblowing System review process.',
+                ]
+            )
         );
     }
 
@@ -561,6 +645,7 @@ class WbsDemoSeeder extends Seeder
         array $selectedTags,
         int $sequence,
         \Faker\Generator $faker,
+        CarbonImmutable $submittedAt,
     ): array {
         $office = $faker->randomElement([
             'Jakarta Head Office',
@@ -591,7 +676,9 @@ class WbsDemoSeeder extends Seeder
                 $office,
                 $month,
             ),
-            'incident_date' => now()->subDays($faker->numberBetween(3, 90))->toDateString(),
+            'incident_date' => $submittedAt
+                ->subDays($faker->numberBetween(2, 60))
+                ->toDateString(),
             'incident_location' => $template['incident_location'] ?? $office,
             'accused_party' => $template['accused_party'],
             'evidence_summary' => sprintf(
@@ -814,6 +901,54 @@ class WbsDemoSeeder extends Seeder
                 ],
             ],
         ];
+    }
+
+    private function submitSeededReportAt(
+        CaseWorkflowService $workflow,
+        User $reporter,
+        array $payload,
+        CarbonImmutable $submittedAt,
+    ): array {
+        return $this->executeAt(
+            $submittedAt,
+            fn () => $workflow->submitReport($reporter, $payload)
+        );
+    }
+
+    private function buildWorkflowClock(
+        CarbonImmutable $submittedAt,
+        \Faker\Generator $faker,
+    ): array {
+        $delegateVerificationAt = $submittedAt->addHours($faker->numberBetween(2, 18));
+        $submitVerificationAt = $delegateVerificationAt->addHours($faker->numberBetween(8, 48));
+        $reviewVerificationAt = $submitVerificationAt->addHours($faker->numberBetween(2, 16));
+        $delegateInvestigationAt = $reviewVerificationAt->addHours($faker->numberBetween(4, 20));
+        $submitInvestigationAt = $delegateInvestigationAt->addHours($faker->numberBetween(12, 96));
+        $reviewInvestigationAt = $submitInvestigationAt->addHours($faker->numberBetween(4, 24));
+        $directorDecisionAt = $reviewInvestigationAt->addHours($faker->numberBetween(8, 72));
+
+        return [
+            'submitted' => $submittedAt,
+            'delegate_verification' => $delegateVerificationAt,
+            'submit_verification' => $submitVerificationAt,
+            'review_verification' => $reviewVerificationAt,
+            'delegate_investigation' => $delegateInvestigationAt,
+            'submit_investigation' => $submitInvestigationAt,
+            'review_investigation' => $reviewInvestigationAt,
+            'director_decision' => $directorDecisionAt,
+        ];
+    }
+
+    private function executeAt(CarbonImmutable $time, callable $callback): mixed
+    {
+        $previous = Carbon::getTestNow();
+        Carbon::setTestNow($time);
+
+        try {
+            return $callback();
+        } finally {
+            Carbon::setTestNow($previous);
+        }
     }
 
     private function seedGovernanceControls(): void

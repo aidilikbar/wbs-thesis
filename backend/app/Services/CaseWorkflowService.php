@@ -247,6 +247,7 @@ class CaseWorkflowService
 
             $caseFile->report->forceFill([
                 'status' => self::REPORT_STATUSES['verification_in_progress'],
+                'last_public_update_at' => $assignedAt,
             ])->save();
 
             $this->addTimelineEvent(
@@ -259,6 +260,18 @@ class CaseWorkflowService
                     'Supervisor of verificator delegated the report to %s for verification.',
                     $verificator->name
                 ),
+                actorRole: $supervisor->role,
+                actorName: $supervisor->name,
+                occurredAt: $assignedAt,
+            );
+
+            $this->addTimelineEvent(
+                report: $caseFile->report,
+                caseFile: $caseFile,
+                visibility: 'public',
+                stage: 'verification_in_progress',
+                headline: 'Verification started',
+                detail: 'Your report has entered the verification stage and is being assessed by the KPK verification function.',
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $assignedAt,
@@ -440,6 +453,7 @@ class CaseWorkflowService
 
             $caseFile->report->forceFill([
                 'status' => self::REPORT_STATUSES['investigation_in_progress'],
+                'last_public_update_at' => $assignedAt,
             ])->save();
 
             $this->addTimelineEvent(
@@ -452,6 +466,18 @@ class CaseWorkflowService
                     'Supervisor of investigator delegated the verified report to %s.',
                     $investigator->name
                 ),
+                actorRole: $supervisor->role,
+                actorName: $supervisor->name,
+                occurredAt: $assignedAt,
+            );
+
+            $this->addTimelineEvent(
+                report: $caseFile->report,
+                caseFile: $caseFile,
+                visibility: 'public',
+                stage: 'investigation_in_progress',
+                headline: 'Investigation started',
+                detail: 'Your report has entered the investigation stage and is being handled by the KPK investigation function.',
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $assignedAt,
