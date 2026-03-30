@@ -20,3 +20,6 @@
 # docker
 docker-compose.override.yml
 *.pid
+
+# database dumps
+/db_dump/
