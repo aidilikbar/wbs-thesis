@@ -22,6 +22,7 @@ class ApiDocumentationTest extends TestCase
         $this->getJson('/docs')
             ->assertOk()
             ->assertJsonPath('info.title', 'KPK Whistleblowing System API')
+            ->assertJsonPath('servers.0.url', '/')
             ->assertJsonPath('paths./api/auth/register.post.operationId', 'registerReporter')
             ->assertJsonPath('paths./api/reporter/reports.post.operationId', 'submitReporterReport')
             ->assertJsonPath('paths./api/workflow/cases.get.operationId', 'listWorkflowCases');

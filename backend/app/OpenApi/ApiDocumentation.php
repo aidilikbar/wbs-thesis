@@ -10,8 +10,8 @@ use OpenApi\Attributes as OA;
     description: 'Interactive API documentation for the role-based KPK Whistleblowing System prototype.'
 )]
 #[OA\Server(
-    url: 'http://localhost:8000',
-    description: 'Local Laravel backend'
+    url: '/',
+    description: 'Current deployment origin'
 )]
 #[OA\SecurityScheme(
     securityScheme: 'bearerAuth',
