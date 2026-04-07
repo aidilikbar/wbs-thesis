@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 class ApiDocumentationTest extends TestCase
@@ -18,13 +19,17 @@ class ApiDocumentationTest extends TestCase
     public function test_openapi_json_describes_authenticated_reporter_and_workflow_endpoints(): void
     {
         $this->artisan('l5-swagger:generate')->assertSuccessful();
+        $this->artisan('openapi:sync-server-url')->assertSuccessful();
 
-        $this->getJson('/docs')
-            ->assertOk()
-            ->assertJsonPath('info.title', 'KPK Whistleblowing System API')
-            ->assertJsonPath('servers.0.url', '/')
-            ->assertJsonPath('paths./api/auth/register.post.operationId', 'registerReporter')
-            ->assertJsonPath('paths./api/reporter/reports.post.operationId', 'submitReporterReport')
-            ->assertJsonPath('paths./api/workflow/cases.get.operationId', 'listWorkflowCases');
+        $path = storage_path('api-docs/api-docs.json');
+        $this->assertTrue(File::exists($path));
+
+        $openApi = json_decode(File::get($path), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame('KPK Whistleblowing System API', $openApi['info']['title']);
+        $this->assertSame(rtrim((string) config('app.url'), '/'), $openApi['servers'][0]['url']);
+        $this->assertSame('registerReporter', $openApi['paths']['/api/auth/register']['post']['operationId']);
+        $this->assertSame('submitReporterReport', $openApi['paths']['/api/reporter/reports']['post']['operationId']);
+        $this->assertSame('listWorkflowCases', $openApi['paths']['/api/workflow/cases']['get']['operationId']);
     }
 }
