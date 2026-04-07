@@ -10,7 +10,9 @@ class ApiDocumentationTest extends TestCase
     {
         $this->get('/api/documentation')
             ->assertOk()
-            ->assertSee('KPK Whistleblowing System API', false);
+            ->assertSee('KPK Whistleblowing System API', false)
+            ->assertSee('url: "/docs"', false)
+            ->assertDontSee('/docs?api-docs.json', false);
     }
 
     public function test_openapi_json_describes_authenticated_reporter_and_workflow_endpoints(): void

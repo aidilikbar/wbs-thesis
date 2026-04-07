@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApiDocumentationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -15,3 +16,5 @@ Route::get('/', function () {
         ],
     ]);
 });
+
+Route::get('/api/documentation', ApiDocumentationController::class);

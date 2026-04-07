@@ -10,9 +10,12 @@ return [
 
             'routes' => [
                 /*
-                 * Route for accessing api documentation interface
+                 * The package UI route generates a keyless query string
+                 * (/docs?api-docs.json) that Apache on App Platform does
+                 * not route consistently. The app serves its own UI route
+                 * from routes/web.php instead.
                  */
-                'api' => 'api/documentation',
+                'api' => null,
             ],
             'paths' => [
                 /*
