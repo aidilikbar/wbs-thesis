@@ -48,13 +48,13 @@ const workflowMilestones = [
 ] as const;
 
 function buildPayloadFromReport(report: ReporterReportDetail): SubmissionPayload {
+  const reportedParties = report.reported_parties ?? [];
+
   return {
     title: report.title,
     description: report.description,
     reported_parties:
-      (report.reported_parties ?? []).length > 0
-        ? report.reported_parties
-        : initialSubmissionPayload.reported_parties,
+      reportedParties.length > 0 ? reportedParties : initialSubmissionPayload.reported_parties,
   };
 }
 
