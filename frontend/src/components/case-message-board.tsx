@@ -5,6 +5,7 @@ import { attachmentAccept, validateAttachmentSelection } from "@/lib/attachment-
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { formatFileSize, triggerBlobDownload } from "@/lib/file-utils";
+import { getRoleLabel, getStageLabel } from "@/lib/labels";
 import type { CaseMessageConversation, CaseMessageRecord } from "@/lib/types";
 
 type ConversationScope =
@@ -174,8 +175,13 @@ export function CaseMessageBoard({
     });
   };
 
-  const headerLabel =
-    conversation?.active_stage_label ?? "Secure communication is currently inactive";
+  const headerLabel = conversation?.active_stage
+    ? getStageLabel(conversation.active_stage, conversation.active_stage_label)
+    : "Secure communication is currently inactive";
+
+  const counterpartyRoleLabel = conversation?.counterparty_role
+    ? getRoleLabel(conversation.counterparty_role, conversation.counterparty_role_label)
+    : null;
 
   return (
     <section className="panel rounded-[1rem] p-8">
@@ -189,8 +195,8 @@ export function CaseMessageBoard({
           </p>
         </div>
         <div className="rounded-[0.75rem] border border-[var(--panel-border)] bg-white/74 px-4 py-3 text-sm text-[var(--muted)]">
-          {conversation?.counterparty_role_label
-            ? `Active counterpart: ${conversation.counterparty_role_label}`
+          {counterpartyRoleLabel
+            ? `Active counterpart: ${counterpartyRoleLabel}`
             : "Counterpart opens automatically by stage"}
         </div>
       </div>
@@ -213,7 +219,7 @@ export function CaseMessageBoard({
                   Allowed Roles
                 </p>
                 <p className="mt-1 text-white">
-                  Reporter and {conversation?.counterparty_role_label ?? "assigned case handler"}
+                  Reporter and {counterpartyRoleLabel ?? "assigned case handler"}
                 </p>
               </div>
               <div>
@@ -381,10 +387,10 @@ function MessageCard({
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full border border-[rgba(239,47,39,0.18)] bg-[rgba(239,47,39,0.08)] px-3 py-1 text-[0.62rem] font-mono uppercase tracking-[0.18em] text-[var(--primary)]">
-              {entry.sender_role_label}
+              {getRoleLabel(entry.sender_role, entry.sender_role_label)}
             </span>
             <span className="rounded-full border border-[var(--panel-border)] px-3 py-1 text-[0.62rem] font-mono uppercase tracking-[0.18em] text-[var(--muted)]">
-              {entry.stage_label}
+              {getStageLabel(entry.stage, entry.stage_label)}
             </span>
           </div>
           {entry.body ? (

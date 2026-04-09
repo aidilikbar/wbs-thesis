@@ -86,7 +86,7 @@ class CaseWorkflowService
                 visibility: 'public',
                 stage: 'submitted',
                 headline: 'Report received',
-                detail: 'Your report has been registered and forwarded to the supervisor of verificator.',
+                detail: 'Your report has been registered and forwarded to the verification supervisor.',
                 actorRole: 'system',
                 actorName: 'KPK Whistleblowing System',
                 occurredAt: $submittedAt,
@@ -99,7 +99,7 @@ class CaseWorkflowService
                 stage: 'submitted',
                 headline: 'Report submitted by registered reporter',
                 detail: sprintf(
-                    'Reporter %s submitted the case and it is now waiting for delegation by the supervisor of verificator.',
+                    'Reporter %s submitted the case and it is now waiting for delegation by the verification supervisor.',
                     $reporter->name
                 ),
                 actorRole: User::ROLE_REPORTER,
@@ -257,7 +257,7 @@ class CaseWorkflowService
                 stage: 'verification_in_progress',
                 headline: 'Verification delegated',
                 detail: sprintf(
-                    'Supervisor of verificator delegated the report to %s for verification.',
+                    'The verification supervisor delegated the report to %s for verification.',
                     $verificator->name
                 ),
                 actorRole: $supervisor->role,
@@ -463,7 +463,7 @@ class CaseWorkflowService
                 stage: 'investigation_in_progress',
                 headline: 'Investigation delegated',
                 detail: sprintf(
-                    'Supervisor of investigator delegated the verified report to %s.',
+                    'The investigation supervisor delegated the verified report to %s.',
                     $investigator->name
                 ),
                 actorRole: $supervisor->role,

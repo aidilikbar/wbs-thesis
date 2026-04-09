@@ -94,7 +94,7 @@ class InvestigatorWorkflowTest extends TestCase
 
         $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-verification", [
             'decision' => 'approved',
-            'internal_note' => 'Verification approved and transferred to the supervisor of investigator.',
+            'internal_note' => 'Verification approved and transferred to the investigation supervisor.',
             'publish_update' => true,
             'public_message' => 'The report passed verification and is moving into investigation allocation.',
         ])->assertOk()
@@ -321,7 +321,7 @@ class InvestigatorWorkflowTest extends TestCase
             $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-verification", [
                 'internal_note' => 'Ready for supervisory review.',
                 'publish_update' => true,
-                'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+                'public_message' => 'Your report has completed the verification assessment stage and is pending supervisory review.',
             ])->assertOk();
 
             Carbon::setTestNow($submittedAt->addDay()->addHours(4));

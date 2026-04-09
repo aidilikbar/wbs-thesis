@@ -8,6 +8,7 @@ import { WorkflowNavigation } from "@/components/workflow-navigation";
 import { api } from "@/lib/api";
 import { demoWorkflowCases } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
+import { getRoleLabel, getStageLabel } from "@/lib/labels";
 import { isInternalRole } from "@/lib/roles";
 import {
   workflowActionPath,
@@ -230,7 +231,7 @@ export function WorkflowDirectory({
           <p className="eyebrow">Approval Queue</p>
           <h2 className="mt-4 text-3xl">Approval access is not assigned to this role</h2>
           <p className="muted mt-4 max-w-3xl text-sm leading-7">
-            Approval actions are reserved for Supervisor of Verificator, Supervisor of Investigator, Director, and system administrator oversight accounts.
+            Approval actions are reserved for verification supervisors, investigation supervisors, directors, and system administrator oversight accounts.
           </p>
           <div className="mt-6">
             <Link href="/workflow" className="ghost-button">
@@ -367,8 +368,12 @@ export function WorkflowDirectory({
                       </div>
                     </td>
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                      <p className="text-sm font-semibold">{caseItem.stage_label}</p>
-                      <p className="muted mt-2 text-sm">{caseItem.current_role_label}</p>
+                      <p className="text-sm font-semibold">
+                        {getStageLabel(caseItem.stage, caseItem.stage_label)}
+                      </p>
+                      <p className="muted mt-2 text-sm">
+                        {getRoleLabel(caseItem.current_role, caseItem.current_role_label)}
+                      </p>
                     </td>
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4 text-sm text-[var(--muted)]">
                       <p>{caseItem.assigned_to ?? "Pending assignment"}</p>

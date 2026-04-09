@@ -392,7 +392,7 @@ use OpenApi\Attributes as OA;
     required: ['decision', 'internal_note'],
     properties: [
         new OA\Property(property: 'decision', type: 'string', enum: ['approved', 'rejected'], example: 'approved'),
-        new OA\Property(property: 'internal_note', type: 'string', example: 'Verification approved and transferred to the supervisor of investigator.'),
+        new OA\Property(property: 'internal_note', type: 'string', example: 'Verification approved and transferred to the investigation supervisor.'),
         new OA\Property(property: 'publish_update', type: 'boolean', example: true),
         new OA\Property(property: 'public_message', type: 'string', nullable: true, example: 'The report passed verification and is moving into investigation allocation.'),
     ]
@@ -418,7 +418,7 @@ use OpenApi\Attributes as OA;
                             new OA\Property(property: 'stage_label', type: 'string', example: 'Submitted'),
                             new OA\Property(property: 'status', type: 'string', example: 'submitted'),
                             new OA\Property(property: 'current_role', type: 'string', example: 'supervisor_of_verificator'),
-                            new OA\Property(property: 'current_role_label', type: 'string', example: 'Supervisor of Verificator'),
+                            new OA\Property(property: 'current_role_label', type: 'string', example: 'Verification Supervisor'),
                             new OA\Property(property: 'assigned_to', type: 'string', nullable: true, example: 'Sinta Pramudita'),
                             new OA\Property(property: 'assigned_unit', type: 'string', nullable: true, example: 'Verification Supervision'),
                             new OA\Property(property: 'public_reference', type: 'string', example: 'WBS-2026-0001'),
@@ -478,7 +478,7 @@ use OpenApi\Attributes as OA;
                     new OA\Property(property: 'name', type: 'string', example: 'Aditya Prakoso'),
                     new OA\Property(property: 'email', type: 'string', format: 'email', example: 'verificator@example.test'),
                     new OA\Property(property: 'role', type: 'string', example: 'verificator'),
-                    new OA\Property(property: 'role_label', type: 'string', example: 'Verificator'),
+                    new OA\Property(property: 'role_label', type: 'string', example: 'Verification Officer'),
                 ]
             )
         ),
@@ -489,7 +489,7 @@ use OpenApi\Attributes as OA;
     type: 'object',
     required: ['name', 'email', 'phone', 'role', 'password', 'password_confirmation'],
     properties: [
-        new OA\Property(property: 'name', type: 'string', example: 'Supervisor Verificator'),
+        new OA\Property(property: 'name', type: 'string', example: 'Verification Supervisor'),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'supervisor.verificator@example.test'),
         new OA\Property(property: 'phone', type: 'string', example: '+62-812-0000-0002'),
         new OA\Property(property: 'role', type: 'string', example: 'supervisor_of_verificator'),

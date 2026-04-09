@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { internalRoleOptions } from "@/lib/demo-data";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { getRoleLabel } from "@/lib/labels";
 import { isSystemAdministrator } from "@/lib/roles";
 import type { AuthUser, PaginatedData, UserRole } from "@/lib/types";
 
@@ -401,7 +402,10 @@ export function AdminUserManager({
                         <p className="muted mt-1 text-sm">{account.phone}</p>
                       </td>
                       <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                        <StatusBadge value={account.role} label={account.role_label} />
+                        <StatusBadge
+                          value={account.role}
+                          label={getRoleLabel(account.role, account.role_label)}
+                        />
                       </td>
                       <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4 text-sm">
                         {account.unit ?? "Not assigned"}

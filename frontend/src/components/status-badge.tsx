@@ -1,3 +1,5 @@
+import { getDisplayLabel } from "@/lib/labels";
+
 type StatusBadgeProps = {
   value: string;
   label?: string;
@@ -47,7 +49,7 @@ export function StatusBadge({ value, label }: StatusBadgeProps) {
         value,
       )}`}
     >
-      {label ?? value.replaceAll("_", " ")}
+      {getDisplayLabel(value, label)}
     </span>
   );
 }

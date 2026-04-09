@@ -16,6 +16,7 @@ import { validateAttachmentSelection } from "@/lib/attachment-validation";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { triggerBlobDownload } from "@/lib/file-utils";
+import { getRoleLabel, getStageLabel, normalizeWorkflowCopy } from "@/lib/labels";
 import { isReporter } from "@/lib/roles";
 import type {
   ReportAttachment,
@@ -30,7 +31,8 @@ const workflowMilestones = [
   },
   {
     label: "Verification Underway",
-    description: "A verificator and the supervising reviewer are assessing initial completeness and validity.",
+    description:
+      "A verification officer and the supervising reviewer are assessing initial completeness and validity.",
   },
   {
     label: "Follow-up Review",
@@ -387,7 +389,8 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
                     Current Stage
                   </p>
                   <p className="mt-1 text-white">
-                    {record.case.stage_label ?? "Awaiting assignment"}
+                    {getStageLabel(record.case.stage, record.case.stage_label) ||
+                      "Awaiting assignment"}
                   </p>
                 </div>
                 <div>
@@ -743,7 +746,8 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
                   Current Role
                 </dt>
                 <dd className="mt-2 text-sm text-[var(--foreground)]">
-                  {record.case.current_role_label ?? "Protected routing"}
+                  {getRoleLabel(record.case.current_role, record.case.current_role_label) ||
+                    "Protected routing"}
                 </dd>
               </div>
               <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
@@ -780,7 +784,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                            {item.stage_label}
+                            {getStageLabel(item.stage, item.stage_label)}
                           </p>
                           <h4 className="mt-2 text-xl">{item.headline}</h4>
                         </div>
@@ -788,7 +792,9 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
                           {formatDateTime(item.occurred_at)}
                         </p>
                       </div>
-                      <p className="muted mt-4 text-sm leading-7">{item.detail}</p>
+                      <p className="muted mt-4 text-sm leading-7">
+                        {normalizeWorkflowCopy(item.detail)}
+                      </p>
                     </div>
                   </article>
                 ))}

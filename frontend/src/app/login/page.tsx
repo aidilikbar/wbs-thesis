@@ -23,7 +23,7 @@ export default function LoginPage() {
           </p>
           <ul className="mt-4 space-y-4 text-sm leading-7 text-white/72">
             <li>Reporter accounts are self-registered through the reporter registration page.</li>
-            <li>System administrator provisions supervisor, verificator, investigator, director, and admin accounts.</li>
+            <li>System administrators provision verification, investigation, director, and administration accounts.</li>
             <li>After login, each role is directed to its relevant workspace.</li>
           </ul>
         </aside>

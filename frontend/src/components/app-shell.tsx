@@ -21,7 +21,7 @@ const CURRENT_RELEASE = "v0.1.3";
 function navForRole(role?: string | null): NavItem[] {
   const items: NavItem[] = [
     { href: "/", label: "Dashboard" },
-    { href: "/track", label: "Track Status" },
+    { href: "/track", label: "Tracking" },
   ];
 
   if (!role || isReporter(role)) {
@@ -30,7 +30,7 @@ function navForRole(role?: string | null): NavItem[] {
 
   if (role && isInternalRole(role)) {
     items.push({ href: "/workflow", label: "Workflow" });
-    items.push({ href: "/governance", label: "Resources" });
+    items.push({ href: "/governance", label: "Governance" });
   }
 
   if (role && isSystemAdministrator(role)) {

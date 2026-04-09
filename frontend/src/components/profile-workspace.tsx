@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
 import { formatDateTime } from "@/lib/format";
+import { getRoleLabel } from "@/lib/labels";
 import { roleHomePath } from "@/lib/roles";
 
 export function ProfileWorkspace() {
@@ -77,7 +78,9 @@ export function ProfileWorkspace() {
                 <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary)]">
                   Active Role
                 </p>
-                <p className="mt-2 text-lg text-white">{user.role_label}</p>
+                <p className="mt-2 text-lg text-white">
+                  {getRoleLabel(user.role, user.role_label)}
+                </p>
                 <p className="text-sm text-white/64">
                   {user.unit ?? "Protected routing unit"}
                 </p>
@@ -106,7 +109,9 @@ export function ProfileWorkspace() {
               <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                 Role
               </p>
-              <p className="mt-2 text-sm text-[var(--foreground)]">{user.role_label}</p>
+              <p className="mt-2 text-sm text-[var(--foreground)]">
+                {getRoleLabel(user.role, user.role_label)}
+              </p>
             </div>
             <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/76 px-5 py-4">
               <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
@@ -158,7 +163,7 @@ export function ProfileWorkspace() {
                 Workspace
               </Link>
               <Link href="/track" className="ghost-button">
-                Track Status
+                Tracking
               </Link>
             </div>
           </section>

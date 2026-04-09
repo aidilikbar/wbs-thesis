@@ -9,6 +9,7 @@ import {
   demoGovernanceDashboardForRole,
 } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
+import { getRoleLabel, normalizeWorkflowCopy } from "@/lib/labels";
 import { isInternalRole } from "@/lib/roles";
 import type {
   GovernanceActionItem,
@@ -51,7 +52,7 @@ function scopeRowMatches(row: GovernanceScopeRow, term: string) {
     return true;
   }
 
-  return [row.subject_label, row.role_label, row.unit]
+  return [row.subject_label, getRoleLabel(row.role, row.role_label), row.unit]
     .filter(Boolean)
     .join(" ")
     .toLowerCase()
@@ -184,7 +185,9 @@ export function GovernanceDashboard() {
                   {metric.label}
                 </p>
                 <p className="metric-value mt-4">{metric.value}</p>
-                <p className="muted mt-3 text-sm leading-6">{metric.detail}</p>
+                <p className="muted mt-3 text-sm leading-6">
+                  {normalizeWorkflowCopy(metric.detail)}
+                </p>
               </article>
             ))}
           </div>
@@ -242,8 +245,10 @@ export function GovernanceDashboard() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-xl">{item.title}</h3>
-                    <p className="muted mt-3 text-sm leading-6">{item.detail}</p>
+                    <h3 className="text-xl">{normalizeWorkflowCopy(item.title)}</h3>
+                    <p className="muted mt-3 text-sm leading-6">
+                      {normalizeWorkflowCopy(item.detail)}
+                    </p>
                   </div>
                   <div className="rounded-[0.7rem] bg-white px-4 py-3 text-right">
                     <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[var(--muted)]">
@@ -266,9 +271,11 @@ export function GovernanceDashboard() {
       <section className="grid gap-6 xl:grid-cols-[0.58fr_0.42fr]">
         <div className="panel rounded-[1rem] p-8">
           <p className="eyebrow">Specific KPIs</p>
-          <h2 className="mt-4 text-4xl">{dashboard.specific.role_label} action board</h2>
+          <h2 className="mt-4 text-4xl">
+            {getRoleLabel(dashboard.specific.role, dashboard.specific.role_label)} action board
+          </h2>
           <p className="muted mt-4 text-sm leading-7">
-            {dashboard.specific.scope_label}
+            {normalizeWorkflowCopy(dashboard.specific.scope_label)}
           </p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -281,7 +288,9 @@ export function GovernanceDashboard() {
                   {metric.label}
                 </p>
                 <p className="metric-value mt-4">{metric.value}</p>
-                <p className="muted mt-3 text-sm leading-6">{metric.detail}</p>
+                <p className="muted mt-3 text-sm leading-6">
+                  {normalizeWorkflowCopy(metric.detail)}
+                </p>
               </article>
             ))}
           </div>
@@ -299,8 +308,12 @@ export function GovernanceDashboard() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-lg text-white">{item.title}</h3>
-                    <p className="mt-3 text-sm leading-6 text-white/72">{item.detail}</p>
+                    <h3 className="text-lg text-white">
+                      {normalizeWorkflowCopy(item.title)}
+                    </h3>
+                    <p className="mt-3 text-sm leading-6 text-white/72">
+                      {normalizeWorkflowCopy(item.detail)}
+                    </p>
                   </div>
                   <span
                     className={`rounded-[0.7rem] px-3 py-2 text-sm font-semibold ${
@@ -361,7 +374,11 @@ export function GovernanceDashboard() {
                   Scope rule
                 </p>
                 <p className="mt-3 text-sm leading-6">
-                  {dashboard.specific.role_label} sees only the users that fall inside the
+                  {getRoleLabel(
+                    dashboard.specific.role,
+                    dashboard.specific.role_label,
+                  )}{" "}
+                  sees only the users that fall inside the
                   configured hierarchy scope.
                 </p>
               </div>
@@ -406,7 +423,7 @@ export function GovernanceDashboard() {
                           <p className="muted mt-2 text-sm">{row.unit ?? "Unit not set"}</p>
                         </td>
                         <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                          <p>{row.role_label}</p>
+                          <p>{getRoleLabel(row.role, row.role_label)}</p>
                         </td>
                         <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
                           {row.open_cases}
@@ -504,13 +521,17 @@ export function GovernanceDashboard() {
                   </div>
                   <StatusBadge value={control.status} />
                 </div>
-                <p className="muted mt-4 text-sm leading-7">{control.description}</p>
+                <p className="muted mt-4 text-sm leading-7">
+                  {normalizeWorkflowCopy(control.description)}
+                </p>
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                   <div className="outline-panel rounded-[0.75rem] p-4">
                     <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                       Owner
                     </p>
-                    <p className="mt-2 text-sm">{control.owner_role}</p>
+                    <p className="mt-2 text-sm">
+                      {normalizeWorkflowCopy(control.owner_role)}
+                    </p>
                   </div>
                   <div className="outline-panel rounded-[0.75rem] p-4">
                     <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
@@ -530,7 +551,9 @@ export function GovernanceDashboard() {
                   </div>
                 </div>
                 {control.notes ? (
-                  <p className="muted mt-4 text-sm leading-6">{control.notes}</p>
+                  <p className="muted mt-4 text-sm leading-6">
+                    {normalizeWorkflowCopy(control.notes)}
+                  </p>
                 ) : null}
               </article>
             ))}
@@ -552,18 +575,21 @@ export function GovernanceDashboard() {
                 className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 p-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <StatusBadge value={log.action} label={log.action.replaceAll("_", " ")} />
+                  <StatusBadge value={log.action} />
                   <p className="text-sm text-[var(--muted)]">
                     {formatDateTime(log.happened_at)}
                   </p>
                 </div>
                 <p className="mt-4 text-lg">
-                  {log.actor_name ?? "System"} · {log.actor_role}
+                  {log.actor_name ?? "System"} · {getRoleLabel(log.actor_role)}
                 </p>
                 <p className="muted mt-3 text-sm leading-6">
                   {Object.entries(log.context)
                     .slice(0, 3)
-                    .map(([key, value]) => `${key.replaceAll("_", " ")}: ${String(value)}`)
+                    .map(
+                      ([key, value]) =>
+                        `${key.replaceAll("_", " ")}: ${normalizeWorkflowCopy(String(value))}`,
+                    )
                     .join(" · ")}
                 </p>
               </article>

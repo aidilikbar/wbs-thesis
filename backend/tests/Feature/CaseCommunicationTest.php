@@ -92,7 +92,7 @@ class CaseCommunicationTest extends TestCase
             'body' => 'The serial number is sufficient. Please also upload the approval email thread if available.',
         ])->assertCreated()
             ->assertJsonPath('data.sender_role', User::ROLE_VERIFICATOR)
-            ->assertJsonPath('data.sender_role_label', 'Verificator');
+            ->assertJsonPath('data.sender_role_label', 'Verification Officer');
 
         Sanctum::actingAs($reporter, [$reporter->role]);
 

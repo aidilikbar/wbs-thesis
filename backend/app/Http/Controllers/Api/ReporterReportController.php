@@ -140,7 +140,7 @@ class ReporterReportController extends Controller
                 'submitted_at' => $report->submitted_at?->toISOString(),
                 'next_steps' => [
                     'Keep the reference and tracking token in a safe place.',
-                    'The supervisor of verificator will receive the submission first.',
+                    'The verification supervisor will receive the submission first.',
                     'Use the tracking page or your reporter account to monitor public updates.',
                 ],
             ],

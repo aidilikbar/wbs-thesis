@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { api } from "@/lib/api";
 import { demoTrackingRecord } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
+import { getStageLabel, normalizeWorkflowCopy } from "@/lib/labels";
 import type { TrackingRecord } from "@/lib/types";
 
 export function TrackingWorkbench() {
@@ -118,7 +119,9 @@ export function TrackingWorkbench() {
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                   Stage
                 </p>
-                <p className="mt-2 text-sm">{record.case.stage_label}</p>
+                <p className="mt-2 text-sm">
+                  {getStageLabel(record.case.stage, record.case.stage_label)}
+                </p>
               </article>
               <article className="accent-card rounded-[0.85rem] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
@@ -157,14 +160,16 @@ export function TrackingWorkbench() {
                   <div>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="eyebrow">{item.stage_label}</p>
-                        <h3 className="mt-2 text-2xl">{item.headline}</h3>
+                        <p className="eyebrow">{getStageLabel(item.stage, item.stage_label)}</p>
+                        <h3 className="mt-2 text-2xl">{normalizeWorkflowCopy(item.headline)}</h3>
                       </div>
                       <p className="text-sm text-[var(--muted)]">
                         {formatDateTime(item.occurred_at)}
                       </p>
                     </div>
-                    <p className="muted mt-4 text-sm leading-7">{item.detail}</p>
+                    <p className="muted mt-4 text-sm leading-7">
+                      {normalizeWorkflowCopy(item.detail)}
+                    </p>
                   </div>
                 </article>
               ))}

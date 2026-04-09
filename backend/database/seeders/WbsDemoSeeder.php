@@ -89,7 +89,7 @@ class WbsDemoSeeder extends Seeder
                 [
                     'internal_note' => 'Document review is complete and the report is ready for supervisory decision.',
                     'publish_update' => true,
-                    'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+                    'public_message' => 'Your report has completed the verification assessment stage and is pending supervisory review.',
                 ]
             )
         );
@@ -131,7 +131,7 @@ class WbsDemoSeeder extends Seeder
                 [
                     'internal_note' => 'The material is sufficiently corroborated and should be escalated for investigation.',
                     'publish_update' => true,
-                    'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+                    'public_message' => 'Your report has completed the verification assessment stage and is pending supervisory review.',
                 ]
             )
         );
@@ -143,7 +143,7 @@ class WbsDemoSeeder extends Seeder
                 $users['supervisor_of_verificator'],
                 [
                     'decision' => 'approved',
-                    'internal_note' => 'Verification accepted and the report is transferred to the supervisor of investigator.',
+                    'internal_note' => 'Verification accepted and the report is transferred to the investigation supervisor.',
                     'publish_update' => true,
                     'public_message' => 'Your report has passed verification and is proceeding to investigation allocation.',
                 ]
@@ -200,7 +200,7 @@ class WbsDemoSeeder extends Seeder
                 [
                     'internal_note' => 'Retaliation risk is substantiated and the report should move into protected investigation.',
                     'publish_update' => true,
-                    'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+                    'public_message' => 'Your report has completed the verification assessment stage and is pending supervisory review.',
                 ]
             )
         );
@@ -541,7 +541,7 @@ class WbsDemoSeeder extends Seeder
                 [
                     'internal_note' => 'Seeded verification note for enterprise transaction coverage.',
                     'publish_update' => true,
-                    'public_message' => 'Your report has completed the verificator assessment stage and is pending supervisory review.',
+                    'public_message' => 'Your report has completed the verification assessment stage and is pending supervisory review.',
                 ]
             )
         );
@@ -967,7 +967,7 @@ class WbsDemoSeeder extends Seeder
         GovernanceControl::query()->create([
             'code' => 'SEG-02',
             'name' => 'Segregation of duties',
-            'description' => 'Separate verification supervision, verificator review, investigation supervision, investigation work, and director approval.',
+            'description' => 'Separate verification supervision, verification officer review, investigation supervision, investigation work, and director approval.',
             'owner_role' => 'Director',
             'status' => 'active',
             'target_metric' => 'Distinct role owners across the process',
@@ -979,7 +979,7 @@ class WbsDemoSeeder extends Seeder
             'code' => 'SLA-03',
             'name' => 'Workflow timeliness',
             'description' => 'Monitor elapsed time from submission to delegation, investigation, and final approval.',
-            'owner_role' => 'Supervisor of Verificator',
+            'owner_role' => 'Verification Supervisor',
             'status' => 'warning',
             'target_metric' => 'Average first delegation under 72 hours',
             'current_metric' => 'Measured from submission and triage timestamps',

@@ -11,6 +11,7 @@ import { WorkflowNavigation } from "@/components/workflow-navigation";
 import { api } from "@/lib/api";
 import { demoWorkflowCases } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
+import { getRoleLabel, getStageLabel, normalizeWorkflowCopy } from "@/lib/labels";
 import { isInternalRole } from "@/lib/roles";
 import {
   isApprovalAction,
@@ -45,23 +46,23 @@ const actionMeta: Record<
   }
 > = {
   delegate_verification: {
-    title: "Delegate to verificator",
+    title: "Assign verification officer",
     description:
-      "Assign the submitted report to a verificator so the verification step can begin.",
-    button: "Delegate Report",
+      "Assign the submitted report to a verification officer so the verification step can begin.",
+    button: "Assign Case",
     mode: "queue",
   },
   submit_verification: {
     title: "Submit verification to supervisor",
     description:
-      "Finalize the verificator assessment and route it back to the Supervisor of Verificator for approval.",
-    button: "Submit Verification",
+      "Finalize the verification assessment and route it back to the verification supervisor for approval.",
+    button: "Submit Verification Findings",
     mode: "queue",
   },
   review_verification: {
     title: "Approve verification result",
     description:
-      "Approve the verificator result to move the case into investigation allocation, or reject it for follow-up.",
+      "Approve the verification result to move the case into investigation allocation, or reject it for follow-up.",
     button: "Record Verification Decision",
     mode: "approval",
   },
@@ -75,8 +76,8 @@ const actionMeta: Record<
   submit_investigation: {
     title: "Submit investigation to supervisor",
     description:
-      "Finalize the investigator analysis and route the case back to the Supervisor of Investigator for approval.",
-    button: "Submit Analysis",
+      "Finalize the investigator analysis and route the case back to the investigation supervisor for approval.",
+    button: "Submit Investigation Findings",
     mode: "queue",
   },
   review_investigation: {
@@ -475,7 +476,7 @@ export function WorkflowCaseEditor({
             <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
               Stage
             </p>
-            <p className="mt-3 text-sm">{record.stage_label}</p>
+            <p className="mt-3 text-sm">{getStageLabel(record.stage, record.stage_label)}</p>
           </article>
           <article className="outline-panel rounded-[0.9rem] px-5 py-4">
             <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
@@ -605,19 +606,19 @@ export function WorkflowCaseEditor({
             <p className="eyebrow">Workflow Ownership</p>
             <div className="mt-5 space-y-4 text-sm leading-7">
               <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                <span>Supervisor of Verificator</span>
+                <span>Verification Supervisor</span>
                 <span className="text-right text-[var(--muted)]">
                   {record.workflow.verification_supervisor ?? "Unassigned"}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                <span>Verificator</span>
+                <span>Verification Officer</span>
                 <span className="text-right text-[var(--muted)]">
                   {record.workflow.verificator ?? "Unassigned"}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                <span>Supervisor of Investigator</span>
+                <span>Investigation Supervisor</span>
                 <span className="text-right text-[var(--muted)]">
                   {record.workflow.investigation_supervisor ?? "Unassigned"}
                 </span>
@@ -675,7 +676,7 @@ export function WorkflowCaseEditor({
                       <option value="">Select assignee</option>
                       {assignees.map((assignee) => (
                         <option key={assignee.id} value={assignee.id}>
-                          {assignee.name} · {assignee.unit ?? assignee.role_label}
+                          {assignee.name} · {assignee.unit ?? getRoleLabel(assignee.role, assignee.role_label)}
                         </option>
                       ))}
                     </select>
@@ -850,11 +851,15 @@ export function WorkflowCaseEditor({
                         {entry.visibility ?? "internal"}
                       </span>
                     </div>
-                    <h4 className="mt-3 text-lg font-semibold">{entry.headline}</h4>
-                    <p className="muted mt-2 text-sm leading-7">{entry.detail}</p>
+                    <h4 className="mt-3 text-lg font-semibold">
+                      {normalizeWorkflowCopy(entry.headline)}
+                    </h4>
+                    <p className="muted mt-2 text-sm leading-7">
+                      {normalizeWorkflowCopy(entry.detail)}
+                    </p>
                   </div>
                   <div className="text-right text-sm text-[var(--muted)]">
-                    <p>{entry.actor_role.replaceAll("_", " ")}</p>
+                    <p>{getRoleLabel(entry.actor_role)}</p>
                     <p className="mt-2">
                       {entry.occurred_at
                         ? formatDateTime(entry.occurred_at)

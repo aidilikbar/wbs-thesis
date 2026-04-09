@@ -14,6 +14,7 @@ import { validateAttachmentSelection } from "@/lib/attachment-validation";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { triggerBlobDownload } from "@/lib/file-utils";
+import { getStageLabel } from "@/lib/labels";
 import { isReporter } from "@/lib/roles";
 import type { ReportAttachment, ReporterReportDetail, SubmissionPayload } from "@/lib/types";
 
@@ -257,7 +258,7 @@ export function ReportForm({
           <p className="eyebrow">Reporter Access Required</p>
           <h2 className="mt-4 text-4xl">Register before starting a secure filing session</h2>
           <p className="muted mt-5 max-w-3xl text-base leading-8">
-            The filing flow is reserved for authenticated reporters. Once signed in, the report is routed to the supervisor of verificator and tracked through the formal KPK workflow.
+            The filing flow is reserved for authenticated reporters. Once signed in, the report is routed to the verification supervisor and tracked through the formal KPK workflow.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link href="/register" className="primary-button">
@@ -351,7 +352,7 @@ export function ReportForm({
                 <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                   Status
                 </p>
-                <p>{record.case.stage_label ?? record.status}</p>
+                <p>{getStageLabel(record.case.stage, record.case.stage_label ?? record.status)}</p>
               </div>
               <div>
                 <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
@@ -636,7 +637,7 @@ export function ReportForm({
             <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
               {isEditMode
                 ? "Updates remain tied to the original reporter account and are written into the audit trail of the existing case."
-                : "The report is transmitted to the Laravel backend and enters the KPK role-based review process beginning with the supervisor of verificator."}
+                : "The report is transmitted to the Laravel backend and enters the KPK role-based review process beginning with the verification supervisor."}
             </p>
             <div className="flex flex-wrap gap-3">
               <button

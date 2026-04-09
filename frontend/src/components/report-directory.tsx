@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { api } from "@/lib/api";
 import { demoReporterReports } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
+import { getDisplayLabel, getStageLabel } from "@/lib/labels";
 import { isReporter } from "@/lib/roles";
 import type { PaginatedData, ReporterReportSummary } from "@/lib/types";
 
@@ -15,10 +16,10 @@ const PAGE_SIZE = 10;
 const statusOptions = [
   { value: "all", label: "All statuses" },
   { value: "submitted", label: "Submitted" },
-  { value: "verification_in_progress", label: "Verification" },
+  { value: "verification_in_progress", label: "Verification in Progress" },
   { value: "verification_review", label: "Verification Review" },
   { value: "verified", label: "Verified" },
-  { value: "investigation_in_progress", label: "Investigation" },
+  { value: "investigation_in_progress", label: "Investigation in Progress" },
   { value: "investigation_review", label: "Investigation Review" },
   { value: "director_review", label: "Director Review" },
   { value: "completed", label: "Completed" },
@@ -322,7 +323,8 @@ export function ReportDirectory(props: NoticeProps) {
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
                       <p className="font-semibold">{report.title}</p>
                       <p className="muted mt-2 text-sm">
-                        {report.category} · {report.case.stage_label ?? "Submitted"}
+                        {getDisplayLabel(report.category)} ·{" "}
+                        {getStageLabel(report.case.stage, report.case.stage_label ?? "Submitted")}
                       </p>
                     </td>
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">

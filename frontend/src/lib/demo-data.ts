@@ -7,13 +7,14 @@ import type {
   UserRole,
   WorkflowCase,
 } from "@/lib/types";
+import { roleLabels } from "@/lib/labels";
 
 export const landingStats = [
   {
     label: "Institutional Roles",
     value: "7",
     detail:
-      "Reporter, two supervisors, verificator, investigator, director, and system administrator.",
+      "Reporter, two supervisors, verification officer, investigator, director, and system administrator.",
   },
   {
     label: "Process Gates",
@@ -55,7 +56,7 @@ export const moduleCards = [
     kicker: "Internal Operations",
     title: "Role-Based Workflow",
     description:
-      "Supervisors, verificators, investigators, and director operate from one governed case workbench.",
+      "Supervisors, verification officers, investigators, and the director operate from one governed case workbench.",
   },
   {
     href: "/governance",
@@ -128,24 +129,24 @@ export const roleCards = [
       "Registers, logs in, submits a report, and monitors public-safe progress through account and tracking token access.",
   },
   {
-    title: "Supervisor of Verificator",
+    title: "Verification Supervisor",
     description:
-      "Receives new reports, delegates them to verificators, and decides whether verification is accepted or returned.",
+      "Receives new reports, assigns them to verification officers, and decides whether verification is accepted or returned.",
   },
   {
-    title: "Verificator",
+    title: "Verification Officer",
     description:
-      "Performs verification of submitted reports and returns documented findings to the supervisor of verificator.",
+      "Performs verification of submitted reports and returns documented findings to the verification supervisor.",
   },
   {
-    title: "Supervisor of Investigator",
+    title: "Investigation Supervisor",
     description:
       "Receives verified reports, delegates investigation, and reviews the investigator submission before director review.",
   },
   {
     title: "Investigator",
     description:
-      "Analyzes verified reports, documents investigation findings, and submits them to the supervisor of investigator.",
+      "Analyzes verified reports, documents investigation findings, and submits them to the investigation supervisor.",
   },
   {
     title: "Director",
@@ -161,12 +162,12 @@ export const roleCards = [
 
 export const processSteps = [
   "Reporter registers and logs in before creating a report.",
-  "Supervisor of verificator receives the submitted report and delegates it to a verificator.",
-  "Verificator verifies the report and submits the result back to the supervisor of verificator.",
-  "Supervisor of verificator approves the verification or returns it for further work.",
-  "Supervisor of investigator receives an approved verification and delegates it to an investigator.",
-  "Investigator analyzes the verified report and submits the investigation to the supervisor of investigator.",
-  "Supervisor of investigator approves the investigation or returns it to the investigator.",
+  "The verification supervisor receives the submitted report and assigns it to a verification officer.",
+  "The verification officer verifies the report and submits the result back to the verification supervisor.",
+  "The verification supervisor approves the verification or returns it for further work.",
+  "The investigation supervisor receives an approved verification and assigns it to an investigator.",
+  "The investigator analyzes the verified report and submits the investigation to the investigation supervisor.",
+  "The investigation supervisor approves the investigation or returns it to the investigator.",
   "Director approves report completion or returns the case for further investigation.",
 ];
 
@@ -199,12 +200,12 @@ export const internalRoleOptions: Array<{
   value: InternalUserPayload["role"];
   label: string;
 }> = [
-  { value: "supervisor_of_verificator", label: "Supervisor of Verificator" },
-  { value: "verificator", label: "Verificator" },
-  { value: "supervisor_of_investigator", label: "Supervisor of Investigator" },
-  { value: "investigator", label: "Investigator" },
-  { value: "director", label: "Director" },
-  { value: "system_administrator", label: "System Administrator" },
+  { value: "supervisor_of_verificator", label: roleLabels.supervisor_of_verificator },
+  { value: "verificator", label: roleLabels.verificator },
+  { value: "supervisor_of_investigator", label: roleLabels.supervisor_of_investigator },
+  { value: "investigator", label: roleLabels.investigator },
+  { value: "director", label: roleLabels.director },
+  { value: "system_administrator", label: roleLabels.system_administrator },
 ];
 
 export const initialSubmissionPayload: SubmissionPayload = {
@@ -237,7 +238,7 @@ export const demoReporterReports: ReporterReportSummary[] = [
     case: {
       case_number: "CASE-2026-0003",
       stage: "investigation_in_progress",
-      stage_label: "Investigation In Progress",
+      stage_label: "Investigation in Progress",
       assigned_unit: "Investigation Desk",
       current_role: "investigator",
       current_role_label: "Investigator",
@@ -257,7 +258,7 @@ export const demoTrackingRecord: TrackingRecord = {
   case: {
     case_number: "CASE-2026-DEMO",
     stage: "investigation_in_progress",
-    stage_label: "Investigation In Progress",
+    stage_label: "Investigation in Progress",
     assigned_unit: "Investigation Desk",
     sla_due_at: "2026-03-22T16:00:00.000Z",
   },
@@ -267,7 +268,7 @@ export const demoTrackingRecord: TrackingRecord = {
       stage_label: "Submitted",
       headline: "Report received",
       detail:
-        "The report was received from a registered reporter and routed to the supervisor of verificator.",
+        "The report was received from a registered reporter and routed to the verification supervisor.",
       actor_role: "system",
       occurred_at: "2026-03-04T08:30:00.000Z",
     },
@@ -282,7 +283,7 @@ export const demoTrackingRecord: TrackingRecord = {
     },
     {
       stage: "investigation_in_progress",
-      stage_label: "Investigation In Progress",
+      stage_label: "Investigation in Progress",
       headline: "Investigation delegated",
       detail:
         "The report is currently being analyzed in the investigation stage.",
@@ -300,7 +301,7 @@ export const demoWorkflowCases: WorkflowCase[] = [
     stage_label: "Submitted",
     status: "submitted",
     current_role: "supervisor_of_verificator",
-    current_role_label: "Supervisor of Verificator",
+    current_role_label: "Verification Supervisor",
     assigned_to: "Sinta Pramudita",
     assigned_unit: "Verification Supervision",
     severity: "high",
@@ -347,7 +348,7 @@ export const demoWorkflowCases: WorkflowCase[] = [
     stage_label: "Verification Review",
     status: "verification_review",
     current_role: "supervisor_of_verificator",
-    current_role_label: "Supervisor of Verificator",
+    current_role_label: "Verification Supervisor",
     assigned_to: "Sinta Pramudita",
     assigned_unit: "Verification Supervision",
     severity: "medium",
@@ -400,7 +401,7 @@ export const demoWorkflowCases: WorkflowCase[] = [
     id: 3,
     case_number: "CASE-2026-0003",
     stage: "investigation_in_progress",
-    stage_label: "Investigation In Progress",
+    stage_label: "Investigation in Progress",
     status: "investigation_in_progress",
     current_role: "investigator",
     current_role_label: "Investigator",
@@ -490,7 +491,7 @@ const demoGovernanceGlobal = {
   action_items: [
     {
       title: "Assign new verification intake",
-      detail: "Submitted reports should be delegated to a verificator without delay.",
+      detail: "Submitted reports should be delegated to a verification officer without delay.",
       href: "/workflow",
       count: 4,
       tone: "warning" as const,
@@ -533,7 +534,7 @@ const demoGovernanceGlobal = {
       code: "SEG-02",
       name: "Segregation of duties",
       description:
-        "Separate verification supervision, verification work, investigation supervision, and final approval.",
+        "Separate verification supervision, verification officer review, investigation supervision, and final approval.",
       owner_role: "Director",
       status: "active",
       target_metric: "Distinct accountable role at each stage",
@@ -545,7 +546,7 @@ const demoGovernanceGlobal = {
       name: "Workflow timeliness",
       description:
         "Monitor delegation and review timeliness across verification and investigation stages.",
-      owner_role: "Supervisor of Verificator",
+      owner_role: "Verification Supervisor",
       status: "warning",
       target_metric: "Average first delegation under 72 hours",
       current_metric: "18 hours",
@@ -612,9 +613,9 @@ export function demoGovernanceDashboardForRole(
   const specific = {
     supervisor_of_verificator: {
       role: "supervisor_of_verificator",
-      role_label: "Supervisor of Verificator",
+      role_label: "Verification Supervisor",
       scope_label:
-        "Your verification supervision workload plus all verificator activity currently under that functional scope.",
+        "Your verification supervision workload plus all verification officer activity currently under that functional scope.",
       metrics: [
         {
           label: "Cases in your scope",
@@ -631,7 +632,7 @@ export function demoGovernanceDashboardForRole(
         {
           label: "Team backlog",
           value: 5,
-          detail: "Pending queue and approval load currently held by verificators in scope.",
+          detail: "Pending queue and approval load currently held by verification officers in scope.",
           tone: "warning" as const,
         },
         {
@@ -644,7 +645,7 @@ export function demoGovernanceDashboardForRole(
       action_items: [
         {
           title: "Delegate submitted reports",
-          detail: "New reports should be assigned to a verificator for assessment.",
+          detail: "New reports should be assigned to a verification officer for assessment.",
           href: "/workflow",
           count: 2,
           tone: "warning" as const,
@@ -657,8 +658,8 @@ export function demoGovernanceDashboardForRole(
           tone: "warning" as const,
         },
         {
-          title: "Follow up verificator backlog",
-          detail: "Monitor open workload held by verificators in your scope.",
+          title: "Follow up verification officer backlog",
+          detail: "Monitor open workload held by verification officers in your scope.",
           href: "/governance",
           count: 5,
           tone: "warning" as const,
@@ -669,7 +670,7 @@ export function demoGovernanceDashboardForRole(
           is_self: true,
           subject_label: "Sinta Pramudita (You)",
           role: "supervisor_of_verificator",
-          role_label: "Supervisor of Verificator",
+          role_label: "Verification Supervisor",
           unit: "Verification Supervision",
           open_cases: 7,
           pending_queue: 2,
@@ -682,7 +683,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Aditya Prakoso",
           role: "verificator",
-          role_label: "Verificator",
+          role_label: "Verification Officer",
           unit: "Verification Desk",
           open_cases: 3,
           pending_queue: 2,
@@ -695,7 +696,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Nabila Kartika",
           role: "verificator",
-          role_label: "Verificator",
+          role_label: "Verification Officer",
           unit: "Verification Desk",
           open_cases: 2,
           pending_queue: 1,
@@ -708,7 +709,7 @@ export function demoGovernanceDashboardForRole(
     },
     verificator: {
       role: "verificator",
-      role_label: "Verificator",
+      role_label: "Verification Officer",
       scope_label: "Your own verification workload, timeliness, and completion performance.",
       metrics: [
         {
@@ -757,7 +758,7 @@ export function demoGovernanceDashboardForRole(
           is_self: true,
           subject_label: "Aditya Prakoso (You)",
           role: "verificator",
-          role_label: "Verificator",
+          role_label: "Verification Officer",
           unit: "Verification Desk",
           open_cases: 4,
           pending_queue: 3,
@@ -770,7 +771,7 @@ export function demoGovernanceDashboardForRole(
     },
     supervisor_of_investigator: {
       role: "supervisor_of_investigator",
-      role_label: "Supervisor of Investigator",
+      role_label: "Investigation Supervisor",
       scope_label:
         "Your investigation supervision workload plus all investigator activity currently under that functional scope.",
       metrics: [
@@ -827,7 +828,7 @@ export function demoGovernanceDashboardForRole(
           is_self: true,
           subject_label: "Bagas Santoso (You)",
           role: "supervisor_of_investigator",
-          role_label: "Supervisor of Investigator",
+          role_label: "Investigation Supervisor",
           unit: "Investigation Supervision",
           open_cases: 6,
           pending_queue: 2,
@@ -985,7 +986,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Sinta Pramudita",
           role: "supervisor_of_verificator",
-          role_label: "Supervisor of Verificator",
+          role_label: "Verification Supervisor",
           unit: "Verification Supervision",
           open_cases: 7,
           pending_queue: 2,
@@ -998,7 +999,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Aditya Prakoso",
           role: "verificator",
-          role_label: "Verificator",
+          role_label: "Verification Officer",
           unit: "Verification Desk",
           open_cases: 4,
           pending_queue: 3,
@@ -1011,7 +1012,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Bagas Santoso",
           role: "supervisor_of_investigator",
-          role_label: "Supervisor of Investigator",
+          role_label: "Investigation Supervisor",
           unit: "Investigation Supervision",
           open_cases: 6,
           pending_queue: 2,

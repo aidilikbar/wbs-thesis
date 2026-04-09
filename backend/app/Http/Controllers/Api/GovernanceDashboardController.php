@@ -154,7 +154,7 @@ class GovernanceDashboardController extends Controller
         return [
             [
                 'title' => 'Assign new verification intake',
-                'detail' => 'Submitted reports should be delegated to a verificator without delay.',
+                'detail' => 'Submitted reports should be delegated to a verification officer without delay.',
                 'href' => '/workflow',
                 'count' => $submitted,
                 'tone' => $this->toneForCount($submitted, 2, 5),
@@ -325,7 +325,7 @@ class GovernanceDashboardController extends Controller
             User::ROLE_SUPERVISOR_OF_VERIFICATOR => [
                 [
                     'title' => 'Delegate submitted reports',
-                    'detail' => 'New reports should be assigned to a verificator for assessment.',
+                    'detail' => 'New reports should be assigned to a verification officer for assessment.',
                     'href' => '/workflow',
                     'count' => $caseFiles->where('stage', 'submitted')->where('current_role', User::ROLE_SUPERVISOR_OF_VERIFICATOR)->count(),
                     'tone' => $this->toneForCount($caseFiles->where('stage', 'submitted')->where('current_role', User::ROLE_SUPERVISOR_OF_VERIFICATOR)->count(), 2, 5),
@@ -338,8 +338,8 @@ class GovernanceDashboardController extends Controller
                     'tone' => $this->toneForCount($caseFiles->where('stage', 'verification_review')->where('current_role', User::ROLE_SUPERVISOR_OF_VERIFICATOR)->count(), 2, 4),
                 ],
                 [
-                    'title' => 'Follow up verificator backlog',
-                    'detail' => 'Monitor open workload held by verificators in your scope.',
+                    'title' => 'Follow up verification officer backlog',
+                    'detail' => 'Monitor open workload held by verification officers in your scope.',
                     'href' => '/governance',
                     'count' => $subordinateBacklog,
                     'tone' => $this->toneForCount($subordinateBacklog, 3, 8),
@@ -547,7 +547,7 @@ class GovernanceDashboardController extends Controller
     private function scopeLabelForUser(User $user): string
     {
         return match ($user->role) {
-            User::ROLE_SUPERVISOR_OF_VERIFICATOR => 'Your verification supervision workload plus all verificator activity currently under that functional scope.',
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR => 'Your verification supervision workload plus all verification officer activity currently under that functional scope.',
             User::ROLE_VERIFICATOR => 'Your own verification workload, timeliness, and completion performance.',
             User::ROLE_SUPERVISOR_OF_INVESTIGATOR => 'Your investigation supervision workload plus all investigator activity currently under that functional scope.',
             User::ROLE_INVESTIGATOR => 'Your own investigation workload, timeliness, and completion performance.',

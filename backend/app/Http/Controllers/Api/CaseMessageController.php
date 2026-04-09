@@ -162,7 +162,7 @@ class CaseMessageController extends Controller
         abort_unless(
             $messages->canInternalSend($caseFile, $user),
             422,
-            'Only the assigned verificator or investigator may send messages during the active communication stage.'
+            'Only the assigned verification officer or investigator may send messages during the active communication stage.'
         );
 
         return $user;

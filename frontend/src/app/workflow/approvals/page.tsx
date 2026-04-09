@@ -18,7 +18,7 @@ export default async function WorkflowApprovalsPage({
         <p className="eyebrow">Approval Workflow</p>
         <h1 className="mt-4 text-5xl">Supervisor and director approval queue</h1>
         <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Review the cases awaiting approval from Supervisor of Verificator, Supervisor of Investigator, or Director, then open a dedicated approval page for the decision.
+          Review the cases awaiting approval from the verification supervisor, investigation supervisor, or director, then open a dedicated approval page for the decision.
         </p>
       </section>
       <section className="mt-8">

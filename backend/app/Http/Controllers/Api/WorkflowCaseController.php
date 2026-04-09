@@ -151,7 +151,7 @@ class WorkflowCaseController extends Controller
     #[OA\Patch(
         path: '/api/workflow/cases/{caseFile}/delegate-verification',
         operationId: 'delegateVerification',
-        summary: 'Delegate a submitted case to a verificator',
+        summary: 'Delegate a submitted case to a verification officer',
         tags: ['Workflow'],
         security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/DelegateCaseRequest')),
@@ -173,7 +173,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->delegateToVerificator($caseFile, $user, $assignee, $request->validated());
 
         return response()->json([
-            'message' => 'Report delegated to verificator.',
+            'message' => 'Report assigned to verification officer.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -181,7 +181,7 @@ class WorkflowCaseController extends Controller
     #[OA\Patch(
         path: '/api/workflow/cases/{caseFile}/submit-verification',
         operationId: 'submitVerification',
-        summary: 'Submit verification back to the supervisor of verificator',
+        summary: 'Submit verification back to the verification supervisor',
         tags: ['Workflow'],
         security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/SubmitWorkflowStageRequest')),
@@ -202,7 +202,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->submitVerification($caseFile, $user, $request->validated());
 
         return response()->json([
-            'message' => 'Verification submitted to supervisor.',
+            'message' => 'Verification submitted to the verification supervisor.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -269,7 +269,7 @@ class WorkflowCaseController extends Controller
     #[OA\Patch(
         path: '/api/workflow/cases/{caseFile}/submit-investigation',
         operationId: 'submitInvestigation',
-        summary: 'Submit investigation back to the supervisor of investigator',
+        summary: 'Submit investigation back to the investigation supervisor',
         tags: ['Workflow'],
         security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/SubmitWorkflowStageRequest')),
@@ -290,7 +290,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->submitInvestigation($caseFile, $user, $request->validated());
 
         return response()->json([
-            'message' => 'Investigation submitted to supervisor.',
+            'message' => 'Investigation submitted to the investigation supervisor.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }

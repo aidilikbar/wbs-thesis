@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { getRoleLabel } from "@/lib/labels";
 import { isSystemAdministrator } from "@/lib/roles";
 import type { AdminUserUpdatePayload, AuthUser } from "@/lib/types";
 
@@ -20,7 +21,7 @@ function buildEditForm(user: AuthUser): EditFormState {
   return {
     id: user.id,
     role: user.role,
-    role_label: user.role_label,
+    role_label: getRoleLabel(user.role, user.role_label),
     created_at: user.created_at,
     name: user.name,
     email: user.email,
@@ -297,7 +298,7 @@ export function AdminEditUserForm({ userId }: { userId: number }) {
             <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/48">
               Role
             </p>
-            <p>{form.role_label}</p>
+            <p>{getRoleLabel(form.role, form.role_label)}</p>
           </div>
           <div>
             <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/48">

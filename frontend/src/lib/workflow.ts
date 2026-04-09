@@ -1,23 +1,14 @@
 import type { UserRole, WorkflowCase, WorkflowDirectoryView } from "@/lib/types";
+import { getStageLabel } from "@/lib/labels";
 
 export const workflowActionLabels: Record<string, string> = {
-  delegate_verification: "Delegate to Verificator",
-  submit_verification: "Submit Verification",
-  review_verification: "Approval Review",
+  delegate_verification: "Assign Verification Officer",
+  submit_verification: "Submit Verification Findings",
+  review_verification: "Review Verification",
   delegate_investigation: "Delegate to Investigator",
-  submit_investigation: "Submit Analysis",
-  review_investigation: "Approval Review",
-  director_review: "Director Approval",
-};
-
-const stageLabels: Record<string, string> = {
-  submitted: "Submitted",
-  verification_in_progress: "Verification",
-  verification_review: "Verification Approval",
-  verified: "Verified",
-  investigation_in_progress: "Investigation",
-  investigation_review: "Investigation Approval",
-  director_review: "Director Approval",
+  submit_investigation: "Submit Investigation Findings",
+  review_investigation: "Review Investigation",
+  director_review: "Director Review",
 };
 
 export function workflowHasApprovalMenu(role?: string | null): boolean {
@@ -74,7 +65,7 @@ export function workflowStageOptions(
     { value: "all", label: "All stages" },
     ...stages.map((stage) => ({
       value: stage,
-      label: stageLabels[stage] ?? stage.replaceAll("_", " "),
+      label: getStageLabel(stage),
     })),
   ];
 }
