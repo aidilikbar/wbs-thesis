@@ -2,7 +2,14 @@
 
 KPK Whistleblowing System is a thesis prototype for **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**. It models a KPK-inspired operational flow while keeping the user-facing governance terminology aligned to ISO 37002-friendly English labels such as `Reporter`, `Verification Supervisor`, `Verification Officer`, `Investigation Supervisor`, and `Investigator`.
 
-Current release: [v0.1.3](https://github.com/aidilikbar/wbs-thesis/releases/tag/v0.1.3)
+Current release: [v0.2.0](https://github.com/aidilikbar/wbs-thesis/releases/tag/v0.2.0)
+
+## v0.2.0 Highlights
+
+- KPK-inspired workflow data has been aligned more closely with the current prototype flow while keeping user-facing governance terminology in ISO 37002-friendly English.
+- Reporter and internal case pages now use dedicated edit screens with persistent headers, tabs, compact top navigation, and consistent breadcrumbs.
+- Workflow handling covers screening, verification, investigation, approval, secure communication, and case timeline review from role-specific pages.
+- Local testing preparation has been expanded with refreshed seeded data, versioned database dumps, and detailed scenario guidance in [docs/account-test-cases.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/docs/account-test-cases.md).
 
 ## Current Scope
 
