@@ -25,20 +25,20 @@ import type {
 
 const workflowMilestones = [
   {
-    label: "Pengaduan Diterima",
-    description: "Laporan diterima dan diregistrasi ke alur kerja KPK.",
+    label: "Report Received",
+    description: "The report has been received and registered in the KPK workflow.",
   },
   {
-    label: "Sedang Diverifikasi",
-    description: "Verificator dan supervisornya menilai kelengkapan serta validitas awal.",
+    label: "Verification Underway",
+    description: "A verificator and the supervising reviewer are assessing initial completeness and validity.",
   },
   {
-    label: "Tindak Lanjut",
-    description: "Kasus bergerak ke investigasi, review supervisor, atau direktur.",
+    label: "Follow-up Review",
+    description: "The case is moving through investigation, supervisory review, or director decision.",
   },
   {
-    label: "Selesai",
-    description: "KPK telah menyelesaikan keputusan akhir untuk laporan ini.",
+    label: "Closed",
+    description: "KPK has completed the final decision for this report.",
   },
 ] as const;
 
@@ -316,7 +316,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
       <section className="panel rounded-[1rem] p-8">
         <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
           <div>
-            <p className="eyebrow">Status Aduan</p>
+            <p className="eyebrow">Report Status</p>
             <h2 className="mt-4 text-[clamp(2.4rem,5vw,4.4rem)]">{record.title}</h2>
             <p className="muted mt-4 max-w-3xl text-sm leading-8">
               This reporter detail page combines the case summary, current tracking
@@ -327,7 +327,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <article className="outline-panel rounded-[0.9rem] px-5 py-4">
                 <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Nomor Aduan
+                  Public Reference
                 </p>
                 <p className="mt-3 font-mono text-sm text-[var(--foreground)]">
                   {record.public_reference}
@@ -335,7 +335,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
               </article>
               <article className="outline-panel rounded-[0.9rem] px-5 py-4">
                 <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Nomor Kasus
+                  Case Number
                 </p>
                 <p className="mt-3 font-mono text-sm text-[var(--foreground)]">
                   {record.case.case_number ?? "Pending issuance"}
@@ -343,7 +343,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
               </article>
               <article className="outline-panel rounded-[0.9rem] px-5 py-4">
                 <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Status Aduan
+                  Report Status
                 </p>
                 <div className="mt-3">
                   <StatusBadge value={record.status} />
@@ -351,7 +351,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
               </article>
               <article className="outline-panel rounded-[0.9rem] px-5 py-4">
                 <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Identitas
+                  Reporter Identity
                 </p>
                 <p className="mt-3 text-sm text-[var(--foreground)]">
                   {confidentialityLabel}
@@ -359,7 +359,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
               </article>
               <article className="outline-panel rounded-[0.9rem] px-5 py-4">
                 <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Tanggal Pengaduan
+                  Submission Date
                 </p>
                 <p className="mt-3 text-sm text-[var(--foreground)]">
                   {formatDateTime(record.submitted_at)}
@@ -367,7 +367,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
               </article>
               <article className="outline-panel rounded-[0.9rem] px-5 py-4">
                 <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Token Pelacakan
+                  Tracking Token
                 </p>
                 <p className="mt-3 font-mono text-sm text-[var(--foreground)]">
                   {record.tracking_token}
@@ -495,7 +495,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
           <div className="mt-7 grid gap-5 md:grid-cols-2">
             <label className="block md:col-span-2">
               <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Judul
+                Title
               </span>
               <input
                 className="field"
@@ -508,7 +508,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
 
             <label className="block">
               <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Kategori
+                Category
               </span>
               <select
                 className="field"
@@ -526,7 +526,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
 
             <label className="block">
               <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Tanggal Kejadian
+                Incident Date
               </span>
               <input
                 className="field"
@@ -539,7 +539,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
 
             <label className="block md:col-span-2">
               <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Uraian
+                Description
               </span>
               <textarea
                 className="field min-h-44"
@@ -552,7 +552,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
 
             <label className="block">
               <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Lokasi
+                Location
               </span>
               <input
                 className="field"
@@ -564,7 +564,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
 
             <label className="block">
               <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Pihak Terduga
+                Accused Party
               </span>
               <input
                 className="field"
@@ -576,7 +576,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
 
             <label className="block md:col-span-2">
               <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Ringkasan Bukti
+                Evidence Summary
               </span>
               <textarea
                 className="field min-h-36"
