@@ -11,6 +11,9 @@ export function ReportAttachmentField({
   canMutate,
   isBusy,
   validationMessage,
+  kicker = "Step 03",
+  title = "Supporting Evidence Files",
+  headerNote = "PDF, images, office documents, CSV, TXT, and ZIP up to 20 MB each",
   onSelectedFilesChange,
   onDownloadAttachment,
   onDeleteAttachment,
@@ -20,6 +23,9 @@ export function ReportAttachmentField({
   canMutate: boolean;
   isBusy: boolean;
   validationMessage?: string | null;
+  kicker?: string;
+  title?: string;
+  headerNote?: string;
   onSelectedFilesChange: (files: File[]) => void;
   onDownloadAttachment?: (attachment: ReportAttachment) => void;
   onDeleteAttachment?: (attachmentId: number) => void;
@@ -28,11 +34,11 @@ export function ReportAttachmentField({
     <section className="panel rounded-[1rem] p-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Step 03</p>
-          <h2 className="mt-3 text-4xl">Supporting Evidence Files</h2>
+          <p className="eyebrow">{kicker}</p>
+          <h2 className="mt-3 text-4xl">{title}</h2>
         </div>
         <p className="max-w-sm text-right font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-          PDF, images, office documents, CSV, TXT, and ZIP up to 20 MB each
+          {headerNote}
         </p>
       </div>
 

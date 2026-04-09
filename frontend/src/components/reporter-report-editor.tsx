@@ -24,6 +24,8 @@ import type {
   SubmissionPayload,
 } from "@/lib/types";
 
+type ReporterTab = "details" | "communication";
+
 const workflowMilestones = [
   {
     label: "Report Received",
@@ -100,6 +102,7 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
   const [attachmentMessage, setAttachmentMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<ReporterTab>("details");
   const [isPending, startTransition] = useTransition();
 
   const isReporterUser = isReporter(user?.role);
@@ -312,21 +315,106 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
     confidentialityOptions,
     form.confidentiality_level,
   );
+  const tabs: Array<{ id: ReporterTab; label: string }> = [
+    { id: "details", label: "Case Details" },
+    { id: "communication", label: "Secure Communication" },
+  ];
 
   return (
     <div className="space-y-6">
       <section className="panel rounded-[1rem] p-8">
-        <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="eyebrow">Report Status</p>
+            <p className="eyebrow">Report</p>
             <h2 className="mt-4 text-[clamp(2.4rem,5vw,4.4rem)]">{record.title}</h2>
             <p className="muted mt-4 max-w-3xl text-sm leading-8">
-              This reporter detail page combines the case summary, current tracking
-              status, and editable filing content in one authenticated view. Public
-              tracking at `/track` remains available for token-based lookup.
+              Review the current report state, inspect protected case details, use secure communication when available, and revise the filing from one authenticated workspace.
             </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <StatusBadge value={record.status} />
+            <StatusBadge value={record.severity} />
+            <button
+              type="button"
+              onClick={() => router.push("/submit")}
+              className="ghost-button cursor-pointer"
+            >
+              Back to Reports
+            </button>
+          </div>
+        </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-8 space-y-6">
+          <div className="space-y-4">
+            <div className="dark-card rounded-[1rem] border border-white/8 p-6">
+              <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary)]">
+                Tracking Status
+              </p>
+              <div className="mt-5 grid gap-5 lg:grid-cols-[1.05fr_0.95fr_0.95fr]">
+                <div>
+                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
+                    Current Stage
+                  </p>
+                  <p className="mt-1 text-white">
+                    {getStageLabel(record.case.stage, record.case.stage_label) ||
+                      "Awaiting assignment"}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
+                    Assigned Unit
+                  </p>
+                  <p className="mt-1 text-white">
+                    {record.case.assigned_unit ?? "Protected routing"}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
+                    Last Public Update
+                  </p>
+                  <p className="mt-1 text-white">
+                    {record.last_public_update_at
+                      ? formatDateTime(record.last_public_update_at)
+                      : "No public update published yet"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {workflowMilestones.map((step, index) => {
+                const state =
+                  index < currentMilestone
+                    ? "completed"
+                    : index === currentMilestone
+                      ? "current"
+                      : "pending";
+
+                return (
+                  <article
+                    key={step.label}
+                    className={`rounded-[0.9rem] border px-5 py-5 ${
+                      state === "completed"
+                        ? "border-[rgba(197,160,34,0.36)] bg-[rgba(197,160,34,0.14)]"
+                        : state === "current"
+                          ? "border-[rgba(239,47,39,0.18)] bg-[rgba(239,47,39,0.06)]"
+                          : "border-[var(--panel-border)] bg-white/76"
+                    }`}
+                  >
+                    <p className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
+                      Step {String(index + 1).padStart(2, "0")}
+                    </p>
+                    <h4 className="mt-3 text-lg">{step.label}</h4>
+                    <p className="muted mt-3 text-sm leading-7">{step.description}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="eyebrow">Report Information</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <article className="outline-panel rounded-[0.9rem] px-5 py-4">
                 <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
                   Public Reference
@@ -377,368 +465,56 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
               </article>
             </div>
           </div>
-
-          <aside className="space-y-4">
-            <div className="dark-card rounded-[1rem] border border-white/8 p-6">
-              <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary)]">
-                Tracking Snapshot
-              </p>
-              <div className="mt-5 space-y-4 text-sm leading-7 text-white/76">
-                <div>
-                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                    Current Stage
-                  </p>
-                  <p className="mt-1 text-white">
-                    {getStageLabel(record.case.stage, record.case.stage_label) ||
-                      "Awaiting assignment"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                    Assigned Unit
-                  </p>
-                  <p className="mt-1 text-white">
-                    {record.case.assigned_unit ?? "Protected routing"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                    Last Public Update
-                  </p>
-                  <p className="mt-1 text-white">
-                    {record.last_public_update_at
-                      ? formatDateTime(record.last_public_update_at)
-                      : "No public update published yet"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="accent-card rounded-[1rem] border border-[var(--panel-border)] p-6">
-              <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary-strong)]">
-                Reporter Account
-              </p>
-              <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
-                Identity and contact details are now managed from the top-right profile
-                page instead of inside the filing form.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link href="/profile" className="ghost-button">
-                  Open Profile
-                </Link>
-                <Link href="/track" className="primary-button">
-                  Public Tracking
-                </Link>
-              </div>
-            </div>
-          </aside>
         </div>
       </section>
 
-      <section className="panel rounded-[1rem] p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="eyebrow">Tracking Status</p>
-            <h3 className="mt-3 text-3xl">Reporter-facing case progress</h3>
-            <p className="muted mt-4 max-w-3xl text-sm leading-7">
-              This timeline mirrors the public-safe milestones already available in the
-              tracking portal, but keeps them visible directly inside the report record.
-            </p>
-          </div>
-          <StatusBadge value={record.status} />
-        </div>
-
-        <div className="mt-6 grid gap-4 xl:grid-cols-4">
-          {workflowMilestones.map((step, index) => {
-            const state =
-              index < currentMilestone
-                ? "completed"
-                : index === currentMilestone
-                  ? "current"
-                  : "pending";
+      <section className="panel rounded-[1rem] p-4 sm:p-5">
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
 
             return (
-              <article
-                key={step.label}
-                className={`rounded-[0.9rem] border px-5 py-5 ${
-                  state === "completed"
-                    ? "border-[rgba(197,160,34,0.36)] bg-[rgba(197,160,34,0.14)]"
-                    : state === "current"
-                      ? "border-[rgba(239,47,39,0.18)] bg-[rgba(239,47,39,0.06)]"
-                      : "border-[var(--panel-border)] bg-white/76"
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`rounded-[0.8rem] border px-4 py-3 text-sm font-semibold transition ${
+                  isActive
+                    ? "border-[rgba(239,47,39,0.2)] bg-[rgba(239,47,39,0.08)] text-[var(--primary)]"
+                    : "border-[var(--panel-border)] bg-white/76 text-[var(--muted)] hover:bg-white"
                 }`}
               >
-                <p className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Step {String(index + 1).padStart(2, "0")}
-                </p>
-                <h4 className="mt-3 text-lg">{step.label}</h4>
-                <p className="muted mt-3 text-sm leading-7">{step.description}</p>
-              </article>
+                {tab.label}
+              </button>
             );
           })}
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.04fr_0.96fr]">
-        <form className="panel rounded-[1rem] p-8" onSubmit={handleSubmit}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="eyebrow">Detail</p>
-              <h3 className="mt-3 text-3xl">Report content</h3>
-              <p className="muted mt-4 max-w-2xl text-sm leading-7">
-                Simplified filing fields for the reporter. The case reference, progress,
-                and account identity are handled outside this form.
-              </p>
-            </div>
-            <p className="rounded-[0.7rem] border border-[var(--panel-border)] bg-[rgba(255,255,255,0.72)] px-4 py-3 font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-              {record.category_label}
-            </p>
-          </div>
-
-          <div className="mt-7 grid gap-5 md:grid-cols-2">
-            <label className="block md:col-span-2">
-              <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Title
-              </span>
-              <input
-                className="field"
-                value={form.title}
-                onChange={(event) => updateField("title", event.target.value)}
-                disabled={editLocked}
-                required
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Category
-              </span>
-              <select
-                className="field"
-                value={form.category}
-                onChange={(event) => updateField("category", event.target.value)}
-                disabled={editLocked}
-              >
-                {categoryOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Incident Date
-              </span>
-              <input
-                className="field"
-                type="date"
-                value={form.incident_date}
-                onChange={(event) => updateField("incident_date", event.target.value)}
-                disabled={editLocked}
-              />
-            </label>
-
-            <label className="block md:col-span-2">
-              <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Description
-              </span>
-              <textarea
-                className="field min-h-44"
-                value={form.description}
-                onChange={(event) => updateField("description", event.target.value)}
-                disabled={editLocked}
-                required
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Location
-              </span>
-              <input
-                className="field"
-                value={form.incident_location}
-                onChange={(event) => updateField("incident_location", event.target.value)}
-                disabled={editLocked}
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Accused Party
-              </span>
-              <input
-                className="field"
-                value={form.accused_party}
-                onChange={(event) => updateField("accused_party", event.target.value)}
-                disabled={editLocked}
-              />
-            </label>
-
-            <label className="block md:col-span-2">
-              <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-                Evidence Summary
-              </span>
-              <textarea
-                className="field min-h-36"
-                value={form.evidence_summary}
-                onChange={(event) => updateField("evidence_summary", event.target.value)}
-                disabled={editLocked}
-              />
-            </label>
-          </div>
-
-          <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_1fr]">
-            <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
-              <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                Protection
-              </p>
-              <label className="mt-4 block rounded-[0.8rem] border border-[var(--panel-border)] bg-white p-4">
-                <span className="flex items-start gap-4">
-                  <input
-                    type="checkbox"
-                    checked={form.confidentiality_level === "anonymous"}
-                    onChange={(event) =>
-                      updateField(
-                        "confidentiality_level",
-                        event.target.checked ? "anonymous" : "identified",
-                      )
-                    }
-                    disabled={editLocked}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="block font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                      Anonymous Submission
-                    </span>
-                    <span className="mt-2 block text-sm font-semibold text-[var(--foreground)]">
-                      {form.confidentiality_level === "anonymous"
-                        ? "Case handlers cannot view your identity."
-                        : "Authorized case handlers can view your identity."}
-                    </span>
-                    <span className="muted mt-3 block text-sm leading-7">
-                      The report still belongs to your authenticated reporter account, so you can continue to access, edit, and track it normally.
-                    </span>
-                  </span>
-                </span>
-              </label>
-
-              <div className="mt-5 space-y-3 text-sm">
-                <label className="outline-panel flex items-center gap-3 rounded-[0.75rem] px-4 py-4">
-                  <input
-                    type="checkbox"
-                    checked={form.witness_available}
-                    onChange={(event) =>
-                      updateField("witness_available", event.target.checked)
-                    }
-                    disabled={editLocked}
-                  />
-                  Witnesses are available for protected follow-up
-                </label>
-                <label className="outline-panel flex items-center gap-3 rounded-[0.75rem] px-4 py-4">
-                  <input
-                    type="checkbox"
-                    checked={form.requested_follow_up}
-                    onChange={(event) =>
-                      updateField("requested_follow_up", event.target.checked)
-                    }
-                    disabled={editLocked}
-                  />
-                  Reporter requests secure follow-up
-                </label>
-              </div>
-            </div>
-
-            <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
-              <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                Governance Tags
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {governanceTagOptions.map((tag) => {
-                  const active = form.governance_tags.includes(tag.value);
-
-                  return (
-                    <button
-                      key={tag.value}
-                      type="button"
-                      onClick={() => toggleTag(tag.value)}
-                      disabled={editLocked}
-                      className={`rounded-[0.35rem] border px-4 py-3 text-[0.72rem] font-mono uppercase tracking-[0.22em] transition ${
-                        active
-                          ? "border-[rgba(239,47,39,0.18)] bg-[rgba(239,47,39,0.1)] text-[var(--primary-strong)]"
-                          : "border-[var(--panel-border)] bg-white text-[var(--foreground)]"
-                      } disabled:cursor-not-allowed disabled:opacity-60`}
-                    >
-                      {tag.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <ReportAttachmentField
-              selectedFiles={selectedFiles}
-              existingAttachments={record.attachments}
-              canMutate={!editLocked}
-              isBusy={isPending}
-              validationMessage={attachmentMessage}
-              onSelectedFilesChange={handleSelectedFilesChange}
-              onDownloadAttachment={handleDownloadAttachment}
-              onDeleteAttachment={handleDeleteAttachment}
-            />
-          </div>
-
-          {message ? (
-            <p className="mt-6 rounded-[0.8rem] border border-amber-200 bg-amber-100 px-4 py-4 text-sm text-amber-900">
-              {message}
-            </p>
-          ) : null}
-
-          {editLocked && record.edit_lock_reason ? (
-            <p className="mt-6 rounded-[0.8rem] border border-amber-200 bg-amber-100 px-4 py-4 text-sm text-amber-900">
-              {record.edit_lock_reason}
-            </p>
-          ) : null}
-
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--panel-border)] pt-6">
-            <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
-              Saving writes a new reporter update into the existing case audit trail, then
-              returns you to the report index.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/submit")}
-                className="ghost-button cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending || editLocked}
-                className="primary-button disabled:opacity-60"
-              >
-                {isPending ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          </div>
-        </form>
-
-        <div className="space-y-6">
+      {activeTab === "details" ? (
+        <section className="space-y-6">
           <section className="panel rounded-[1rem] p-8">
-            <p className="eyebrow">DETAIL</p>
-            <h3 className="mt-3 text-3xl">Current case snapshot</h3>
-            <dl className="mt-6 grid gap-4 md:grid-cols-2">
+            <p className="eyebrow">Case Record</p>
+            <h3 className="mt-3 text-3xl">Case Record</h3>
+            <p className="muted mt-4 max-w-3xl text-sm leading-7">
+              Review the current report state and public-safe case routing information before revising the submission.
+            </p>
+
+            <dl className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
                 <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                   Category
                 </dt>
                 <dd className="mt-2 text-sm text-[var(--foreground)]">
                   {record.category_label}
+                </dd>
+              </div>
+              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
+                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Current Stage
+                </dt>
+                <dd className="mt-2 text-sm text-[var(--foreground)]">
+                  {getStageLabel(record.case.stage, record.case.stage_label) || "Awaiting assignment"}
                 </dd>
               </div>
               <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
@@ -764,12 +540,62 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
                 </dt>
                 <dd className="mt-2 text-sm text-[var(--foreground)]">{record.severity}</dd>
               </div>
+              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
+                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Incident Date
+                </dt>
+                <dd className="mt-2 text-sm text-[var(--foreground)]">
+                  {record.incident_date ? formatDateTime(record.incident_date) : "Not recorded"}
+                </dd>
+              </div>
+              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
+                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Incident Location
+                </dt>
+                <dd className="mt-2 text-sm text-[var(--foreground)]">
+                  {record.incident_location ?? "Not recorded"}
+                </dd>
+              </div>
+              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
+                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Accused Party
+                </dt>
+                <dd className="mt-2 text-sm text-[var(--foreground)]">
+                  {record.accused_party ?? "Not recorded"}
+                </dd>
+              </div>
             </dl>
-          </section>
 
-          <section className="panel rounded-[1rem] p-8">
-            <p className="eyebrow">TRACKING</p>
-            <h3 className="mt-3 text-3xl">Public-safe milestone history</h3>
+            <div className="mt-6 grid gap-5 lg:grid-cols-[1.08fr_0.92fr]">
+              <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Evidence Summary
+                </p>
+                <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
+                  {record.evidence_summary ?? "No evidence summary recorded."}
+                </p>
+              </div>
+              <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Governance Tags
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {record.governance_tags.length > 0 ? (
+                    record.governance_tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-[var(--panel-border)] px-3 py-1 text-xs uppercase tracking-[0.16em] text-[var(--muted)]"
+                      >
+                        {tag.replaceAll("_", " ")}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-[var(--muted)]">No governance tags.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {record.timeline.length > 0 ? (
               <div className="mt-6 space-y-4">
                 {record.timeline.map((item, index) => (
@@ -799,20 +625,264 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
                   </article>
                 ))}
               </div>
-            ) : (
-              <p className="muted mt-6 text-sm leading-7">
-                No public milestones have been published yet beyond the initial submission.
-              </p>
-            )}
+            ) : null}
           </section>
+
+          <ReportAttachmentField
+            selectedFiles={selectedFiles}
+            existingAttachments={record.attachments}
+            canMutate={!editLocked}
+            isBusy={isPending}
+            validationMessage={attachmentMessage}
+            kicker="File Repository"
+            title="Case Attachment"
+            headerNote="Upload or maintain private supporting files linked to this report record"
+            onSelectedFilesChange={handleSelectedFilesChange}
+            onDownloadAttachment={handleDownloadAttachment}
+            onDeleteAttachment={handleDeleteAttachment}
+          />
+        </section>
+      ) : null}
+
+      {activeTab === "communication" ? (
+        <CaseMessageBoard
+          token={token}
+          scope={{ kind: "reporter", reportId: record.id }}
+        />
+      ) : null}
+
+      <form className="panel rounded-[1rem] p-8" onSubmit={handleSubmit}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="eyebrow">Report Update</p>
+            <h3 className="mt-3 text-3xl">Edit report content</h3>
+            <p className="muted mt-4 max-w-2xl text-sm leading-7">
+              Revise the report content here. Attachment selections from the Case Attachment tab are uploaded when you save changes.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/profile" className="ghost-button">
+              Open Profile
+            </Link>
+            <Link href="/track" className="primary-button">
+              Public Tracking
+            </Link>
+          </div>
         </div>
-      </div>
 
-      <CaseMessageBoard
-        token={token}
-        scope={{ kind: "reporter", reportId: record.id }}
-      />
+        <div className="mt-7 grid gap-5 md:grid-cols-2">
+          <label className="block md:col-span-2">
+            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
+              Title
+            </span>
+            <input
+              className="field"
+              value={form.title}
+              onChange={(event) => updateField("title", event.target.value)}
+              disabled={editLocked}
+              required
+            />
+          </label>
 
+          <label className="block">
+            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
+              Category
+            </span>
+            <select
+              className="field"
+              value={form.category}
+              onChange={(event) => updateField("category", event.target.value)}
+              disabled={editLocked}
+            >
+              {categoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
+              Incident Date
+            </span>
+            <input
+              className="field"
+              type="date"
+              value={form.incident_date}
+              onChange={(event) => updateField("incident_date", event.target.value)}
+              disabled={editLocked}
+            />
+          </label>
+
+          <label className="block md:col-span-2">
+            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
+              Description
+            </span>
+            <textarea
+              className="field min-h-44"
+              value={form.description}
+              onChange={(event) => updateField("description", event.target.value)}
+              disabled={editLocked}
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
+              Location
+            </span>
+            <input
+              className="field"
+              value={form.incident_location}
+              onChange={(event) => updateField("incident_location", event.target.value)}
+              disabled={editLocked}
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
+              Accused Party
+            </span>
+            <input
+              className="field"
+              value={form.accused_party}
+              onChange={(event) => updateField("accused_party", event.target.value)}
+              disabled={editLocked}
+            />
+          </label>
+
+          <label className="block md:col-span-2">
+            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
+              Evidence Summary
+            </span>
+            <textarea
+              className="field min-h-36"
+              value={form.evidence_summary}
+              onChange={(event) => updateField("evidence_summary", event.target.value)}
+              disabled={editLocked}
+            />
+          </label>
+        </div>
+
+        <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_1fr]">
+          <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
+            <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+              Protection
+            </p>
+            <label className="mt-4 block rounded-[0.8rem] border border-[var(--panel-border)] bg-white p-4">
+              <span className="flex items-start gap-4">
+                <input
+                  type="checkbox"
+                  checked={form.confidentiality_level === "anonymous"}
+                  onChange={(event) =>
+                    updateField(
+                      "confidentiality_level",
+                      event.target.checked ? "anonymous" : "identified",
+                    )
+                  }
+                  disabled={editLocked}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                    Anonymous Submission
+                  </span>
+                  <span className="mt-2 block text-sm font-semibold text-[var(--foreground)]">
+                    {form.confidentiality_level === "anonymous"
+                      ? "Case handlers cannot view your identity."
+                      : "Authorized case handlers can view your identity."}
+                  </span>
+                  <span className="muted mt-3 block text-sm leading-7">
+                    The report still belongs to your authenticated reporter account, so you can continue to access, edit, and track it normally.
+                  </span>
+                </span>
+              </span>
+            </label>
+
+            <div className="mt-5 space-y-3 text-sm">
+              <label className="outline-panel flex items-center gap-3 rounded-[0.75rem] px-4 py-4">
+                <input
+                  type="checkbox"
+                  checked={form.witness_available}
+                  onChange={(event) =>
+                    updateField("witness_available", event.target.checked)
+                  }
+                  disabled={editLocked}
+                />
+                Witnesses are available for protected follow-up
+              </label>
+              <label className="outline-panel flex items-center gap-3 rounded-[0.75rem] px-4 py-4">
+                <input
+                  type="checkbox"
+                  checked={form.requested_follow_up}
+                  onChange={(event) =>
+                    updateField("requested_follow_up", event.target.checked)
+                  }
+                  disabled={editLocked}
+                />
+                Reporter requests secure follow-up
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
+            <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+              Governance Tags
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {governanceTagOptions.map((tag) => {
+                const active = form.governance_tags.includes(tag.value);
+
+                return (
+                  <button
+                    key={tag.value}
+                    type="button"
+                    onClick={() => toggleTag(tag.value)}
+                    disabled={editLocked}
+                    className={`rounded-[0.35rem] border px-4 py-3 text-[0.72rem] font-mono uppercase tracking-[0.22em] transition ${
+                      active
+                        ? "border-[rgba(239,47,39,0.18)] bg-[rgba(239,47,39,0.1)] text-[var(--primary-strong)]"
+                        : "border-[var(--panel-border)] bg-white text-[var(--foreground)]"
+                    } disabled:cursor-not-allowed disabled:opacity-60`}
+                  >
+                    {tag.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {message ? (
+          <p className="mt-6 rounded-[0.8rem] border border-amber-200 bg-amber-100 px-4 py-4 text-sm text-amber-900">
+            {message}
+          </p>
+        ) : null}
+
+        {editLocked && record.edit_lock_reason ? (
+          <p className="mt-6 rounded-[0.8rem] border border-amber-200 bg-amber-100 px-4 py-4 text-sm text-amber-900">
+            {record.edit_lock_reason}
+          </p>
+        ) : null}
+
+        <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-[var(--panel-border)] pt-6">
+          <button
+            type="button"
+            onClick={() => router.push("/submit")}
+            className="ghost-button cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isPending || editLocked}
+            className="primary-button disabled:opacity-60"
+          >
+            {isPending ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
