@@ -80,9 +80,10 @@ export function AppShell({ children }: PropsWithChildren) {
       </div>
 
       <div className="mx-auto max-w-[1520px] px-5 pb-12 sm:px-8">
-        <header className="border-b border-[var(--panel-border)] bg-white/72">
-          <div className="flex flex-col gap-5 py-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-6">
+        <header className="sticky top-0 z-40 -mx-5 border-b border-[rgba(19,19,19,0.08)] bg-[rgba(255,251,246,0.9)] backdrop-blur-xl sm:-mx-8">
+          <div className="px-5 py-3 sm:px-8">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center">
               <Link href="/" className="inline-flex items-center">
                 <Image
                   src="/logos/kws_logo_header.png"
@@ -90,76 +91,79 @@ export function AppShell({ children }: PropsWithChildren) {
                   width={2869}
                   height={818}
                   priority
-                  className="h-auto w-[112px] sm:w-[124px] lg:w-[136px]"
+                  className="h-auto w-[92px] sm:w-[104px] lg:w-[112px]"
                 />
               </Link>
 
-              <nav className="flex flex-wrap items-center gap-6 sm:gap-8">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`nav-link ${isNavItemActive(item.href) ? "is-active" : ""}`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-            </div>
-
-            <div className="flex flex-col gap-3 xl:items-end">
-              {isReady ? (
-                isAuthenticated && user ? (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Link
-                      href="/profile"
-                      className={`outline-panel flex items-center gap-3 rounded-[0.8rem] px-4 py-3 text-sm transition ${
-                        pathname === "/profile"
-                          ? "border-[rgba(239,47,39,0.24)] bg-[rgba(239,47,39,0.06)]"
-                          : ""
-                      }`}
-                    >
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(239,47,39,0.1)] font-mono text-xs font-bold uppercase text-[var(--primary)]">
-                        {user.name
-                          .split(" ")
-                          .filter(Boolean)
-                          .slice(0, 2)
-                          .map((part) => part[0]?.toUpperCase())
-                          .join("") || "U"}
-                      </span>
-                      <span className="text-left text-[var(--muted)]">
-                        <span className="block font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--primary)]">
-                          Profile
-                        </span>
-                        <span className="mt-1 block font-semibold text-[var(--foreground)]">
-                          {user.name}
-                        </span>
-                      </span>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      disabled={isPending}
-                      className="dark-button disabled:opacity-60"
-                    >
-                      {isPending ? "Signing out" : "Logout"}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Link href="/login" className="ghost-button">
-                      Login
-                    </Link>
-                    <Link href="/register" className="primary-button">
-                      Register
-                    </Link>
-                  </div>
-                )
-              ) : (
-                <div className="outline-panel rounded-[0.7rem] px-4 py-3 text-sm text-[var(--muted)]">
-                  Loading session information.
+                <div className="-mx-1 overflow-x-auto pb-1">
+                  <nav className="flex min-w-max items-center gap-2 px-1">
+                    {navItems.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`nav-link ${isNavItemActive(item.href) ? "is-active" : ""}`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </nav>
                 </div>
-              )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                {isReady ? (
+                  isAuthenticated && user ? (
+                    <>
+                      <Link
+                        href="/profile"
+                        className={`outline-panel flex min-w-0 items-center gap-3 rounded-[0.9rem] px-3 py-2.5 text-sm transition ${
+                          pathname === "/profile"
+                            ? "border-[rgba(239,47,39,0.24)] bg-[rgba(239,47,39,0.06)]"
+                            : ""
+                        }`}
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(239,47,39,0.1)] font-mono text-[0.68rem] font-bold uppercase text-[var(--primary)]">
+                          {user.name
+                            .split(" ")
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((part) => part[0]?.toUpperCase())
+                            .join("") || "U"}
+                        </span>
+                        <span className="min-w-0 text-left text-[var(--muted)]">
+                          <span className="block truncate text-sm font-semibold text-[var(--foreground)]">
+                            {user.name}
+                          </span>
+                        </span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        disabled={isPending}
+                        className="dark-button !px-4 !py-2.5 !text-[0.64rem] disabled:opacity-60"
+                      >
+                        {isPending ? "Signing out" : "Logout"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/login" className="ghost-button !px-4 !py-2.5 !text-[0.64rem]">
+                        Login
+                      </Link>
+                      <Link
+                        href="/register"
+                        className="primary-button !px-4 !py-2.5 !text-[0.64rem]"
+                      >
+                        Register
+                      </Link>
+                    </>
+                  )
+                ) : (
+                  <div className="outline-panel rounded-[0.8rem] px-3 py-2 text-xs text-[var(--muted)]">
+                    Loading session information.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
