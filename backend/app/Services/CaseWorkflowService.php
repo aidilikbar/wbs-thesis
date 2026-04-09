@@ -367,13 +367,16 @@ class CaseWorkflowService
 
         return DB::transaction(function () use ($caseFile, $verificator, $payload) {
             $submittedAt = now();
+            $summary = $payload['summary'] ?? $payload['internal_note'] ?? '';
+            $reason = $payload['reason'] ?? $summary;
+            $recommendation = $payload['recommendation'] ?? 'review';
             $verificationPayload = [
-                'summary' => $payload['summary'],
+                'summary' => $summary,
                 'corruption_aspect_tags' => array_values($payload['corruption_aspect_tags'] ?? []),
-                'has_authority' => (bool) $payload['has_authority'],
-                'criminal_assessment' => $payload['criminal_assessment'],
-                'reason' => $payload['reason'],
-                'recommendation' => $payload['recommendation'],
+                'has_authority' => (bool) ($payload['has_authority'] ?? true),
+                'criminal_assessment' => $payload['criminal_assessment'] ?? 'indicated',
+                'reason' => $reason,
+                'recommendation' => $recommendation,
                 'forwarding_destination' => $payload['forwarding_destination'] ?? null,
             ];
 
@@ -384,7 +387,7 @@ class CaseWorkflowService
                 'assigned_unit' => $caseFile->verificationSupervisor?->unit ?: $caseFile->verificationSupervisor?->role_label,
                 'assigned_to' => $caseFile->verificationSupervisor?->name,
                 'last_activity_at' => $submittedAt,
-                'notes' => $payload['summary'],
+                'notes' => $summary,
                 'verification_payload' => $verificationPayload,
             ])->save();
 
@@ -401,7 +404,7 @@ class CaseWorkflowService
                 visibility: 'internal',
                 stage: 'verification_review',
                 headline: 'Verification assessment submitted',
-                detail: $payload['summary'],
+                detail: $summary,
                 actorRole: $verificator->role,
                 actorName: $verificator->name,
                 occurredAt: $submittedAt,
@@ -438,6 +441,7 @@ class CaseWorkflowService
 
         return DB::transaction(function () use ($caseFile, $supervisor, $payload) {
             $reviewedAt = now();
+            $approvalNote = $payload['approval_note'] ?? $payload['internal_note'] ?? '';
             $approved = $payload['decision'] === 'approved';
             $verificationPayload = $caseFile->verification_payload ?? [];
             $recommendation = $verificationPayload['recommendation'] ?? 'review';
@@ -446,7 +450,7 @@ class CaseWorkflowService
                 : null;
             $verificationApprovalPayload = [
                 'decision' => $payload['decision'],
-                'approval_note' => $payload['approval_note'],
+                'approval_note' => $approvalNote,
             ];
             $nextStage = match (true) {
                 ! $approved => 'verification_in_progress',
@@ -481,7 +485,7 @@ class CaseWorkflowService
                     ? $reviewSupervisor->id
                     : $caseFile->investigation_supervisor_id,
                 'last_activity_at' => $reviewedAt,
-                'notes' => $payload['approval_note'],
+                'notes' => $approvalNote,
                 'verification_approval_payload' => $verificationApprovalPayload,
                 'completed_at' => $approved && $recommendation !== 'review' ? $reviewedAt : null,
             ])->save();
@@ -502,7 +506,7 @@ class CaseWorkflowService
                     $recommendation === 'forward' => 'Verification approved for forwarding completion',
                     default => 'Verification approved for archival completion',
                 },
-                detail: $payload['approval_note'],
+                detail: $approvalNote,
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $reviewedAt,
@@ -626,26 +630,42 @@ class CaseWorkflowService
 
         return DB::transaction(function () use ($caseFile, $investigator, $payload) {
             $submittedAt = now();
+            $report = $caseFile->report;
+            $incidentDate = $report?->incident_date ?? $submittedAt;
+            $legacyNote = $payload['conclusion'] ?? $payload['internal_note'] ?? '';
+            $reportedParties = $payload['reported_parties'] ?? $report?->reported_parties ?? [];
+
+            if ($reportedParties === []) {
+                $accusedParty = trim((string) ($report?->accused_party ?? ''));
+                $reportedParties = $accusedParty === ''
+                    ? []
+                    : [[
+                        'full_name' => $accusedParty,
+                        'position' => 'Not specified',
+                        'classification' => 'other',
+                    ]];
+            }
+
             $reviewPayload = [
-                'case_name' => $payload['case_name'],
-                'reported_parties' => array_values($payload['reported_parties']),
-                'description' => $payload['description'],
+                'case_name' => $payload['case_name'] ?? $report?->title ?? 'Untitled case',
+                'reported_parties' => array_values($reportedParties),
+                'description' => $payload['description'] ?? $report?->description ?? '',
                 'corruption_aspect_tags' => array_values($payload['corruption_aspect_tags'] ?? []),
-                'recommendation' => $payload['recommendation'],
-                'delict' => $payload['delict'],
-                'article' => $payload['article'],
-                'start_month' => $payload['start_month'],
-                'start_year' => $payload['start_year'],
-                'end_month' => $payload['end_month'],
-                'end_year' => $payload['end_year'],
-                'city' => $payload['city'],
-                'province' => $payload['province'],
-                'modus' => $payload['modus'],
-                'related_report_reference' => $payload['related_report_reference'] ?? null,
-                'has_authority' => (bool) $payload['has_authority'],
-                'is_priority' => (bool) $payload['is_priority'],
+                'recommendation' => $payload['recommendation'] ?? 'internal_forwarding',
+                'delict' => $payload['delict'] ?? 'other',
+                'article' => $payload['article'] ?? 'article_2_31_1999',
+                'start_month' => $payload['start_month'] ?? $incidentDate->format('m'),
+                'start_year' => $payload['start_year'] ?? $incidentDate->format('Y'),
+                'end_month' => $payload['end_month'] ?? $incidentDate->format('m'),
+                'end_year' => $payload['end_year'] ?? $incidentDate->format('Y'),
+                'city' => $payload['city'] ?? 'Not specified',
+                'province' => $payload['province'] ?? 'Not specified',
+                'modus' => $payload['modus'] ?? ($legacyNote !== '' ? $legacyNote : ($report?->description ?? '')),
+                'related_report_reference' => $payload['related_report_reference'] ?? $report?->public_reference,
+                'has_authority' => (bool) ($payload['has_authority'] ?? true),
+                'is_priority' => (bool) ($payload['is_priority'] ?? false),
                 'additional_information' => $payload['additional_information'] ?? null,
-                'conclusion' => $payload['conclusion'],
+                'conclusion' => $legacyNote !== '' ? $legacyNote : ($report?->description ?? ''),
             ];
 
             $caseFile->forceFill([
@@ -655,7 +675,7 @@ class CaseWorkflowService
                 'assigned_unit' => $caseFile->investigationSupervisor?->unit ?: $caseFile->investigationSupervisor?->role_label,
                 'assigned_to' => $caseFile->investigationSupervisor?->name,
                 'last_activity_at' => $submittedAt,
-                'notes' => $payload['conclusion'],
+                'notes' => $reviewPayload['conclusion'],
                 'review_payload' => $reviewPayload,
             ])->save();
 
@@ -672,7 +692,7 @@ class CaseWorkflowService
                 visibility: 'internal',
                 stage: 'investigation_review',
                 headline: 'Investigation assessment submitted',
-                detail: $payload['conclusion'],
+                detail: $reviewPayload['conclusion'],
                 actorRole: $investigator->role,
                 actorName: $investigator->name,
                 occurredAt: $submittedAt,
@@ -709,13 +729,14 @@ class CaseWorkflowService
 
         return DB::transaction(function () use ($caseFile, $supervisor, $payload) {
             $reviewedAt = now();
+            $approvalNote = $payload['approval_note'] ?? $payload['internal_note'] ?? '';
             $approved = $payload['decision'] === 'approved';
             $director = $approved
                 ? $caseFile->director ?: $this->requireActiveUserByRole(User::ROLE_DIRECTOR)
                 : null;
             $reviewApprovalPayload = [
                 'decision' => $payload['decision'],
-                'approval_note' => $payload['approval_note'],
+                'approval_note' => $approvalNote,
             ];
 
             $caseFile->forceFill([
@@ -728,7 +749,7 @@ class CaseWorkflowService
                 'assigned_to' => $approved ? $director->name : $caseFile->investigator?->name,
                 'director_id' => $approved ? $director->id : $caseFile->director_id,
                 'last_activity_at' => $reviewedAt,
-                'notes' => $payload['approval_note'],
+                'notes' => $approvalNote,
                 'review_approval_payload' => $reviewApprovalPayload,
             ])->save();
 
@@ -743,7 +764,7 @@ class CaseWorkflowService
                 visibility: 'internal',
                 stage: $caseFile->stage,
                 headline: $approved ? 'Review approved for director decision' : 'Review returned for revision',
-                detail: $payload['approval_note'],
+                detail: $approvalNote,
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $reviewedAt,
@@ -783,10 +804,11 @@ class CaseWorkflowService
 
         return DB::transaction(function () use ($caseFile, $director, $payload) {
             $reviewedAt = now();
+            $approvalNote = $payload['approval_note'] ?? $payload['internal_note'] ?? '';
             $approved = $payload['decision'] === 'approved';
             $directorApprovalPayload = [
                 'decision' => $payload['decision'],
-                'approval_note' => $payload['approval_note'],
+                'approval_note' => $approvalNote,
             ];
 
             $caseFile->forceFill([
@@ -799,7 +821,7 @@ class CaseWorkflowService
                 'assigned_to' => $approved ? $director->name : $caseFile->investigator?->name,
                 'completed_at' => $approved ? $reviewedAt : null,
                 'last_activity_at' => $reviewedAt,
-                'notes' => $payload['approval_note'],
+                'notes' => $approvalNote,
                 'director_approval_payload' => $directorApprovalPayload,
             ])->save();
 
@@ -814,7 +836,7 @@ class CaseWorkflowService
                 visibility: 'internal',
                 stage: $caseFile->stage,
                 headline: $approved ? 'Director approved report completion' : 'Director returned report for additional review',
-                detail: $payload['approval_note'],
+                detail: $approvalNote,
                 actorRole: $director->role,
                 actorName: $director->name,
                 occurredAt: $reviewedAt,

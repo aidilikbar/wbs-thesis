@@ -454,7 +454,10 @@ class WbsDemoSeeder extends Seeder
             'director_review',
             'completed',
         ];
-        $categories = array_keys(config('wbs.categories'));
+        $categories = array_values(array_filter(
+            array_keys(config('wbs.categories')),
+            fn (string $category) => $category !== 'kpk_report'
+        ));
         $governanceTags = array_keys(config('wbs.governance_tags'));
 
         foreach ($reporterKeys as $reporterKey) {
