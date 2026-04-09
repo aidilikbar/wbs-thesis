@@ -178,26 +178,22 @@ export function AppShell({ children }: PropsWithChildren) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="outline-panel rounded-[0.9rem] px-4 py-4">
-                <p className="mb-2 font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">  
-                </p>
+              <div className="outline-panel flex min-h-[108px] items-center justify-center rounded-[0.9rem] px-4 py-4">
                 <Image
                   src="/logos/kpk_logo_footer.png"
                   alt="KPK Komisi Pemberantasan Korupsi"
                   width={1191}
                   height={446}
-                  className="h-auto w-[158px] sm:w-[176px]"
+                  className="h-[40px] w-auto sm:h-[46px]"
                 />
               </div>
-              <div className="outline-panel rounded-[0.9rem] px-4 py-4">
-                <p className="mb-2 font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                </p>
+              <div className="outline-panel flex min-h-[108px] items-center justify-center rounded-[0.9rem] px-4 py-4">
                 <Image
                   src="/logos/utwente_logo_footer.png"
                   alt="University of Twente"
                   width={960}
                   height={480}
-                  className="h-auto w-[154px] sm:w-[168px]"
+                  className="h-[44px] w-auto sm:h-[50px]"
                 />
               </div>
             </div>
