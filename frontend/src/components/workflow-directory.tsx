@@ -233,11 +233,6 @@ export function WorkflowDirectory({
           <p className="muted mt-4 max-w-3xl text-sm leading-7">
             Approval actions are reserved for verification supervisors, investigation supervisors, directors, and system administrator oversight accounts.
           </p>
-          <div className="mt-6">
-            <Link href="/workflow" className="ghost-button">
-              Back to Workflow Queue
-            </Link>
-          </div>
         </div>
       </div>
     );

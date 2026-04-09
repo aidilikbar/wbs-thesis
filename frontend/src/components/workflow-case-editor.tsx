@@ -587,11 +587,6 @@ export function WorkflowCaseEditor({
           <p className="muted mt-4 text-sm leading-7">
             Approval pages are reserved for the approving roles only.
           </p>
-          <div className="mt-6">
-            <Link href="/workflow" className="ghost-button">
-              Back to Workflow Queue
-            </Link>
-          </div>
         </div>
       </div>
     );
@@ -626,9 +621,6 @@ export function WorkflowCaseEditor({
             <Link href={workflowActionPath(record.id, currentAction)} className="primary-button">
               Open Correct Page
             </Link>
-            <Link href={backPath} className="ghost-button">
-              Back
-            </Link>
           </div>
         </div>
       </div>
@@ -662,9 +654,6 @@ export function WorkflowCaseEditor({
           <div className="flex flex-wrap items-center justify-end gap-2">
             <StatusBadge value={record.status} />
             <StatusBadge value={record.severity} />
-            <Link href={backPath} className="ghost-button">
-              Back to Queue
-            </Link>
           </div>
         </div>
 

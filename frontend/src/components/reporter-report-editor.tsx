@@ -290,13 +290,6 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
           <div className="flex flex-wrap items-center justify-end gap-2">
             <StatusBadge value={record.status} />
             <StatusBadge value={record.severity} />
-            <button
-              type="button"
-              onClick={() => router.push("/submit")}
-              className="ghost-button cursor-pointer"
-            >
-              Back to Reports
-            </button>
           </div>
         </div>
 

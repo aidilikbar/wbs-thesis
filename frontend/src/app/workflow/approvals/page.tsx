@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { PageIntro } from "@/components/page-intro";
 import { WorkflowDirectory } from "@/components/workflow-directory";
 
 export const metadata = {
@@ -14,13 +15,16 @@ export default async function WorkflowApprovalsPage({
 
   return (
     <AppShell>
-      <section className="max-w-5xl">
-        <p className="eyebrow">Approval Workflow</p>
-        <h1 className="mt-4 text-5xl">Supervisor and director approval queue</h1>
-        <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Review the cases awaiting approval from the verification supervisor, investigation supervisor, or director, then open a dedicated approval page for the decision.
-        </p>
-      </section>
+      <PageIntro
+        eyebrow="Approval Workflow"
+        title="Supervisor and director approval queue"
+        description="Review the cases awaiting approval from the verification supervisor, investigation supervisor, or director, then open a dedicated approval page for the decision."
+        breadcrumbs={[
+          { label: "Workflow", href: "/workflow" },
+          { label: "Approval Queue" },
+        ]}
+        titleClassName="text-5xl"
+      />
       <section className="mt-8">
         <WorkflowDirectory view="approval" initialNotice={notice ?? null} />
       </section>

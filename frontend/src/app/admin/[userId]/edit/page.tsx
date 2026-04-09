@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { AdminEditUserForm } from "@/components/admin-edit-user-form";
+import { PageIntro } from "@/components/page-intro";
 
 export const metadata = {
   title: "Edit User",
@@ -14,13 +15,16 @@ export default async function AdminEditPage({
 
   return (
     <AppShell>
-      <section className="max-w-5xl">
-        <p className="eyebrow">System Administration</p>
-        <h1 className="mt-4 text-5xl">Edit user record</h1>
-        <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Update user profile details, login status, and optional password reset from a dedicated edit screen, then return to the directory index after saving or cancelling.
-        </p>
-      </section>
+      <PageIntro
+        eyebrow="System Administration"
+        title="Edit user record"
+        description="Update user profile details, login status, and optional password reset from a dedicated edit screen, then return to the directory index after saving or cancelling."
+        breadcrumbs={[
+          { label: "User Directory", href: "/admin" },
+          { label: "Edit User" },
+        ]}
+        titleClassName="text-5xl"
+      />
       <section className="mt-8">
         <AdminEditUserForm userId={Number(userId)} />
       </section>

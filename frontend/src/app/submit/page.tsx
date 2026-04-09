@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { PageIntro } from "@/components/page-intro";
 import { ReportDirectory } from "@/components/report-directory";
 
 export const metadata = {
@@ -18,13 +19,12 @@ export default async function SubmitPage({
 
   return (
     <AppShell>
-      <section className="max-w-5xl">
-        <p className="eyebrow">Reporter Workspace</p>
-        <h1 className="mt-4 text-[clamp(3rem,7vw,5.4rem)]">Manage Your Reports.</h1>
-        <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Review your whistleblowing transactions in a searchable table, open a dedicated create page for new submissions, and maintain editable reports from their own dedicated edit pages.
-        </p>
-      </section>
+      <PageIntro
+        eyebrow="Reporter Workspace"
+        title="Manage Your Reports."
+        description="Review your whistleblowing transactions in a searchable table, open a dedicated create page for new submissions, and maintain editable reports from their own dedicated edit pages."
+        titleClassName="text-[clamp(3rem,7vw,5.4rem)]"
+      />
       <section className="mt-8">
         <ReportDirectory
           initialNotice={notice ?? null}

@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { AdminCreateUserForm } from "@/components/admin-create-user-form";
+import { PageIntro } from "@/components/page-intro";
 
 export const metadata = {
   title: "Create Internal User",
@@ -8,13 +9,16 @@ export const metadata = {
 export default function AdminCreatePage() {
   return (
     <AppShell>
-      <section className="max-w-5xl">
-        <p className="eyebrow">System Administration</p>
-        <h1 className="mt-4 text-5xl">Create internal role account</h1>
-        <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Provision internal KPK workflow and administration accounts from a dedicated create screen, then return to the directory index when finished.
-        </p>
-      </section>
+      <PageIntro
+        eyebrow="System Administration"
+        title="Create internal role account"
+        description="Provision internal KPK workflow and administration accounts from a dedicated create screen, then return to the directory index when finished."
+        breadcrumbs={[
+          { label: "User Directory", href: "/admin" },
+          { label: "Create Internal User" },
+        ]}
+        titleClassName="text-5xl"
+      />
       <section className="mt-8">
         <AdminCreateUserForm />
       </section>

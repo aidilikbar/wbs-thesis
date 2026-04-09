@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { PageIntro } from "@/components/page-intro";
 import { WorkflowDirectory } from "@/components/workflow-directory";
 
 export const metadata = {
@@ -14,13 +15,12 @@ export default async function WorkflowPage({
 
   return (
     <AppShell>
-      <section className="max-w-5xl">
-        <p className="eyebrow">Role-Based Workflow</p>
-        <h1 className="mt-4 text-5xl">Internal case processing aligned to the KPK business process</h1>
-        <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Search the active queue in table form, then open dedicated case pages to delegate, verify, or analyse in alignment with the KPK whistleblowing swimlane.
-        </p>
-      </section>
+      <PageIntro
+        eyebrow="Role-Based Workflow"
+        title="Internal case processing aligned to the KPK business process"
+        description="Search the active queue in table form, then open dedicated case pages to delegate, verify, or analyse in alignment with the KPK whistleblowing swimlane."
+        titleClassName="text-5xl"
+      />
       <section className="mt-8">
         <WorkflowDirectory view="queue" initialNotice={notice ?? null} />
       </section>

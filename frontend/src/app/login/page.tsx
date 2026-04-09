@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { LoginForm } from "@/components/login-form";
+import { PageIntro } from "@/components/page-intro";
 
 export const metadata = {
   title: "Login",
@@ -8,13 +9,13 @@ export const metadata = {
 export default function LoginPage() {
   return (
     <AppShell>
-      <section className="max-w-5xl">
-        <p className="eyebrow">Account Access</p>
-        <h1 className="mt-4 text-5xl">Login to the KPK Whistleblowing System</h1>
-        <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Reporters use their own accounts to submit reports. Internal users access the workflow and governance screens using accounts created by the system administrator.
-        </p>
-      </section>
+      <PageIntro
+        eyebrow="Account Access"
+        title="Login to the KPK Whistleblowing System"
+        description="Reporters use their own accounts to submit reports. Internal users access the workflow and governance screens using accounts created by the system administrator."
+        breadcrumbs={[{ label: "Login" }]}
+        titleClassName="text-5xl"
+      />
       <section className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <LoginForm />
         <aside className="dark-card rounded-[1rem] border border-white/8 p-8">

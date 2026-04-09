@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { GovernanceDashboard } from "@/components/governance-dashboard";
+import { PageIntro } from "@/components/page-intro";
 
 export const metadata = {
   title: "Governance Dashboard",
@@ -8,14 +9,12 @@ export const metadata = {
 export default function GovernancePage() {
   return (
     <AppShell>
-      <section className="max-w-5xl">
-        <p className="eyebrow">Governance and Integrity</p>
-        <h1 className="mt-4 text-5xl">Operational dashboard for governance action</h1>
-        <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Use global signals to read the condition of the system, then move into
-          role-specific KPIs and hierarchy-based workload to decide the next action.
-        </p>
-      </section>
+      <PageIntro
+        eyebrow="Governance and Integrity"
+        title="Operational dashboard for governance action"
+        description="Use global signals to read the condition of the system, then move into role-specific KPIs and hierarchy-based workload to decide the next action."
+        titleClassName="text-5xl"
+      />
       <section className="mt-8">
         <GovernanceDashboard />
       </section>

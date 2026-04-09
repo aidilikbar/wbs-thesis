@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { PageIntro } from "@/components/page-intro";
 import { RegisterForm } from "@/components/register-form";
 
 export const metadata = {
@@ -8,13 +9,13 @@ export const metadata = {
 export default function RegisterPage() {
   return (
     <AppShell>
-      <section className="max-w-5xl">
-        <p className="eyebrow">Reporter Registration</p>
-        <h1 className="mt-4 text-5xl">Create a reporter account before submission</h1>
-        <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          The KPK Whistleblowing System prototype requires reporter registration before a report can be filed. Internal users are created only by the system administrator.
-        </p>
-      </section>
+      <PageIntro
+        eyebrow="Reporter Registration"
+        title="Create a reporter account before submission"
+        description="The KPK Whistleblowing System prototype requires reporter registration before a report can be filed. Internal users are created only by the system administrator."
+        breadcrumbs={[{ label: "Register" }]}
+        titleClassName="text-5xl"
+      />
       <section className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <RegisterForm />
         <aside className="dark-card rounded-[1rem] border border-white/8 p-8">

@@ -174,13 +174,6 @@ export function AdminEditUserForm({ userId }: { userId: number }) {
           <p className="muted mt-4 text-sm leading-7">
             {message ?? "The requested directory record was not found."}
           </p>
-          <button
-            type="button"
-            onClick={() => router.push("/admin")}
-            className="primary-button mt-6 cursor-pointer"
-          >
-            Back to Directory
-          </button>
         </div>
       </div>
     );

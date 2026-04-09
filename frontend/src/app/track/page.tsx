@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { PageIntro } from "@/components/page-intro";
 import { TrackingWorkbench } from "@/components/tracking-workbench";
 
 export const metadata = {
@@ -8,13 +9,13 @@ export const metadata = {
 export default function TrackPage() {
   return (
     <AppShell>
-      <section className="max-w-5xl">
-        <p className="eyebrow">Case Tracking</p>
-        <h1 className="mt-4 text-5xl">Check case progress without exposing identity</h1>
-        <p className="muted mt-5 max-w-3xl text-lg leading-8">
-          Tracking uses the public reference and token returned after reporter submission. The view only shows public-safe milestones, not internal workflow notes.
-        </p>
-      </section>
+      <PageIntro
+        eyebrow="Case Tracking"
+        title="Check case progress without exposing identity"
+        description="Tracking uses the public reference and token returned after reporter submission. The view only shows public-safe milestones, not internal workflow notes."
+        breadcrumbs={[{ label: "Track Case" }]}
+        titleClassName="text-5xl"
+      />
       <section className="mt-8">
         <TrackingWorkbench />
       </section>
