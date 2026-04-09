@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\DelegateCaseRequest;
-use App\Http\Requests\ReviewWorkflowStageRequest;
-use App\Http\Requests\SubmitWorkflowStageRequest;
+use App\Http\Requests\ReviewDelegationRequest;
+use App\Http\Requests\ReviewSubmissionRequest;
+use App\Http\Requests\VerificationDelegationRequest;
+use App\Http\Requests\VerificationSubmissionRequest;
+use App\Http\Requests\WorkflowApprovalRequest;
 use App\Models\CaseFile;
 use App\Models\User;
 use App\Services\CaseWorkflowService;
@@ -120,9 +122,9 @@ class WorkflowCaseController extends Controller
 
         abort_unless(
             $user->hasRole([
-                User::ROLE_SYSTEM_ADMINISTRATOR,
-                User::ROLE_SUPERVISOR_OF_VERIFICATOR,
-                User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            User::ROLE_SYSTEM_ADMINISTRATOR,
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
             ]),
             403,
             'Only supervisors or the system administrator may request assignee lists.'
@@ -164,16 +166,18 @@ class WorkflowCaseController extends Controller
         ]
     )]
     public function delegateVerification(
-        DelegateCaseRequest $request,
+        VerificationDelegationRequest $request,
         CaseFile $caseFile,
         CaseWorkflowService $workflow,
     ): JsonResponse {
         $user = $this->authorizeRole($request, User::ROLE_SUPERVISOR_OF_VERIFICATOR);
-        $assignee = User::query()->findOrFail($request->integer('assignee_user_id'));
+        $assignee = $request->validated('reject_report')
+            ? null
+            : User::query()->findOrFail($request->integer('assignee_user_id'));
         $caseFile = $workflow->delegateToVerificator($caseFile, $user, $assignee, $request->validated());
 
         return response()->json([
-            'message' => 'Report assigned to verification officer.',
+            'message' => 'Verification screening recorded.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -194,7 +198,7 @@ class WorkflowCaseController extends Controller
         ]
     )]
     public function submitVerification(
-        SubmitWorkflowStageRequest $request,
+        VerificationSubmissionRequest $request,
         CaseFile $caseFile,
         CaseWorkflowService $workflow,
     ): JsonResponse {
@@ -202,7 +206,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->submitVerification($caseFile, $user, $request->validated());
 
         return response()->json([
-            'message' => 'Verification submitted to the verification supervisor.',
+            'message' => 'Verification assessment submitted to the verification supervisor.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -223,7 +227,7 @@ class WorkflowCaseController extends Controller
         ]
     )]
     public function reviewVerification(
-        ReviewWorkflowStageRequest $request,
+        WorkflowApprovalRequest $request,
         CaseFile $caseFile,
         CaseWorkflowService $workflow,
     ): JsonResponse {
@@ -252,7 +256,7 @@ class WorkflowCaseController extends Controller
         ]
     )]
     public function delegateInvestigation(
-        DelegateCaseRequest $request,
+        ReviewDelegationRequest $request,
         CaseFile $caseFile,
         CaseWorkflowService $workflow,
     ): JsonResponse {
@@ -261,7 +265,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->delegateToInvestigator($caseFile, $user, $assignee, $request->validated());
 
         return response()->json([
-            'message' => 'Verified report delegated to investigator.',
+            'message' => 'Case delegated to reviewer.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -282,7 +286,7 @@ class WorkflowCaseController extends Controller
         ]
     )]
     public function submitInvestigation(
-        SubmitWorkflowStageRequest $request,
+        ReviewSubmissionRequest $request,
         CaseFile $caseFile,
         CaseWorkflowService $workflow,
     ): JsonResponse {
@@ -290,7 +294,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->submitInvestigation($caseFile, $user, $request->validated());
 
         return response()->json([
-            'message' => 'Investigation submitted to the investigation supervisor.',
+            'message' => 'Review assessment submitted to the review supervisor.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -311,7 +315,7 @@ class WorkflowCaseController extends Controller
         ]
     )]
     public function reviewInvestigation(
-        ReviewWorkflowStageRequest $request,
+        WorkflowApprovalRequest $request,
         CaseFile $caseFile,
         CaseWorkflowService $workflow,
     ): JsonResponse {
@@ -319,7 +323,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->reviewInvestigation($caseFile, $user, $request->validated());
 
         return response()->json([
-            'message' => 'Investigation review recorded.',
+            'message' => 'Review approval recorded.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -340,7 +344,7 @@ class WorkflowCaseController extends Controller
         ]
     )]
     public function directorReview(
-        ReviewWorkflowStageRequest $request,
+        WorkflowApprovalRequest $request,
         CaseFile $caseFile,
         CaseWorkflowService $workflow,
     ): JsonResponse {
@@ -443,7 +447,8 @@ class WorkflowCaseController extends Controller
                         ->where('title', 'like', $like)
                         ->orWhere('public_reference', 'like', $like)
                         ->orWhere('category', 'like', $like)
-                        ->orWhere('accused_party', 'like', $like);
+                        ->orWhere('accused_party', 'like', $like)
+                        ->orWhere('description', 'like', $like);
                 });
         });
     }
@@ -495,6 +500,7 @@ class WorkflowCaseController extends Controller
             'incident_date' => $caseFile->report?->incident_date?->toDateString(),
             'incident_location' => $caseFile->report?->incident_location,
             'accused_party' => $caseFile->report?->accused_party,
+            'reported_parties' => array_values($caseFile->report?->reported_parties ?? []),
             'evidence_summary' => $caseFile->report?->evidence_summary,
             'governance_tags' => $caseFile->report?->governance_tags ?? [],
             'confidentiality_level' => $caseFile->confidentiality_level,
@@ -510,6 +516,15 @@ class WorkflowCaseController extends Controller
                 'investigation_supervisor' => $caseFile->investigationSupervisor?->name,
                 'investigator' => $caseFile->investigator?->name,
                 'director' => $caseFile->director?->name,
+            ],
+            'workflow_records' => [
+                'screening' => $caseFile->screening_payload,
+                'verification' => $caseFile->verification_payload,
+                'verification_approval' => $caseFile->verification_approval_payload,
+                'review_distribution' => $caseFile->review_distribution_payload,
+                'review' => $caseFile->review_payload,
+                'review_approval' => $caseFile->review_approval_payload,
+                'director_approval' => $caseFile->director_approval_payload,
             ],
             'attachments' => ($caseFile->report?->attachments ?? collect())
                 ->values()

@@ -27,6 +27,13 @@ class CaseFile extends Model
         'confidentiality_level',
         'escalation_required',
         'notes',
+        'screening_payload',
+        'verification_payload',
+        'verification_approval_payload',
+        'review_distribution_payload',
+        'review_payload',
+        'review_approval_payload',
+        'director_approval_payload',
         'completed_at',
     ];
 
@@ -37,6 +44,13 @@ class CaseFile extends Model
             'sla_due_at' => 'datetime',
             'last_activity_at' => 'datetime',
             'escalation_required' => 'boolean',
+            'screening_payload' => 'array',
+            'verification_payload' => 'array',
+            'verification_approval_payload' => 'array',
+            'review_distribution_payload' => 'array',
+            'review_payload' => 'array',
+            'review_approval_payload' => 'array',
+            'director_approval_payload' => 'array',
             'completed_at' => 'datetime',
         ];
     }

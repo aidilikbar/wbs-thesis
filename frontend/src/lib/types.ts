@@ -71,18 +71,31 @@ export type PaginatedData<T> = {
   meta: PaginationMeta;
 };
 
+export type ReportedPartyClassification =
+  | "state_official"
+  | "civil_servant"
+  | "law_enforcement"
+  | "other";
+
+export type ReportedParty = {
+  full_name: string;
+  position: string;
+  classification: ReportedPartyClassification | string;
+};
+
 export type SubmissionPayload = {
   title: string;
-  category: string;
   description: string;
-  incident_date: string;
-  incident_location: string;
-  accused_party: string;
-  evidence_summary: string;
-  confidentiality_level: "anonymous" | "identified";
-  requested_follow_up: boolean;
-  witness_available: boolean;
-  governance_tags: string[];
+  reported_parties: ReportedParty[];
+  category?: string;
+  incident_date?: string;
+  incident_location?: string;
+  accused_party?: string;
+  evidence_summary?: string;
+  confidentiality_level?: "anonymous" | "identified";
+  requested_follow_up?: boolean;
+  witness_available?: boolean;
+  governance_tags?: string[];
 };
 
 export type SubmissionReceipt = {
@@ -167,6 +180,7 @@ export type ReporterReportDetail = ReporterReportSummary & {
   incident_date: string | null;
   incident_location: string | null;
   accused_party: string | null;
+  reported_parties?: ReportedParty[];
   evidence_summary: string | null;
   last_public_update_at: string | null;
   requested_follow_up: boolean;
@@ -251,6 +265,7 @@ export type WorkflowCase = {
   incident_date?: string | null;
   incident_location?: string | null;
   accused_party?: string | null;
+  reported_parties?: ReportedParty[];
   evidence_summary?: string | null;
   governance_tags: string[];
   confidentiality_level: string;
@@ -266,6 +281,15 @@ export type WorkflowCase = {
     investigation_supervisor: string | null;
     investigator: string | null;
     director: string | null;
+  };
+  workflow_records?: {
+    screening?: Record<string, unknown> | null;
+    verification?: Record<string, unknown> | null;
+    verification_approval?: Record<string, unknown> | null;
+    review_distribution?: Record<string, unknown> | null;
+    review?: Record<string, unknown> | null;
+    review_approval?: Record<string, unknown> | null;
+    director_approval?: Record<string, unknown> | null;
   };
   attachments: ReportAttachment[];
   sla_due_at: string | null;
@@ -354,6 +378,13 @@ export type CatalogData = {
   categories: Record<string, string>;
   governance_tags: Record<string, string>;
   confidentiality_levels: Record<string, string>;
+  reported_party_classifications: Record<string, string>;
+  corruption_aspect_tags: Record<string, string>;
+  verification_recommendations: Record<string, string>;
+  review_recommendations: Record<string, string>;
+  delict_tags: Record<string, string>;
+  corruption_articles: Record<string, string>;
+  months: Record<string, string>;
   case_stages: Record<string, string>;
   principles: Record<string, string>;
 };

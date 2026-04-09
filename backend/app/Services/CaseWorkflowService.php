@@ -30,30 +30,29 @@ class CaseWorkflowService
         return DB::transaction(function () use ($reporter, $payload) {
             $submittedAt = now();
             $verificationSupervisor = $this->requireActiveUserByRole(User::ROLE_SUPERVISOR_OF_VERIFICATOR);
+            $reportedParties = $this->normalizeReportedParties($payload);
+            $confidentialityLevel = $payload['confidentiality_level'] ?? 'identified';
 
             $report = Report::query()->create([
                 'reporter_user_id' => $reporter->id,
                 'uuid' => (string) Str::uuid(),
                 'tracking_token' => Str::upper(Str::random(12)),
                 'title' => $payload['title'],
-                'category' => $payload['category'],
+                'category' => $payload['category'] ?? 'kpk_report',
                 'description' => $payload['description'],
-                'incident_date' => $payload['incident_date'] ?? null,
-                'incident_location' => $payload['incident_location'] ?? null,
-                'accused_party' => $payload['accused_party'] ?? null,
-                'evidence_summary' => $payload['evidence_summary'] ?? null,
-                'anonymity_level' => $payload['confidentiality_level'],
+                'incident_date' => null,
+                'incident_location' => null,
+                'accused_party' => $this->flattenReportedParties($reportedParties),
+                'reported_parties' => $reportedParties,
+                'evidence_summary' => null,
+                'anonymity_level' => $confidentialityLevel,
                 'reporter_name' => $reporter->name,
                 'reporter_email' => $reporter->email,
                 'reporter_phone' => $reporter->phone,
                 'requested_follow_up' => $payload['requested_follow_up'] ?? true,
                 'witness_available' => $payload['witness_available'] ?? false,
                 'governance_tags' => array_values($payload['governance_tags'] ?? []),
-                'severity' => $this->determineSeverity(
-                    $payload['category'],
-                    $payload['governance_tags'] ?? [],
-                    $payload['witness_available'] ?? false,
-                ),
+                'severity' => $this->determineSeverity($reportedParties, $payload),
                 'status' => self::REPORT_STATUSES['submitted'],
                 'submitted_at' => $submittedAt,
                 'last_public_update_at' => $submittedAt,
@@ -75,8 +74,8 @@ class CaseWorkflowService
                 'director_id' => $this->findActiveUserByRole(User::ROLE_DIRECTOR)?->id,
                 'sla_due_at' => $submittedAt->copy()->addDays(14),
                 'last_activity_at' => $submittedAt,
-                'confidentiality_level' => $payload['confidentiality_level'],
-                'escalation_required' => in_array('retaliation-risk', $payload['governance_tags'] ?? [], true),
+                'confidentiality_level' => $confidentialityLevel,
+                'escalation_required' => false,
                 'notes' => $payload['description'],
             ]);
 
@@ -117,7 +116,7 @@ class CaseWorkflowService
                 context: [
                     'category' => $report->category,
                     'severity' => $report->severity,
-                    'confidentiality_level' => $report->anonymity_level,
+                    'reported_party_count' => count($reportedParties),
                     'verification_supervisor_id' => $verificationSupervisor->id,
                 ],
             );
@@ -160,21 +159,20 @@ class CaseWorkflowService
         return DB::transaction(function () use ($report, $reporter, $payload) {
             $updatedAt = now();
             $caseFile = $report->caseFile()->firstOrFail();
-            $nextSeverity = $this->determineSeverity(
-                $payload['category'],
-                $payload['governance_tags'] ?? [],
-                $payload['witness_available'] ?? false,
-            );
+            $reportedParties = $this->normalizeReportedParties($payload);
+            $confidentialityLevel = $payload['confidentiality_level'] ?? 'identified';
+            $nextSeverity = $this->determineSeverity($reportedParties, $payload);
 
             $report->forceFill([
                 'title' => $payload['title'],
-                'category' => $payload['category'],
+                'category' => $payload['category'] ?? 'kpk_report',
                 'description' => $payload['description'],
-                'incident_date' => $payload['incident_date'] ?? null,
-                'incident_location' => $payload['incident_location'] ?? null,
-                'accused_party' => $payload['accused_party'] ?? null,
-                'evidence_summary' => $payload['evidence_summary'] ?? null,
-                'anonymity_level' => $payload['confidentiality_level'],
+                'incident_date' => null,
+                'incident_location' => null,
+                'accused_party' => $this->flattenReportedParties($reportedParties),
+                'reported_parties' => $reportedParties,
+                'evidence_summary' => null,
+                'anonymity_level' => $confidentialityLevel,
                 'requested_follow_up' => $payload['requested_follow_up'] ?? true,
                 'witness_available' => $payload['witness_available'] ?? false,
                 'governance_tags' => array_values($payload['governance_tags'] ?? []),
@@ -182,8 +180,8 @@ class CaseWorkflowService
             ])->save();
 
             $caseFile->forceFill([
-                'confidentiality_level' => $payload['confidentiality_level'],
-                'escalation_required' => in_array('retaliation-risk', $payload['governance_tags'] ?? [], true),
+                'confidentiality_level' => $confidentialityLevel,
+                'escalation_required' => false,
                 'notes' => $payload['description'],
                 'last_activity_at' => $updatedAt,
             ])->save();
@@ -211,7 +209,7 @@ class CaseWorkflowService
                     'status' => $report->status,
                     'category' => $report->category,
                     'severity' => $report->severity,
-                    'confidentiality_level' => $report->anonymity_level,
+                    'reported_party_count' => count($reportedParties),
                 ],
             );
 
@@ -222,15 +220,82 @@ class CaseWorkflowService
     public function delegateToVerificator(
         CaseFile $caseFile,
         User $supervisor,
-        User $verificator,
+        ?User $verificator,
         array $payload,
     ): CaseFile {
         $this->ensureCaseStage($caseFile, ['submitted']);
-        $this->ensureActiveAssignee($verificator, User::ROLE_VERIFICATOR);
         $this->ensureOwnership($caseFile, $supervisor, 'verification_supervisor_id');
 
         return DB::transaction(function () use ($caseFile, $supervisor, $verificator, $payload) {
             $assignedAt = now();
+            $screeningPayload = [
+                'reject_report' => (bool) ($payload['reject_report'] ?? false),
+                'distribution_note' => $payload['distribution_note'] ?? null,
+            ];
+
+            if ($screeningPayload['reject_report']) {
+                $caseFile->forceFill([
+                    'stage' => 'completed',
+                    'current_role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+                    'disposition' => 'screening_rejected',
+                    'assigned_unit' => $supervisor->unit ?: $supervisor->role_label,
+                    'assigned_to' => $supervisor->name,
+                    'last_activity_at' => $assignedAt,
+                    'screening_payload' => $screeningPayload,
+                    'notes' => $payload['distribution_note'] ?? $caseFile->notes,
+                    'completed_at' => $assignedAt,
+                ])->save();
+
+                $caseFile->report->forceFill([
+                    'status' => self::REPORT_STATUSES['completed'],
+                    'last_public_update_at' => $assignedAt,
+                ])->save();
+
+                $this->addTimelineEvent(
+                    report: $caseFile->report,
+                    caseFile: $caseFile,
+                    visibility: 'internal',
+                    stage: 'completed',
+                    headline: 'Report screened out at verification supervision',
+                    detail: $payload['distribution_note']
+                        ?? 'The verification supervisor closed the report during initial screening.',
+                    actorRole: $supervisor->role,
+                    actorName: $supervisor->name,
+                    occurredAt: $assignedAt,
+                );
+
+                $this->addTimelineEvent(
+                    report: $caseFile->report,
+                    caseFile: $caseFile,
+                    visibility: 'public',
+                    stage: 'completed',
+                    headline: 'Report closed during preliminary screening',
+                    detail: 'The report was closed after an initial screening by the verification supervisor.',
+                    actorRole: $supervisor->role,
+                    actorName: $supervisor->name,
+                    occurredAt: $assignedAt,
+                );
+
+                $this->recordAudit(
+                    action: 'screening_rejected',
+                    auditable: $caseFile,
+                    report: $caseFile->report,
+                    caseFile: $caseFile,
+                    actorRole: $supervisor->role,
+                    actorName: $supervisor->name,
+                    context: $screeningPayload,
+                );
+
+                return $caseFile->fresh($this->workflowRelations());
+            }
+
+            if (! $verificator) {
+                throw ValidationException::withMessages([
+                    'assignee_user_id' => 'A verification officer must be selected unless the report is rejected during screening.',
+                ]);
+            }
+
+            $this->ensureActiveAssignee($verificator, User::ROLE_VERIFICATOR);
 
             $caseFile->forceFill([
                 'stage' => 'verification_in_progress',
@@ -241,8 +306,10 @@ class CaseWorkflowService
                 'assigned_to' => $verificator->name,
                 'verificator_id' => $verificator->id,
                 'triaged_at' => $caseFile->triaged_at ?? $assignedAt,
-                'sla_due_at' => $assignedAt->copy()->addDays($payload['due_in_days'] ?? 7),
+                'sla_due_at' => $assignedAt->copy()->addDays(7),
                 'last_activity_at' => $assignedAt,
+                'screening_payload' => $screeningPayload,
+                'completed_at' => null,
             ])->save();
 
             $caseFile->report->forceFill([
@@ -256,10 +323,8 @@ class CaseWorkflowService
                 visibility: 'internal',
                 stage: 'verification_in_progress',
                 headline: 'Verification delegated',
-                detail: sprintf(
-                    'The verification supervisor delegated the report to %s for verification.',
-                    $verificator->name
-                ),
+                detail: ($payload['distribution_note'] ?? null)
+                    ?: sprintf('The verification supervisor delegated the report to %s for verification.', $verificator->name),
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $assignedAt,
@@ -287,6 +352,7 @@ class CaseWorkflowService
                 context: [
                     'verificator_id' => $verificator->id,
                     'assigned_unit' => $caseFile->assigned_unit,
+                    'distribution_note' => $payload['distribution_note'] ?? null,
                 ],
             );
 
@@ -301,6 +367,15 @@ class CaseWorkflowService
 
         return DB::transaction(function () use ($caseFile, $verificator, $payload) {
             $submittedAt = now();
+            $verificationPayload = [
+                'summary' => $payload['summary'],
+                'corruption_aspect_tags' => array_values($payload['corruption_aspect_tags'] ?? []),
+                'has_authority' => (bool) $payload['has_authority'],
+                'criminal_assessment' => $payload['criminal_assessment'],
+                'reason' => $payload['reason'],
+                'recommendation' => $payload['recommendation'],
+                'forwarding_destination' => $payload['forwarding_destination'] ?? null,
+            ];
 
             $caseFile->forceFill([
                 'stage' => 'verification_review',
@@ -309,11 +384,14 @@ class CaseWorkflowService
                 'assigned_unit' => $caseFile->verificationSupervisor?->unit ?: $caseFile->verificationSupervisor?->role_label,
                 'assigned_to' => $caseFile->verificationSupervisor?->name,
                 'last_activity_at' => $submittedAt,
-                'notes' => $payload['internal_note'],
+                'notes' => $payload['summary'],
+                'verification_payload' => $verificationPayload,
             ])->save();
 
             $caseFile->report->forceFill([
                 'status' => self::REPORT_STATUSES['verification_review'],
+                'governance_tags' => $verificationPayload['corruption_aspect_tags'],
+                'severity' => $this->determineVerificationSeverity($verificationPayload),
                 'last_public_update_at' => ($payload['publish_update'] ?? false) ? $submittedAt : $caseFile->report->last_public_update_at,
             ])->save();
 
@@ -322,8 +400,8 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 visibility: 'internal',
                 stage: 'verification_review',
-                headline: 'Verification submitted to supervisor',
-                detail: $payload['internal_note'],
+                headline: 'Verification assessment submitted',
+                detail: $payload['summary'],
                 actorRole: $verificator->role,
                 actorName: $verificator->name,
                 occurredAt: $submittedAt,
@@ -346,9 +424,7 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 actorRole: $verificator->role,
                 actorName: $verificator->name,
-                context: [
-                    'stage' => 'verification_review',
-                ],
+                context: $verificationPayload,
             );
 
             return $caseFile->fresh($this->workflowRelations());
@@ -363,23 +439,51 @@ class CaseWorkflowService
         return DB::transaction(function () use ($caseFile, $supervisor, $payload) {
             $reviewedAt = now();
             $approved = $payload['decision'] === 'approved';
-            $investigationSupervisor = $approved
+            $verificationPayload = $caseFile->verification_payload ?? [];
+            $recommendation = $verificationPayload['recommendation'] ?? 'review';
+            $reviewSupervisor = $approved && $recommendation === 'review'
                 ? $caseFile->investigationSupervisor ?: $this->requireActiveUserByRole(User::ROLE_SUPERVISOR_OF_INVESTIGATOR)
                 : null;
+            $verificationApprovalPayload = [
+                'decision' => $payload['decision'],
+                'approval_note' => $payload['approval_note'],
+            ];
+            $nextStage = match (true) {
+                ! $approved => 'verification_in_progress',
+                $recommendation === 'review' => 'verified',
+                default => 'completed',
+            };
+            $nextRole = match (true) {
+                ! $approved => User::ROLE_VERIFICATOR,
+                $recommendation === 'review' => User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+                default => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            };
+            $nextDisposition = match (true) {
+                ! $approved => 'verification_rejected',
+                $recommendation === 'review' => 'awaiting_review_delegation',
+                $recommendation === 'forward' => 'forward_completed',
+                default => 'archive_completed',
+            };
 
             $caseFile->forceFill([
-                'stage' => $approved ? 'verified' : 'verification_in_progress',
-                'current_role' => $approved ? User::ROLE_SUPERVISOR_OF_INVESTIGATOR : User::ROLE_VERIFICATOR,
-                'disposition' => $approved ? 'verified' : 'verification_rejected',
-                'assigned_unit' => $approved
-                    ? ($investigationSupervisor->unit ?: $investigationSupervisor->role_label)
-                    : ($caseFile->verificator?->unit ?: $caseFile->verificator?->role_label),
-                'assigned_to' => $approved
-                    ? $investigationSupervisor->name
-                    : $caseFile->verificator?->name,
-                'investigation_supervisor_id' => $approved ? $investigationSupervisor->id : $caseFile->investigation_supervisor_id,
+                'stage' => $nextStage,
+                'current_role' => $nextRole,
+                'disposition' => $nextDisposition,
+                'assigned_unit' => $approved && $recommendation === 'review'
+                    ? ($reviewSupervisor->unit ?: $reviewSupervisor->role_label)
+                    : ($approved
+                        ? ($caseFile->assigned_unit ?: $supervisor->unit ?: $supervisor->role_label)
+                        : ($caseFile->verificator?->unit ?: $caseFile->verificator?->role_label)),
+                'assigned_to' => $approved && $recommendation === 'review'
+                    ? $reviewSupervisor->name
+                    : ($approved ? $supervisor->name : $caseFile->verificator?->name),
+                'investigation_supervisor_id' => $approved && $recommendation === 'review'
+                    ? $reviewSupervisor->id
+                    : $caseFile->investigation_supervisor_id,
                 'last_activity_at' => $reviewedAt,
-                'notes' => $payload['internal_note'],
+                'notes' => $payload['approval_note'],
+                'verification_approval_payload' => $verificationApprovalPayload,
+                'completed_at' => $approved && $recommendation !== 'review' ? $reviewedAt : null,
             ])->save();
 
             $caseFile->report->forceFill([
@@ -392,8 +496,13 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 visibility: 'internal',
                 stage: $caseFile->stage,
-                headline: $approved ? 'Verification approved' : 'Verification returned for revision',
-                detail: $payload['internal_note'],
+                headline: match (true) {
+                    ! $approved => 'Verification returned for revision',
+                    $recommendation === 'review' => 'Verification approved for review delegation',
+                    $recommendation === 'forward' => 'Verification approved for forwarding completion',
+                    default => 'Verification approved for archival completion',
+                },
+                detail: $payload['approval_note'],
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $reviewedAt,
@@ -402,7 +511,12 @@ class CaseWorkflowService
             $this->maybeAddPublicUpdate(
                 caseFile: $caseFile,
                 stage: $caseFile->stage,
-                headline: $approved ? 'Verification completed' : 'Verification requires follow-up',
+                headline: match (true) {
+                    ! $approved => 'Verification requires follow-up',
+                    $recommendation === 'review' => 'Verification completed',
+                    $recommendation === 'forward' => 'Case forwarded after verification',
+                    default => 'Case archived after verification',
+                },
                 payload: $payload,
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
@@ -417,7 +531,8 @@ class CaseWorkflowService
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 context: [
-                    'decision' => $payload['decision'],
+                    ...$verificationApprovalPayload,
+                    'recommendation' => $recommendation,
                     'current_role' => $caseFile->current_role,
                 ],
             );
@@ -438,17 +553,22 @@ class CaseWorkflowService
 
         return DB::transaction(function () use ($caseFile, $supervisor, $investigator, $payload) {
             $assignedAt = now();
+            $reviewDistributionPayload = [
+                'distribution_note' => $payload['distribution_note'] ?? null,
+            ];
 
             $caseFile->forceFill([
                 'stage' => 'investigation_in_progress',
                 'current_role' => User::ROLE_INVESTIGATOR,
-                'disposition' => 'investigation_in_progress',
+                'disposition' => 'review_in_progress',
                 'assigned_unit' => $payload['assigned_unit']
                     ?? ($investigator->unit ?: $investigator->role_label),
                 'assigned_to' => $investigator->name,
                 'investigator_id' => $investigator->id,
-                'sla_due_at' => $assignedAt->copy()->addDays($payload['due_in_days'] ?? 10),
+                'sla_due_at' => $assignedAt->copy()->addDays(10),
                 'last_activity_at' => $assignedAt,
+                'review_distribution_payload' => $reviewDistributionPayload,
+                'completed_at' => null,
             ])->save();
 
             $caseFile->report->forceFill([
@@ -461,11 +581,9 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 visibility: 'internal',
                 stage: 'investigation_in_progress',
-                headline: 'Investigation delegated',
-                detail: sprintf(
-                    'The investigation supervisor delegated the verified report to %s.',
-                    $investigator->name
-                ),
+                headline: 'Review delegated',
+                detail: ($payload['distribution_note'] ?? null)
+                    ?: sprintf('The review supervisor delegated the case to %s.', $investigator->name),
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $assignedAt,
@@ -476,15 +594,15 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 visibility: 'public',
                 stage: 'investigation_in_progress',
-                headline: 'Investigation started',
-                detail: 'Your report has entered the investigation stage and is being handled by the KPK investigation function.',
+                headline: 'Review started',
+                detail: 'Your report has entered the review stage and is now handled by the assigned reviewer.',
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $assignedAt,
             );
 
             $this->recordAudit(
-                action: 'investigation_delegated',
+                action: 'review_delegated',
                 auditable: $caseFile,
                 report: $caseFile->report,
                 caseFile: $caseFile,
@@ -493,6 +611,7 @@ class CaseWorkflowService
                 context: [
                     'investigator_id' => $investigator->id,
                     'assigned_unit' => $caseFile->assigned_unit,
+                    'distribution_note' => $payload['distribution_note'] ?? null,
                 ],
             );
 
@@ -507,19 +626,43 @@ class CaseWorkflowService
 
         return DB::transaction(function () use ($caseFile, $investigator, $payload) {
             $submittedAt = now();
+            $reviewPayload = [
+                'case_name' => $payload['case_name'],
+                'reported_parties' => array_values($payload['reported_parties']),
+                'description' => $payload['description'],
+                'corruption_aspect_tags' => array_values($payload['corruption_aspect_tags'] ?? []),
+                'recommendation' => $payload['recommendation'],
+                'delict' => $payload['delict'],
+                'article' => $payload['article'],
+                'start_month' => $payload['start_month'],
+                'start_year' => $payload['start_year'],
+                'end_month' => $payload['end_month'],
+                'end_year' => $payload['end_year'],
+                'city' => $payload['city'],
+                'province' => $payload['province'],
+                'modus' => $payload['modus'],
+                'related_report_reference' => $payload['related_report_reference'] ?? null,
+                'has_authority' => (bool) $payload['has_authority'],
+                'is_priority' => (bool) $payload['is_priority'],
+                'additional_information' => $payload['additional_information'] ?? null,
+                'conclusion' => $payload['conclusion'],
+            ];
 
             $caseFile->forceFill([
                 'stage' => 'investigation_review',
                 'current_role' => User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
-                'disposition' => 'investigation_review',
+                'disposition' => 'review_approval',
                 'assigned_unit' => $caseFile->investigationSupervisor?->unit ?: $caseFile->investigationSupervisor?->role_label,
                 'assigned_to' => $caseFile->investigationSupervisor?->name,
                 'last_activity_at' => $submittedAt,
-                'notes' => $payload['internal_note'],
+                'notes' => $payload['conclusion'],
+                'review_payload' => $reviewPayload,
             ])->save();
 
             $caseFile->report->forceFill([
                 'status' => self::REPORT_STATUSES['investigation_review'],
+                'governance_tags' => $reviewPayload['corruption_aspect_tags'],
+                'severity' => $this->determineReviewSeverity($reviewPayload),
                 'last_public_update_at' => ($payload['publish_update'] ?? false) ? $submittedAt : $caseFile->report->last_public_update_at,
             ])->save();
 
@@ -528,8 +671,8 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 visibility: 'internal',
                 stage: 'investigation_review',
-                headline: 'Investigation submitted to supervisor',
-                detail: $payload['internal_note'],
+                headline: 'Review assessment submitted',
+                detail: $payload['conclusion'],
                 actorRole: $investigator->role,
                 actorName: $investigator->name,
                 occurredAt: $submittedAt,
@@ -538,7 +681,7 @@ class CaseWorkflowService
             $this->maybeAddPublicUpdate(
                 caseFile: $caseFile,
                 stage: 'investigation_review',
-                headline: 'Investigation review update',
+                headline: 'Review assessment update',
                 payload: $payload,
                 actorRole: $investigator->role,
                 actorName: $investigator->name,
@@ -546,15 +689,13 @@ class CaseWorkflowService
             );
 
             $this->recordAudit(
-                action: 'investigation_submitted',
+                action: 'review_submitted',
                 auditable: $caseFile,
                 report: $caseFile->report,
                 caseFile: $caseFile,
                 actorRole: $investigator->role,
                 actorName: $investigator->name,
-                context: [
-                    'stage' => 'investigation_review',
-                ],
+                context: $reviewPayload,
             );
 
             return $caseFile->fresh($this->workflowRelations());
@@ -572,18 +713,23 @@ class CaseWorkflowService
             $director = $approved
                 ? $caseFile->director ?: $this->requireActiveUserByRole(User::ROLE_DIRECTOR)
                 : null;
+            $reviewApprovalPayload = [
+                'decision' => $payload['decision'],
+                'approval_note' => $payload['approval_note'],
+            ];
 
             $caseFile->forceFill([
                 'stage' => $approved ? 'director_review' : 'investigation_in_progress',
                 'current_role' => $approved ? User::ROLE_DIRECTOR : User::ROLE_INVESTIGATOR,
-                'disposition' => $approved ? 'director_review' : 'investigation_rejected',
+                'disposition' => $approved ? 'director_review' : 'review_rejected',
                 'assigned_unit' => $approved
                     ? ($director->unit ?: $director->role_label)
                     : ($caseFile->investigator?->unit ?: $caseFile->investigator?->role_label),
                 'assigned_to' => $approved ? $director->name : $caseFile->investigator?->name,
                 'director_id' => $approved ? $director->id : $caseFile->director_id,
                 'last_activity_at' => $reviewedAt,
-                'notes' => $payload['internal_note'],
+                'notes' => $payload['approval_note'],
+                'review_approval_payload' => $reviewApprovalPayload,
             ])->save();
 
             $caseFile->report->forceFill([
@@ -596,8 +742,8 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 visibility: 'internal',
                 stage: $caseFile->stage,
-                headline: $approved ? 'Investigation approved' : 'Investigation returned for further analysis',
-                detail: $payload['internal_note'],
+                headline: $approved ? 'Review approved for director decision' : 'Review returned for revision',
+                detail: $payload['approval_note'],
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $reviewedAt,
@@ -606,7 +752,7 @@ class CaseWorkflowService
             $this->maybeAddPublicUpdate(
                 caseFile: $caseFile,
                 stage: $caseFile->stage,
-                headline: $approved ? 'Investigation completed' : 'Investigation requires further analysis',
+                headline: $approved ? 'Review completed' : 'Review requires follow-up',
                 payload: $payload,
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
@@ -614,14 +760,14 @@ class CaseWorkflowService
             );
 
             $this->recordAudit(
-                action: $approved ? 'investigation_approved' : 'investigation_rejected',
+                action: $approved ? 'review_approved' : 'review_rejected',
                 auditable: $caseFile,
                 report: $caseFile->report,
                 caseFile: $caseFile,
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 context: [
-                    'decision' => $payload['decision'],
+                    ...$reviewApprovalPayload,
                     'current_role' => $caseFile->current_role,
                 ],
             );
@@ -638,6 +784,10 @@ class CaseWorkflowService
         return DB::transaction(function () use ($caseFile, $director, $payload) {
             $reviewedAt = now();
             $approved = $payload['decision'] === 'approved';
+            $directorApprovalPayload = [
+                'decision' => $payload['decision'],
+                'approval_note' => $payload['approval_note'],
+            ];
 
             $caseFile->forceFill([
                 'stage' => $approved ? 'completed' : 'investigation_in_progress',
@@ -649,7 +799,8 @@ class CaseWorkflowService
                 'assigned_to' => $approved ? $director->name : $caseFile->investigator?->name,
                 'completed_at' => $approved ? $reviewedAt : null,
                 'last_activity_at' => $reviewedAt,
-                'notes' => $payload['internal_note'],
+                'notes' => $payload['approval_note'],
+                'director_approval_payload' => $directorApprovalPayload,
             ])->save();
 
             $caseFile->report->forceFill([
@@ -662,8 +813,8 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 visibility: 'internal',
                 stage: $caseFile->stage,
-                headline: $approved ? 'Director approved report completion' : 'Director returned report for additional investigation',
-                detail: $payload['internal_note'],
+                headline: $approved ? 'Director approved report completion' : 'Director returned report for additional review',
+                detail: $payload['approval_note'],
                 actorRole: $director->role,
                 actorName: $director->name,
                 occurredAt: $reviewedAt,
@@ -672,7 +823,7 @@ class CaseWorkflowService
             $this->maybeAddPublicUpdate(
                 caseFile: $caseFile,
                 stage: $caseFile->stage,
-                headline: $approved ? 'Report completed' : 'Report requires further investigation',
+                headline: $approved ? 'Report completed' : 'Report requires further review',
                 payload: $payload,
                 actorRole: $director->role,
                 actorName: $director->name,
@@ -687,7 +838,7 @@ class CaseWorkflowService
                 actorRole: $director->role,
                 actorName: $director->name,
                 context: [
-                    'decision' => $payload['decision'],
+                    ...$directorApprovalPayload,
                     'completed_at' => $caseFile->completed_at?->toISOString(),
                 ],
             );
@@ -696,25 +847,104 @@ class CaseWorkflowService
         });
     }
 
-    private function determineSeverity(string $category, array $governanceTags, bool $witnessAvailable): string
+    private function determineSeverity(array $reportedParties, array $payload = []): string
     {
-        if (in_array('retaliation-risk', $governanceTags, true)) {
+        $containsHighRiskParty = collect($reportedParties)
+            ->pluck('classification')
+            ->contains(fn ($classification) => in_array($classification, ['state_official', 'law_enforcement'], true));
+
+        if ($containsHighRiskParty) {
+            return 'high';
+        }
+
+        $highRiskCategories = [
+            'bribery',
+            'procurement',
+            'fraud',
+            'abuse_of_authority',
+            'retaliation',
+        ];
+        $highRiskTags = [
+            'leadership',
+            'financial-loss',
+            'state-loss',
+            'state_financial_loss',
+            'bribery',
+        ];
+
+        if (in_array($payload['category'] ?? null, $highRiskCategories, true)) {
+            return 'high';
+        }
+
+        if (collect($payload['governance_tags'] ?? [])->intersect($highRiskTags)->isNotEmpty()) {
+            return 'high';
+        }
+
+        return count($reportedParties) > 1 ? 'medium' : 'low';
+    }
+
+    private function determineVerificationSeverity(array $verificationPayload): string
+    {
+        if (($verificationPayload['criminal_assessment'] ?? null) === 'indicated') {
+            return 'high';
+        }
+
+        return ($verificationPayload['recommendation'] ?? null) === 'review'
+            ? 'medium'
+            : 'low';
+    }
+
+    private function determineReviewSeverity(array $reviewPayload): string
+    {
+        if (($reviewPayload['is_priority'] ?? false) === true) {
             return 'critical';
         }
 
-        $baseSeverity = match ($category) {
-            'bribery', 'procurement', 'fraud' => 'high',
-            'abuse_of_authority', 'conflict_of_interest', 'retaliation' => 'medium',
-            default => 'low',
-        };
+        return ($reviewPayload['recommendation'] ?? null) === 'archive'
+            ? 'medium'
+            : 'high';
+    }
 
-        return $witnessAvailable && $baseSeverity !== 'critical'
-            ? match ($baseSeverity) {
-                'low' => 'medium',
-                'medium' => 'high',
-                default => $baseSeverity,
+    private function normalizeReportedParties(array $payload): array
+    {
+        $reportedParties = $payload['reported_parties'] ?? [];
+
+        if (! is_array($reportedParties) || $reportedParties === []) {
+            $accusedParty = trim((string) ($payload['accused_party'] ?? ''));
+
+            if ($accusedParty === '') {
+                return [];
             }
-            : $baseSeverity;
+
+            return [[
+                'full_name' => $accusedParty,
+                'position' => 'Not specified',
+                'classification' => 'other',
+            ]];
+        }
+
+        return collect($reportedParties)
+            ->filter(fn ($party) => is_array($party))
+            ->map(function (array $party) {
+                return [
+                    'full_name' => trim((string) ($party['full_name'] ?? '')),
+                    'position' => trim((string) ($party['position'] ?? 'Not specified')),
+                    'classification' => $party['classification'] ?? 'other',
+                ];
+            })
+            ->filter(fn (array $party) => $party['full_name'] !== '')
+            ->values()
+            ->all();
+    }
+
+    private function flattenReportedParties(array $reportedParties): ?string
+    {
+        $names = collect($reportedParties)
+            ->pluck('full_name')
+            ->filter()
+            ->implode(', ');
+
+        return $names !== '' ? $names : null;
     }
 
     private function maybeAddPublicUpdate(

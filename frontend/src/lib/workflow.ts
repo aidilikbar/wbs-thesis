@@ -2,13 +2,13 @@ import type { UserRole, WorkflowCase, WorkflowDirectoryView } from "@/lib/types"
 import { getStageLabel } from "@/lib/labels";
 
 export const workflowActionLabels: Record<string, string> = {
-  delegate_verification: "Assign Verification Officer",
-  submit_verification: "Submit Verification Findings",
-  review_verification: "Review Verification",
-  delegate_investigation: "Delegate to Investigator",
-  submit_investigation: "Submit Investigation Findings",
-  review_investigation: "Review Investigation",
-  director_review: "Director Review",
+  delegate_verification: "Record Screening and Delegation",
+  submit_verification: "Submit Verification Assessment",
+  review_verification: "Record Verification Approval",
+  delegate_investigation: "Delegate Review",
+  submit_investigation: "Submit Review Assessment",
+  review_investigation: "Record Review Approval",
+  director_review: "Record Director Decision",
 };
 
 export function workflowHasApprovalMenu(role?: string | null): boolean {

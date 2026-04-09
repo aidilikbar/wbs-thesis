@@ -4,8 +4,8 @@ export const roleLabels: Record<UserRole, string> = {
   reporter: "Reporter",
   supervisor_of_verificator: "Verification Supervisor",
   verificator: "Verification Officer",
-  supervisor_of_investigator: "Investigation Supervisor",
-  investigator: "Investigator",
+  supervisor_of_investigator: "Review Supervisor",
+  investigator: "Reviewer",
   director: "Director",
   system_administrator: "System Administrator",
 };
@@ -13,10 +13,10 @@ export const roleLabels: Record<UserRole, string> = {
 export const stageLabels: Record<string, string> = {
   submitted: "Submitted",
   verification_in_progress: "Verification in Progress",
-  verification_review: "Verification Review",
-  verified: "Verified",
-  investigation_in_progress: "Investigation in Progress",
-  investigation_review: "Investigation Review",
+  verification_review: "Verification Approval",
+  verified: "Awaiting Review Delegation",
+  investigation_in_progress: "Review in Progress",
+  investigation_review: "Review Approval",
   director_review: "Director Review",
   completed: "Completed",
 };
@@ -24,16 +24,22 @@ export const stageLabels: Record<string, string> = {
 const legacyTextReplacements: Array<[RegExp, string]> = [
   [/Supervisor of Verificator/g, "Verification Supervisor"],
   [/supervisor of verificator/g, "verification supervisor"],
-  [/Supervisor of Investigator/g, "Investigation Supervisor"],
-  [/supervisor of investigator/g, "investigation supervisor"],
+  [/Supervisor of Investigator/g, "Review Supervisor"],
+  [/supervisor of investigator/g, "review supervisor"],
   [/Supervisor Verificator/g, "Verification Supervisor"],
-  [/Supervisor Investigator/g, "Investigation Supervisor"],
+  [/Supervisor Investigator/g, "Review Supervisor"],
   [/Verificators/g, "Verification Officers"],
   [/verificators/g, "verification officers"],
   [/Verificator/g, "Verification Officer"],
   [/verificator/g, "verification officer"],
   [/Verification In Progress/g, "Verification in Progress"],
-  [/Investigation In Progress/g, "Investigation in Progress"],
+  [/Investigation In Progress/g, "Review in Progress"],
+  [/Investigation Supervisor/g, "Review Supervisor"],
+  [/investigation supervisor/g, "review supervisor"],
+  [/Investigator/g, "Reviewer"],
+  [/investigator/g, "reviewer"],
+  [/Verification Review/g, "Verification Approval"],
+  [/Investigation Review/g, "Review Approval"],
 ];
 
 function titleCase(value: string): string {

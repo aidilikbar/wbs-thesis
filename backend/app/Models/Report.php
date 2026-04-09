@@ -20,6 +20,7 @@ class Report extends Model
         'incident_date',
         'incident_location',
         'accused_party',
+        'reported_parties',
         'evidence_summary',
         'anonymity_level',
         'reporter_name',
@@ -44,6 +45,7 @@ class Report extends Model
             'requested_follow_up' => 'boolean',
             'witness_available' => 'boolean',
             'governance_tags' => 'array',
+            'reported_parties' => 'array',
             'submitted_at' => 'datetime',
             'last_public_update_at' => 'datetime',
         ];

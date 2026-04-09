@@ -91,8 +91,17 @@ function buildSubmissionFormData(body: SubmissionPayload, attachments: File[]) {
   const formData = new FormData();
 
   formData.append("title", body.title);
-  formData.append("category", body.category);
   formData.append("description", body.description);
+
+  body.reported_parties.forEach((party, index) => {
+    formData.append(`reported_parties[${index}][full_name]`, party.full_name);
+    formData.append(`reported_parties[${index}][position]`, party.position);
+    formData.append(`reported_parties[${index}][classification]`, party.classification);
+  });
+
+  if (body.category) {
+    formData.append("category", body.category);
+  }
 
   if (body.incident_date) {
     formData.append("incident_date", body.incident_date);
@@ -110,11 +119,19 @@ function buildSubmissionFormData(body: SubmissionPayload, attachments: File[]) {
     formData.append("evidence_summary", body.evidence_summary);
   }
 
-  formData.append("confidentiality_level", body.confidentiality_level);
-  formData.append("requested_follow_up", body.requested_follow_up ? "1" : "0");
-  formData.append("witness_available", body.witness_available ? "1" : "0");
+  if (body.confidentiality_level) {
+    formData.append("confidentiality_level", body.confidentiality_level);
+  }
 
-  for (const tag of body.governance_tags) {
+  if (body.requested_follow_up !== undefined) {
+    formData.append("requested_follow_up", body.requested_follow_up ? "1" : "0");
+  }
+
+  if (body.witness_available !== undefined) {
+    formData.append("witness_available", body.witness_available ? "1" : "0");
+  }
+
+  for (const tag of body.governance_tags ?? []) {
     formData.append("governance_tags[]", tag);
   }
 
@@ -361,7 +378,7 @@ export const api = {
   delegateVerification: (
     token: string,
     caseId: number,
-    body: { assignee_user_id: number; assigned_unit?: string; due_in_days?: number },
+    body: Record<string, unknown>,
   ) =>
     request<WorkflowCase>(`/workflow/cases/${caseId}/delegate-verification`, {
       method: "PATCH",
@@ -371,7 +388,7 @@ export const api = {
   submitVerification: (
     token: string,
     caseId: number,
-    body: { internal_note: string; publish_update?: boolean; public_message?: string },
+    body: Record<string, unknown>,
   ) =>
     request<WorkflowCase>(`/workflow/cases/${caseId}/submit-verification`, {
       method: "PATCH",
@@ -381,12 +398,7 @@ export const api = {
   reviewVerification: (
     token: string,
     caseId: number,
-    body: {
-      decision: "approved" | "rejected";
-      internal_note: string;
-      publish_update?: boolean;
-      public_message?: string;
-    },
+    body: Record<string, unknown>,
   ) =>
     request<WorkflowCase>(`/workflow/cases/${caseId}/review-verification`, {
       method: "PATCH",
@@ -396,7 +408,7 @@ export const api = {
   delegateInvestigation: (
     token: string,
     caseId: number,
-    body: { assignee_user_id: number; assigned_unit?: string; due_in_days?: number },
+    body: Record<string, unknown>,
   ) =>
     request<WorkflowCase>(`/workflow/cases/${caseId}/delegate-investigation`, {
       method: "PATCH",
@@ -406,7 +418,7 @@ export const api = {
   submitInvestigation: (
     token: string,
     caseId: number,
-    body: { internal_note: string; publish_update?: boolean; public_message?: string },
+    body: Record<string, unknown>,
   ) =>
     request<WorkflowCase>(`/workflow/cases/${caseId}/submit-investigation`, {
       method: "PATCH",
@@ -416,12 +428,7 @@ export const api = {
   reviewInvestigation: (
     token: string,
     caseId: number,
-    body: {
-      decision: "approved" | "rejected";
-      internal_note: string;
-      publish_update?: boolean;
-      public_message?: string;
-    },
+    body: Record<string, unknown>,
   ) =>
     request<WorkflowCase>(`/workflow/cases/${caseId}/review-investigation`, {
       method: "PATCH",
@@ -431,12 +438,7 @@ export const api = {
   directorReview: (
     token: string,
     caseId: number,
-    body: {
-      decision: "approved" | "rejected";
-      internal_note: string;
-      publish_update?: boolean;
-      public_message?: string;
-    },
+    body: Record<string, unknown>,
   ) =>
     request<WorkflowCase>(`/workflow/cases/${caseId}/director-review`, {
       method: "PATCH",

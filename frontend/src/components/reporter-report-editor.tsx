@@ -6,11 +6,12 @@ import { useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { CaseMessageBoard } from "@/components/case-message-board";
 import { ReportAttachmentField } from "@/components/report-attachment-field";
+import { ReportedPartiesEditor } from "@/components/reported-parties-editor";
+import { ReportedPartiesSummary } from "@/components/reported-parties-summary";
 import { StatusBadge } from "@/components/status-badge";
 import {
-  categoryOptions,
-  confidentialityOptions,
-  governanceTagOptions,
+  initialSubmissionPayload,
+  reportedPartyClassificationOptions,
 } from "@/lib/demo-data";
 import { validateAttachmentSelection } from "@/lib/attachment-validation";
 import { api } from "@/lib/api";
@@ -32,13 +33,12 @@ const workflowMilestones = [
     description: "The report has been received and registered in the KPK workflow.",
   },
   {
-    label: "Verification Underway",
-    description:
-      "A verification officer and the supervising reviewer are assessing initial completeness and validity.",
+    label: "Verification",
+    description: "Verification supervision and the verification officer are assessing the report.",
   },
   {
-    label: "Follow-up Review",
-    description: "The case is moving through investigation, supervisory review, or director decision.",
+    label: "Review",
+    description: "The case is moving through review delegation, review approval, or director decision.",
   },
   {
     label: "Closed",
@@ -49,28 +49,12 @@ const workflowMilestones = [
 function buildPayloadFromReport(report: ReporterReportDetail): SubmissionPayload {
   return {
     title: report.title,
-    category: report.category,
     description: report.description,
-    incident_date: report.incident_date ?? "",
-    incident_location: report.incident_location ?? "",
-    accused_party: report.accused_party ?? "",
-    evidence_summary: report.evidence_summary ?? "",
-    confidentiality_level: report.confidentiality_level as SubmissionPayload["confidentiality_level"],
-    requested_follow_up: report.requested_follow_up,
-    witness_available: report.witness_available,
-    governance_tags: report.governance_tags,
+    reported_parties:
+      (report.reported_parties ?? []).length > 0
+        ? report.reported_parties
+        : initialSubmissionPayload.reported_parties,
   };
-}
-
-function readLabel(
-  options: ReadonlyArray<{ value: string; label: string }>,
-  value: string | null | undefined,
-) {
-  if (!value) {
-    return "Not recorded";
-  }
-
-  return options.find((option) => option.value === value)?.label ?? value;
 }
 
 function milestoneIndex(status: string) {
@@ -162,26 +146,6 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
     };
   }, [isReady, token, isReporterUser, reportId]);
 
-  const updateField = <K extends keyof SubmissionPayload>(
-    field: K,
-    value: SubmissionPayload[K],
-  ) => {
-    setForm((current) => (current ? { ...current, [field]: value } : current));
-  };
-
-  const toggleTag = (tag: string) => {
-    setForm((current) =>
-      current
-        ? {
-            ...current,
-            governance_tags: current.governance_tags.includes(tag)
-              ? current.governance_tags.filter((item) => item !== tag)
-              : [...current.governance_tags, tag],
-          }
-        : current,
-    );
-  };
-
   const handleSelectedFilesChange = (files: File[]) => {
     setSelectedFiles(files);
     setAttachmentMessage(validateAttachmentSelection(files));
@@ -224,6 +188,18 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
 
     if (!token || !form || !record) {
       setMessage("Reporter authentication is required before updating this record.");
+
+      return;
+    }
+
+    if (
+      form.title.trim() === "" ||
+      form.description.trim() === "" ||
+      form.reported_parties.some(
+        (party) => party.full_name.trim() === "" || party.position.trim() === "",
+      )
+    ) {
+      setMessage("Complete the report summary and all reported-party fields.");
 
       return;
     }
@@ -276,14 +252,6 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
             </Link>
           </div>
         </div>
-        <aside className="dark-card rounded-[1rem] border border-white/8 p-8">
-          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
-            Reporter Rule
-          </p>
-          <p className="mt-4 text-sm leading-7 text-white/72">
-            Public tracking remains available at `/track`, while this authenticated detail page reveals the report data and public timeline for the owning reporter only.
-          </p>
-        </aside>
       </div>
     );
   }
@@ -296,25 +264,12 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
         <p className="muted mt-4 text-sm leading-7">
           {message ?? "The report detail is unavailable for this reporter account."}
         </p>
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={() => router.push("/submit")}
-            className="ghost-button cursor-pointer"
-          >
-            Back to Reports
-          </button>
-        </div>
       </div>
     );
   }
 
   const editLocked = !record.is_editable;
   const currentMilestone = milestoneIndex(record.status);
-  const confidentialityLabel = readLabel(
-    confidentialityOptions,
-    form.confidentiality_level,
-  );
   const tabs: Array<{ id: ReporterTab; label: string }> = [
     { id: "details", label: "Case Details" },
     { id: "communication", label: "Secure Communication" },
@@ -344,127 +299,83 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
           </div>
         </div>
 
-        <div className="mt-8 space-y-6">
-          <div className="space-y-4">
-            <div className="dark-card rounded-[1rem] border border-white/8 p-6">
-              <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary)]">
-                Tracking Status
-              </p>
-              <div className="mt-5 grid gap-5 lg:grid-cols-[1.05fr_0.95fr_0.95fr]">
-                <div>
-                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                    Current Stage
-                  </p>
-                  <p className="mt-1 text-white">
-                    {getStageLabel(record.case.stage, record.case.stage_label) ||
-                      "Awaiting assignment"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                    Assigned Unit
-                  </p>
-                  <p className="mt-1 text-white">
-                    {record.case.assigned_unit ?? "Protected routing"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                    Last Public Update
-                  </p>
-                  <p className="mt-1 text-white">
-                    {record.last_public_update_at
-                      ? formatDateTime(record.last_public_update_at)
-                      : "No public update published yet"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {workflowMilestones.map((step, index) => {
-                const state =
-                  index < currentMilestone
-                    ? "completed"
-                    : index === currentMilestone
-                      ? "current"
-                      : "pending";
+        <div className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <article className="rounded-[1rem] border border-[var(--panel-border)] bg-white/76 p-6">
+            <p className="eyebrow">Tracking Status</p>
+            <div className="mt-5 space-y-4">
+              {workflowMilestones.map((milestone, index) => {
+                const completed = index <= currentMilestone;
+                const current = index === currentMilestone;
 
                 return (
-                  <article
-                    key={step.label}
-                    className={`rounded-[0.9rem] border px-5 py-5 ${
-                      state === "completed"
-                        ? "border-[rgba(197,160,34,0.36)] bg-[rgba(197,160,34,0.14)]"
-                        : state === "current"
-                          ? "border-[rgba(239,47,39,0.18)] bg-[rgba(239,47,39,0.06)]"
-                          : "border-[var(--panel-border)] bg-white/76"
+                  <div
+                    key={milestone.label}
+                    className={`rounded-[0.9rem] border px-4 py-4 ${
+                      completed
+                        ? "border-[rgba(239,47,39,0.18)] bg-[rgba(239,47,39,0.08)]"
+                        : "border-[var(--panel-border)] bg-white"
                     }`}
                   >
-                    <p className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                      Step {String(index + 1).padStart(2, "0")}
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm font-semibold text-[var(--foreground)]">
+                        {milestone.label}
+                      </p>
+                      {current ? <StatusBadge value={record.case.stage ?? record.status} /> : null}
+                    </div>
+                    <p className="muted mt-2 text-sm leading-7">
+                      {milestone.description}
                     </p>
-                    <h4 className="mt-3 text-lg">{step.label}</h4>
-                    <p className="muted mt-3 text-sm leading-7">{step.description}</p>
-                  </article>
+                  </div>
                 );
               })}
             </div>
-          </div>
+          </article>
 
-          <div>
+          <article className="rounded-[1rem] border border-[var(--panel-border)] bg-white/76 p-6">
             <p className="eyebrow">Report Information</p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <article className="outline-panel rounded-[0.9rem] px-5 py-4">
-                <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                   Public Reference
                 </p>
-                <p className="mt-3 font-mono text-sm text-[var(--foreground)]">
-                  {record.public_reference}
-                </p>
-              </article>
-              <article className="outline-panel rounded-[0.9rem] px-5 py-4">
-                <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Case Number
-                </p>
-                <p className="mt-3 font-mono text-sm text-[var(--foreground)]">
-                  {record.case.case_number ?? "Pending issuance"}
-                </p>
-              </article>
-              <article className="outline-panel rounded-[0.9rem] px-5 py-4">
-                <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Report Status
-                </p>
-                <div className="mt-3">
-                  <StatusBadge value={record.status} />
-                </div>
-              </article>
-              <article className="outline-panel rounded-[0.9rem] px-5 py-4">
-                <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Reporter Identity
-                </p>
-                <p className="mt-3 text-sm text-[var(--foreground)]">
-                  {confidentialityLabel}
-                </p>
-              </article>
-              <article className="outline-panel rounded-[0.9rem] px-5 py-4">
-                <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
-                  Submission Date
-                </p>
-                <p className="mt-3 text-sm text-[var(--foreground)]">
-                  {formatDateTime(record.submitted_at)}
-                </p>
-              </article>
-              <article className="outline-panel rounded-[0.9rem] px-5 py-4">
-                <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--neutral)]">
+                <p className="mt-2 font-mono text-sm">{record.public_reference}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                   Tracking Token
                 </p>
-                <p className="mt-3 font-mono text-sm text-[var(--foreground)]">
-                  {record.tracking_token}
+                <p className="mt-2 font-mono text-sm">{record.tracking_token}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Case Number
                 </p>
-              </article>
+                <p className="mt-2 text-sm">{record.case.case_number ?? "Not assigned"}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Current Stage
+                </p>
+                <p className="mt-2 text-sm">
+                  {getStageLabel(record.case.stage, record.case.stage_label ?? record.status)}
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Current Handler
+                </p>
+                <p className="mt-2 text-sm">
+                  {getRoleLabel(record.case.current_role, record.case.current_role_label)}
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Submission Date
+                </p>
+                <p className="mt-2 text-sm">{formatDateTime(record.submitted_at)}</p>
+              </div>
             </div>
-          </div>
+          </article>
         </div>
       </section>
 
@@ -492,141 +403,174 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
       </section>
 
       {activeTab === "details" ? (
-        <section className="space-y-6">
-          <section className="panel rounded-[1rem] p-8">
+        <section className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
+          <article className="panel rounded-[1rem] p-8">
             <p className="eyebrow">Case Record</p>
-            <h3 className="mt-3 text-3xl">Case Record</h3>
-            <p className="muted mt-4 max-w-3xl text-sm leading-7">
-              Review the current report state and public-safe case routing information before revising the submission.
-            </p>
-
-            <dl className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
-                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Category
-                </dt>
-                <dd className="mt-2 text-sm text-[var(--foreground)]">
-                  {record.category_label}
-                </dd>
-              </div>
-              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
-                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Current Stage
-                </dt>
-                <dd className="mt-2 text-sm text-[var(--foreground)]">
-                  {getStageLabel(record.case.stage, record.case.stage_label) || "Awaiting assignment"}
-                </dd>
-              </div>
-              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
-                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Current Role
-                </dt>
-                <dd className="mt-2 text-sm text-[var(--foreground)]">
-                  {getRoleLabel(record.case.current_role, record.case.current_role_label) ||
-                    "Protected routing"}
-                </dd>
-              </div>
-              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
-                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Confidentiality
-                </dt>
-                <dd className="mt-2 text-sm text-[var(--foreground)]">
-                  {confidentialityLabel}
-                </dd>
-              </div>
-              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
-                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Severity
-                </dt>
-                <dd className="mt-2 text-sm text-[var(--foreground)]">{record.severity}</dd>
-              </div>
-              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
-                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Incident Date
-                </dt>
-                <dd className="mt-2 text-sm text-[var(--foreground)]">
-                  {record.incident_date ? formatDateTime(record.incident_date) : "Not recorded"}
-                </dd>
-              </div>
-              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
-                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Incident Location
-                </dt>
-                <dd className="mt-2 text-sm text-[var(--foreground)]">
-                  {record.incident_location ?? "Not recorded"}
-                </dd>
-              </div>
-              <div className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white/74 px-5 py-4">
-                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Accused Party
-                </dt>
-                <dd className="mt-2 text-sm text-[var(--foreground)]">
-                  {record.accused_party ?? "Not recorded"}
-                </dd>
-              </div>
-            </dl>
-
-            <div className="mt-6 grid gap-5 lg:grid-cols-[1.08fr_0.92fr]">
-              <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
-                <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Evidence Summary
+            <h3 className="mt-4 text-3xl">Protected case details</h3>
+            <div className="mt-6 space-y-6">
+              <div>
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Report Description
                 </p>
                 <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
-                  {record.evidence_summary ?? "No evidence summary recorded."}
+                  {record.description}
                 </p>
               </div>
+
+              <ReportedPartiesSummary parties={record.reported_parties ?? []} />
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 px-5 py-4">
+                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                    Assigned Unit
+                  </p>
+                  <p className="mt-2 text-sm">{record.case.assigned_unit ?? "Pending assignment"}</p>
+                </div>
+                <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 px-5 py-4">
+                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                    Last Public Update
+                  </p>
+                  <p className="mt-2 text-sm">
+                    {record.last_public_update_at
+                      ? formatDateTime(record.last_public_update_at)
+                      : "No public update yet"}
+                  </p>
+                </div>
+              </div>
+
               <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
-                <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                  Governance Tags
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Public Timeline
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {record.governance_tags.length > 0 ? (
-                    record.governance_tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-[var(--panel-border)] px-3 py-1 text-xs uppercase tracking-[0.16em] text-[var(--muted)]"
+                <div className="mt-4 space-y-3">
+                  {record.timeline.length > 0 ? (
+                    record.timeline.map((entry, index) => (
+                      <article
+                        key={`${entry.stage}-${entry.occurred_at}-${index}`}
+                        className="rounded-[0.85rem] border border-[var(--panel-border)] bg-white px-4 py-4"
                       >
-                        {tag.replaceAll("_", " ")}
-                      </span>
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-semibold text-[var(--foreground)]">
+                              {normalizeWorkflowCopy(entry.headline)}
+                            </p>
+                            <p className="muted mt-2 text-sm leading-7">
+                              {normalizeWorkflowCopy(entry.detail)}
+                            </p>
+                          </div>
+                          <p className="text-sm text-[var(--muted)]">
+                            {formatDateTime(entry.occurred_at)}
+                          </p>
+                        </div>
+                      </article>
                     ))
                   ) : (
-                    <span className="text-sm text-[var(--muted)]">No governance tags.</span>
+                    <p className="text-sm text-[var(--muted)]">
+                      No public timeline events have been published yet.
+                    </p>
                   )}
                 </div>
               </div>
             </div>
+          </article>
 
-            {record.timeline.length > 0 ? (
-              <div className="mt-6 space-y-4">
-                {record.timeline.map((item, index) => (
+          <article className="panel rounded-[1rem] p-8">
+            <p className="eyebrow">Case Attachment</p>
+            <div className="mt-6 space-y-4">
+              {record.attachments.length > 0 ? (
+                record.attachments.map((attachment) => (
                   <article
-                    key={`${item.headline}-${item.occurred_at}`}
-                    className="grid gap-4 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/74 p-5 lg:grid-cols-[auto_1fr]"
+                    key={attachment.id}
+                    className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-[0.45rem] bg-[var(--primary)] font-mono text-xs font-bold text-white">
-                      {String(index + 1).padStart(2, "0")}
-                    </div>
-                    <div>
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                            {getStageLabel(item.stage, item.stage_label)}
-                          </p>
-                          <h4 className="mt-2 text-xl">{item.headline}</h4>
-                        </div>
-                        <p className="text-sm text-[var(--muted)]">
-                          {formatDateTime(item.occurred_at)}
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <h4 className="text-lg">{attachment.original_name}</h4>
+                        <p className="muted mt-2 text-sm leading-7">
+                          {attachment.uploaded_at
+                            ? `Uploaded ${formatDateTime(attachment.uploaded_at)}`
+                            : "Stored attachment"}
                         </p>
                       </div>
-                      <p className="muted mt-4 text-sm leading-7">
-                        {normalizeWorkflowCopy(item.detail)}
-                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadAttachment(attachment)}
+                        className="ghost-button"
+                      >
+                        Download
+                      </button>
                     </div>
                   </article>
-                ))}
-              </div>
-            ) : null}
-          </section>
+                ))
+              ) : (
+                <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5 text-sm text-[var(--muted)]">
+                  No stored attachments are linked to this report yet.
+                </div>
+              )}
+            </div>
+          </article>
+        </section>
+      ) : null}
+
+      {activeTab === "communication" ? (
+        <CaseMessageBoard token={token} scope={{ kind: "reporter", reportId: record.id }} />
+      ) : null}
+
+      <section className="panel rounded-[1rem] p-8">
+        <p className="eyebrow">Update Report</p>
+        <h3 className="mt-4 text-3xl">Revise the original filing</h3>
+
+        {message ? (
+          <p className="mt-5 rounded-[0.7rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-3 text-sm text-[var(--secondary-strong)]">
+            {message}
+          </p>
+        ) : null}
+
+        {editLocked && record.edit_lock_reason ? (
+          <p className="mt-5 rounded-[0.7rem] border border-amber-200 bg-amber-100 px-4 py-3 text-sm text-amber-900">
+            {record.edit_lock_reason}
+          </p>
+        ) : null}
+
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold">Report Title</span>
+            <input
+              className="field"
+              value={form.title}
+              onChange={(event) =>
+                setForm((current) =>
+                  current ? { ...current, title: event.target.value } : current,
+                )
+              }
+              disabled={editLocked}
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold">Report Description</span>
+            <textarea
+              className="field min-h-40"
+              value={form.description}
+              onChange={(event) =>
+                setForm((current) =>
+                  current ? { ...current, description: event.target.value } : current,
+                )
+              }
+              disabled={editLocked}
+              required
+            />
+          </label>
+
+          <ReportedPartiesEditor
+            parties={form.reported_parties}
+            options={reportedPartyClassificationOptions}
+            disabled={editLocked}
+            onChange={(reported_parties) =>
+              setForm((current) => (current ? { ...current, reported_parties } : current))
+            }
+          />
 
           <ReportAttachmentField
             selectedFiles={selectedFiles}
@@ -634,255 +578,31 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
             canMutate={!editLocked}
             isBusy={isPending}
             validationMessage={attachmentMessage}
-            kicker="File Repository"
+            kicker="Attachments"
             title="Case Attachment"
-            headerNote="Upload or maintain private supporting files linked to this report record"
             onSelectedFilesChange={handleSelectedFilesChange}
             onDownloadAttachment={handleDownloadAttachment}
             onDeleteAttachment={handleDeleteAttachment}
           />
-        </section>
-      ) : null}
 
-      {activeTab === "communication" ? (
-        <CaseMessageBoard
-          token={token}
-          scope={{ kind: "reporter", reportId: record.id }}
-        />
-      ) : null}
-
-      <form className="panel rounded-[1rem] p-8" onSubmit={handleSubmit}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="eyebrow">Report Update</p>
-            <h3 className="mt-3 text-3xl">Edit report content</h3>
-            <p className="muted mt-4 max-w-2xl text-sm leading-7">
-              Revise the report content here. Attachment selections from the Case Attachment tab are uploaded when you save changes.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/profile" className="ghost-button">
-              Open Profile
-            </Link>
-            <Link href="/track" className="primary-button">
-              Public Tracking
-            </Link>
-          </div>
-        </div>
-
-        <div className="mt-7 grid gap-5 md:grid-cols-2">
-          <label className="block md:col-span-2">
-            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-              Title
-            </span>
-            <input
-              className="field"
-              value={form.title}
-              onChange={(event) => updateField("title", event.target.value)}
-              disabled={editLocked}
-              required
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-              Category
-            </span>
-            <select
-              className="field"
-              value={form.category}
-              onChange={(event) => updateField("category", event.target.value)}
-              disabled={editLocked}
+          <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--panel-border)] pt-6">
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() => router.push("/submit")}
             >
-              {categoryOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-              Incident Date
-            </span>
-            <input
-              className="field"
-              type="date"
-              value={form.incident_date}
-              onChange={(event) => updateField("incident_date", event.target.value)}
-              disabled={editLocked}
-            />
-          </label>
-
-          <label className="block md:col-span-2">
-            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-              Description
-            </span>
-            <textarea
-              className="field min-h-44"
-              value={form.description}
-              onChange={(event) => updateField("description", event.target.value)}
-              disabled={editLocked}
-              required
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-              Location
-            </span>
-            <input
-              className="field"
-              value={form.incident_location}
-              onChange={(event) => updateField("incident_location", event.target.value)}
-              disabled={editLocked}
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-              Accused Party
-            </span>
-            <input
-              className="field"
-              value={form.accused_party}
-              onChange={(event) => updateField("accused_party", event.target.value)}
-              disabled={editLocked}
-            />
-          </label>
-
-          <label className="block md:col-span-2">
-            <span className="mb-2 block font-mono text-[0.64rem] uppercase tracking-[0.22em]">
-              Evidence Summary
-            </span>
-            <textarea
-              className="field min-h-36"
-              value={form.evidence_summary}
-              onChange={(event) => updateField("evidence_summary", event.target.value)}
-              disabled={editLocked}
-            />
-          </label>
-        </div>
-
-        <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_1fr]">
-          <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
-            <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-              Protection
-            </p>
-            <label className="mt-4 block rounded-[0.8rem] border border-[var(--panel-border)] bg-white p-4">
-              <span className="flex items-start gap-4">
-                <input
-                  type="checkbox"
-                  checked={form.confidentiality_level === "anonymous"}
-                  onChange={(event) =>
-                    updateField(
-                      "confidentiality_level",
-                      event.target.checked ? "anonymous" : "identified",
-                    )
-                  }
-                  disabled={editLocked}
-                  className="mt-1"
-                />
-                <span>
-                  <span className="block font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-                    Anonymous Submission
-                  </span>
-                  <span className="mt-2 block text-sm font-semibold text-[var(--foreground)]">
-                    {form.confidentiality_level === "anonymous"
-                      ? "Case handlers cannot view your identity."
-                      : "Authorized case handlers can view your identity."}
-                  </span>
-                  <span className="muted mt-3 block text-sm leading-7">
-                    The report still belongs to your authenticated reporter account, so you can continue to access, edit, and track it normally.
-                  </span>
-                </span>
-              </span>
-            </label>
-
-            <div className="mt-5 space-y-3 text-sm">
-              <label className="outline-panel flex items-center gap-3 rounded-[0.75rem] px-4 py-4">
-                <input
-                  type="checkbox"
-                  checked={form.witness_available}
-                  onChange={(event) =>
-                    updateField("witness_available", event.target.checked)
-                  }
-                  disabled={editLocked}
-                />
-                Witnesses are available for protected follow-up
-              </label>
-              <label className="outline-panel flex items-center gap-3 rounded-[0.75rem] px-4 py-4">
-                <input
-                  type="checkbox"
-                  checked={form.requested_follow_up}
-                  onChange={(event) =>
-                    updateField("requested_follow_up", event.target.checked)
-                  }
-                  disabled={editLocked}
-                />
-                Reporter requests secure follow-up
-              </label>
-            </div>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="primary-button disabled:opacity-60"
+              disabled={isPending || editLocked}
+            >
+              {isPending ? "Saving..." : "Save Changes"}
+            </button>
           </div>
-
-          <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
-            <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
-              Governance Tags
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {governanceTagOptions.map((tag) => {
-                const active = form.governance_tags.includes(tag.value);
-
-                return (
-                  <button
-                    key={tag.value}
-                    type="button"
-                    onClick={() => toggleTag(tag.value)}
-                    disabled={editLocked}
-                    className={`rounded-[0.35rem] border px-4 py-3 text-[0.72rem] font-mono uppercase tracking-[0.22em] transition ${
-                      active
-                        ? "border-[rgba(239,47,39,0.18)] bg-[rgba(239,47,39,0.1)] text-[var(--primary-strong)]"
-                        : "border-[var(--panel-border)] bg-white text-[var(--foreground)]"
-                    } disabled:cursor-not-allowed disabled:opacity-60`}
-                  >
-                    {tag.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {message ? (
-          <p className="mt-6 rounded-[0.8rem] border border-amber-200 bg-amber-100 px-4 py-4 text-sm text-amber-900">
-            {message}
-          </p>
-        ) : null}
-
-        {editLocked && record.edit_lock_reason ? (
-          <p className="mt-6 rounded-[0.8rem] border border-amber-200 bg-amber-100 px-4 py-4 text-sm text-amber-900">
-            {record.edit_lock_reason}
-          </p>
-        ) : null}
-
-        <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-[var(--panel-border)] pt-6">
-          <button
-            type="button"
-            onClick={() => router.push("/submit")}
-            className="ghost-button cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isPending || editLocked}
-            className="primary-button disabled:opacity-60"
-          >
-            {isPending ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
-      </form>
+        </form>
+      </section>
     </div>
   );
 }

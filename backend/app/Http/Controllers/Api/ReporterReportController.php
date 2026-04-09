@@ -52,7 +52,8 @@ class ReporterReportController extends Controller
                         ->where('title', 'like', $like)
                         ->orWhere('public_reference', 'like', $like)
                         ->orWhere('category', 'like', $like)
-                        ->orWhere('accused_party', 'like', $like);
+                        ->orWhere('accused_party', 'like', $like)
+                        ->orWhere('description', 'like', $like);
                 });
             })
             ->when($status !== '', fn ($query) => $query->where('status', $status))
@@ -305,6 +306,7 @@ class ReporterReportController extends Controller
             'incident_date' => $report->incident_date?->toDateString(),
             'incident_location' => $report->incident_location,
             'accused_party' => $report->accused_party,
+            'reported_parties' => array_values($report->reported_parties ?? []),
             'evidence_summary' => $report->evidence_summary,
             'last_public_update_at' => $report->last_public_update_at?->toISOString(),
             'requested_follow_up' => $report->requested_follow_up,

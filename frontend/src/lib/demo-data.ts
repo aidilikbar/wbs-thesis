@@ -1,6 +1,7 @@
 import type {
   GovernanceDashboardData,
   InternalUserPayload,
+  ReportedPartyClassification,
   ReporterReportSummary,
   SubmissionPayload,
   TrackingRecord,
@@ -131,22 +132,22 @@ export const roleCards = [
   {
     title: "Verification Supervisor",
     description:
-      "Receives new reports, assigns them to verification officers, and decides whether verification is accepted or returned.",
+      "Screens new reports, rejects invalid submissions, delegates valid cases to verification officers, and records verification approvals.",
   },
   {
     title: "Verification Officer",
     description:
-      "Performs verification of submitted reports and returns documented findings to the verification supervisor.",
+      "Builds the verification assessment, applies corruption tags, and recommends review, forwarding, or archival.",
   },
   {
-    title: "Investigation Supervisor",
+    title: "Review Supervisor",
     description:
-      "Receives verified reports, delegates investigation, and reviews the investigator submission before director review.",
+      "Receives approved verification results, delegates review work, and records review approval before director decision.",
   },
   {
-    title: "Investigator",
+    title: "Reviewer",
     description:
-      "Analyzes verified reports, documents investigation findings, and submits them to the investigation supervisor.",
+      "Prepares the structured case review, including delict, article, timing, location, linkage, authority, priority, and conclusion.",
   },
   {
     title: "Director",
@@ -172,29 +173,86 @@ export const processSteps = [
 ];
 
 export const categoryOptions = [
-  { value: "bribery", label: "Bribery and gratuities" },
-  { value: "procurement", label: "Procurement fraud" },
-  { value: "fraud", label: "Financial fraud" },
-  { value: "abuse_of_authority", label: "Abuse of authority" },
-  { value: "conflict_of_interest", label: "Conflict of interest" },
-  { value: "harassment", label: "Harassment or misconduct" },
-  { value: "retaliation", label: "Retaliation against reporter" },
-  { value: "other", label: "Other governance concern" },
+  { value: "kpk_report", label: "KPK whistleblowing report" },
 ];
 
 export const governanceTagOptions = [
-  { value: "retaliation-risk", label: "Retaliation risk" },
-  { value: "conflict-sensitive", label: "Conflict-sensitive matter" },
-  { value: "procurement", label: "Procurement exposure" },
-  { value: "leadership", label: "Leadership escalation" },
-  { value: "financial-loss", label: "Potential financial loss" },
-  { value: "data-integrity", label: "Data integrity concern" },
+  { value: "bribery", label: "Bribery" },
+  { value: "gratuity", label: "Gratuity" },
+  { value: "procurement_irregularity", label: "Procurement irregularity" },
+  { value: "abuse_of_authority", label: "Abuse of authority" },
+  { value: "conflict_of_interest", label: "Conflict of interest" },
+  { value: "state_financial_loss", label: "State financial loss" },
+  { value: "obstruction_of_justice", label: "Obstruction of justice" },
+  { value: "other", label: "Other corruption aspect" },
 ];
 
 export const confidentialityOptions = [
   { value: "anonymous", label: "Anonymous reporter" },
   { value: "identified", label: "Identified reporter" },
 ] as const;
+
+export const reportedPartyClassificationOptions: Array<{
+  value: ReportedPartyClassification;
+  label: string;
+}> = [
+  { value: "state_official", label: "State official" },
+  { value: "civil_servant", label: "Civil servant" },
+  { value: "law_enforcement", label: "Law enforcement officer" },
+  { value: "other", label: "Other" },
+];
+
+export const verificationRecommendationOptions = [
+  { value: "review", label: "Review" },
+  { value: "forward", label: "Forward" },
+  { value: "archive", label: "Archive" },
+];
+
+export const reviewRecommendationOptions = [
+  { value: "internal_forwarding", label: "Forward internally" },
+  { value: "external_forwarding", label: "Forward externally" },
+  { value: "archive", label: "Archive" },
+];
+
+export const delictOptions = [
+  { value: "state_financial_loss", label: "State financial loss" },
+  { value: "bribery", label: "Bribery" },
+  { value: "embezzlement_in_office", label: "Embezzlement in office" },
+  { value: "extortion", label: "Extortion" },
+  { value: "fraudulent_act", label: "Fraudulent act" },
+  { value: "procurement_conflict_of_interest", label: "Conflict of interest in procurement" },
+  { value: "gratification", label: "Gratification" },
+  { value: "obstruction_of_justice", label: "Obstruction of justice" },
+  { value: "other", label: "Other" },
+];
+
+export const corruptionArticleOptions = [
+  { value: "article_2_31_1999", label: "Law 31/1999 Article 2" },
+  { value: "article_3_31_1999", label: "Law 31/1999 Article 3" },
+  { value: "article_5_31_1999", label: "Law 31/1999 Article 5" },
+  { value: "article_11_31_1999", label: "Law 31/1999 Article 11" },
+  { value: "article_12_31_1999", label: "Law 31/1999 Article 12" },
+  { value: "article_12b_20_2001", label: "Law 20/2001 Article 12B" },
+  { value: "article_21_31_1999", label: "Law 31/1999 Article 21" },
+  { value: "article_22_31_1999", label: "Law 31/1999 Article 22" },
+  { value: "article_23_31_1999", label: "Law 31/1999 Article 23" },
+  { value: "article_55_criminal_code", label: "Criminal Code Article 55" },
+];
+
+export const monthOptions = [
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
 
 export const internalRoleOptions: Array<{
   value: InternalUserPayload["role"];
@@ -210,13 +268,16 @@ export const internalRoleOptions: Array<{
 
 export const initialSubmissionPayload: SubmissionPayload = {
   title: "",
-  category: "procurement",
   description: "",
-  incident_date: "",
-  incident_location: "",
-  accused_party: "",
-  evidence_summary: "",
-  confidentiality_level: "anonymous",
+  reported_parties: [
+    {
+      full_name: "",
+      position: "",
+      classification: "other",
+    },
+  ],
+  category: "kpk_report",
+  confidentiality_level: "identified",
   requested_follow_up: true,
   witness_available: false,
   governance_tags: [],
@@ -238,10 +299,10 @@ export const demoReporterReports: ReporterReportSummary[] = [
     case: {
       case_number: "CASE-2026-0003",
       stage: "investigation_in_progress",
-      stage_label: "Investigation in Progress",
+      stage_label: "Review in Progress",
       assigned_unit: "Investigation Desk",
       current_role: "investigator",
-      current_role_label: "Investigator",
+      current_role_label: "Reviewer",
     },
   },
 ];
@@ -258,7 +319,7 @@ export const demoTrackingRecord: TrackingRecord = {
   case: {
     case_number: "CASE-2026-DEMO",
     stage: "investigation_in_progress",
-    stage_label: "Investigation in Progress",
+    stage_label: "Review in Progress",
     assigned_unit: "Investigation Desk",
     sla_due_at: "2026-03-22T16:00:00.000Z",
   },
@@ -274,7 +335,7 @@ export const demoTrackingRecord: TrackingRecord = {
     },
     {
       stage: "verification_review",
-      stage_label: "Verification Review",
+      stage_label: "Verification Approval",
       headline: "Verification completed",
       detail:
         "The report passed verification and progressed to the investigation allocation stage.",
@@ -283,7 +344,7 @@ export const demoTrackingRecord: TrackingRecord = {
     },
     {
       stage: "investigation_in_progress",
-      stage_label: "Investigation in Progress",
+      stage_label: "Review in Progress",
       headline: "Investigation delegated",
       detail:
         "The report is currently being analyzed in the investigation stage.",
@@ -345,7 +406,7 @@ export const demoWorkflowCases: WorkflowCase[] = [
     id: 2,
     case_number: "CASE-2026-0002",
     stage: "verification_review",
-    stage_label: "Verification Review",
+    stage_label: "Verification Approval",
     status: "verification_review",
     current_role: "supervisor_of_verificator",
     current_role_label: "Verification Supervisor",
@@ -401,10 +462,10 @@ export const demoWorkflowCases: WorkflowCase[] = [
     id: 3,
     case_number: "CASE-2026-0003",
     stage: "investigation_in_progress",
-    stage_label: "Investigation in Progress",
+    stage_label: "Review in Progress",
     status: "investigation_in_progress",
     current_role: "investigator",
-    current_role_label: "Investigator",
+    current_role_label: "Reviewer",
     assigned_to: "Ayu Wicaksono",
     assigned_unit: "Investigation Desk",
     severity: "high",
@@ -771,7 +832,7 @@ export function demoGovernanceDashboardForRole(
     },
     supervisor_of_investigator: {
       role: "supervisor_of_investigator",
-      role_label: "Investigation Supervisor",
+      role_label: "Review Supervisor",
       scope_label:
         "Your investigation supervision workload plus all investigator activity currently under that functional scope.",
       metrics: [
@@ -803,7 +864,7 @@ export function demoGovernanceDashboardForRole(
       action_items: [
         {
           title: "Delegate verified reports",
-          detail: "Verified cases are waiting for investigator assignment.",
+          detail: "Approved verification cases are waiting for reviewer assignment.",
           href: "/workflow",
           count: 2,
           tone: "warning" as const,
@@ -828,7 +889,7 @@ export function demoGovernanceDashboardForRole(
           is_self: true,
           subject_label: "Bagas Santoso (You)",
           role: "supervisor_of_investigator",
-          role_label: "Investigation Supervisor",
+          role_label: "Review Supervisor",
           unit: "Investigation Supervision",
           open_cases: 6,
           pending_queue: 2,
@@ -841,7 +902,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Ayu Wicaksono",
           role: "investigator",
-          role_label: "Investigator",
+          role_label: "Reviewer",
           unit: "Investigation Desk",
           open_cases: 3,
           pending_queue: 2,
@@ -854,7 +915,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Rizky Mahendra",
           role: "investigator",
-          role_label: "Investigator",
+          role_label: "Reviewer",
           unit: "Investigation Desk",
           open_cases: 2,
           pending_queue: 0,
@@ -867,8 +928,8 @@ export function demoGovernanceDashboardForRole(
     },
     investigator: {
       role: "investigator",
-      role_label: "Investigator",
-      scope_label: "Your own investigation workload, timeliness, and completion performance.",
+      role_label: "Reviewer",
+      scope_label: "Your own review workload, timeliness, and completion performance.",
       metrics: [
         {
           label: "Cases in your scope",
@@ -916,7 +977,7 @@ export function demoGovernanceDashboardForRole(
           is_self: true,
           subject_label: "Ayu Wicaksono (You)",
           role: "investigator",
-          role_label: "Investigator",
+          role_label: "Reviewer",
           unit: "Investigation Desk",
           open_cases: 5,
           pending_queue: 4,
@@ -1012,7 +1073,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Bagas Santoso",
           role: "supervisor_of_investigator",
-          role_label: "Investigation Supervisor",
+          role_label: "Review Supervisor",
           unit: "Investigation Supervision",
           open_cases: 6,
           pending_queue: 2,
@@ -1025,7 +1086,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Ayu Wicaksono",
           role: "investigator",
-          role_label: "Investigator",
+          role_label: "Reviewer",
           unit: "Investigation Desk",
           open_cases: 5,
           pending_queue: 4,
