@@ -5,9 +5,9 @@ export const workflowActionLabels: Record<string, string> = {
   delegate_verification: "Record Screening and Delegation",
   submit_verification: "Submit Verification Assessment",
   review_verification: "Record Verification Approval",
-  delegate_investigation: "Delegate Review",
-  submit_investigation: "Submit Review Assessment",
-  review_investigation: "Record Review Approval",
+  delegate_investigation: "Delegate Investigation",
+  submit_investigation: "Submit Investigation Assessment",
+  review_investigation: "Record Investigation Approval",
   director_review: "Record Director Decision",
 };
 

@@ -381,9 +381,9 @@ use OpenApi\Attributes as OA;
     type: 'object',
     required: ['internal_note'],
     properties: [
-        new OA\Property(property: 'internal_note', type: 'string', example: 'Verification completed and ready for supervisory review.'),
+        new OA\Property(property: 'internal_note', type: 'string', example: 'Verification completed and ready for supervisory approval.'),
         new OA\Property(property: 'publish_update', type: 'boolean', example: true),
-        new OA\Property(property: 'public_message', type: 'string', nullable: true, example: 'The report has completed verification and is pending supervisory review.'),
+        new OA\Property(property: 'public_message', type: 'string', nullable: true, example: 'The report has completed verification and is pending supervisory approval.'),
     ]
 )]
 #[OA\Schema(

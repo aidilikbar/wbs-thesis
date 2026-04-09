@@ -1,6 +1,6 @@
 # KPK Whistleblowing System
 
-KPK Whistleblowing System is a thesis prototype for **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**. It models the KPK whistleblowing process with role separation, authenticated reporter submission, case tracking, workflow approvals, governance controls, audit logging, and private file storage.
+KPK Whistleblowing System is a thesis prototype for **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**. It models a KPK-inspired operational flow while keeping the user-facing governance terminology aligned to ISO 37002-friendly English labels such as `Reporter`, `Verification Supervisor`, `Verification Officer`, `Investigation Supervisor`, and `Investigator`.
 
 Current release: [v0.1.3](https://github.com/aidilikbar/wbs-thesis/releases/tag/v0.1.3)
 
@@ -9,11 +9,13 @@ Current release: [v0.1.3](https://github.com/aidilikbar/wbs-thesis/releases/tag/
 - reporter registration, login, profile, and owned report access
 - reporter report ledger at `/submit` with search, status filter, and 10-row pagination
 - dedicated filing pages at `/submit/create` and `/submit/{reportId}/edit`
+- reporter filing fields for title, description, reported parties, and attachments
 - public-safe tracking at `/track`
 - workflow queue at `/workflow` and approval queue at `/workflow/approvals`
 - dedicated workflow case pages at `/workflow/{caseId}/edit` and `/workflow/{caseId}/approval`
+- workflow forms for screening, verification, investigation, and final approval
 - system administrator user directory at `/admin`
-- Swagger UI, PostgreSQL persistence, and MinIO-based attachment storage for development
+- Swagger UI, PostgreSQL persistence, and S3-compatible attachment storage for development
 
 ## Architecture
 
@@ -34,23 +36,27 @@ wbs-thesis/
 ## Business Roles
 
 - Reporter
-- Supervisor of Verificator
-- Verificator
-- Supervisor of Investigator
+- Verification Supervisor
+- Verification Officer
+- Investigation Supervisor
 - Investigator
 - Director
 - System Administrator
 
-Implemented workflow:
+Terminology note:
+- `Reporter` is the user-facing term for the whistleblower account.
+- Internal role keys remain `reporter`, `supervisor_of_verificator`, `verificator`, `supervisor_of_investigator`, `investigator`, `director`, and `system_administrator`.
 
-1. Reporter registers and submits a report.
-2. Supervisor of Verificator delegates it to a Verificator.
-3. Verificator verifies and submits it back.
-4. Supervisor of Verificator approves or rejects verification.
-5. Supervisor of Investigator delegates approved cases to an Investigator.
-6. Investigator analyses and submits the case back.
-7. Supervisor of Investigator approves or rejects investigation.
-8. Director gives the final approval or returns the case.
+## Current Workflow
+
+1. Reporter submits a report with title, description, reported parties, and optional attachments.
+2. Verification Supervisor screens the report, rejects invalid submissions, or delegates a valid case to a Verification Officer.
+3. Verification Officer records the information summary, corruption aspect tags, authority assessment, criminal assessment, reason, and recommendation.
+4. Verification Supervisor approves or rejects the verification outcome.
+5. Investigation Supervisor delegates approved cases to an Investigator.
+6. Investigator prepares the structured investigation record, including delict, legal article, timing, location, modus, linkage, authority, priority, and conclusion.
+7. Investigation Supervisor approves or rejects the investigation outcome.
+8. Director records the final decision.
 
 ## Local Setup
 
@@ -92,7 +98,7 @@ cp .env.example .env
 composer install
 php artisan key:generate
 php artisan migrate:fresh --seed
-php artisan serve
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
 ### Frontend
@@ -154,6 +160,7 @@ Internal:
 
 - `cd backend && php artisan test`
 - `cd backend && php artisan l5-swagger:generate`
+- `cd backend && php artisan openapi:sync-server-url`
 - `cd frontend && npm run lint`
 - `cd frontend && npm run build:webpack`
 

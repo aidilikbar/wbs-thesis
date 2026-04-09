@@ -21,7 +21,7 @@ export const landingStats = [
     label: "Process Gates",
     value: "8",
     detail:
-      "Submission, verification, supervisory review, investigation, director review, and completion milestones.",
+      "Submission, verification, supervisory approval, investigation, director decision, and completion milestones.",
   },
   {
     label: "Core Controls",
@@ -137,17 +137,17 @@ export const roleCards = [
   {
     title: "Verification Officer",
     description:
-      "Builds the verification assessment, applies corruption tags, and recommends review, forwarding, or archival.",
+      "Builds the verification assessment, applies corruption tags, and recommends investigation, forwarding, or archival.",
   },
   {
-    title: "Review Supervisor",
+    title: "Investigation Supervisor",
     description:
-      "Receives approved verification results, delegates review work, and records review approval before director decision.",
+      "Receives approved verification results, delegates investigation work, and records investigation approval before director decision.",
   },
   {
-    title: "Reviewer",
+    title: "Investigator",
     description:
-      "Prepares the structured case review, including delict, article, timing, location, linkage, authority, priority, and conclusion.",
+      "Prepares the structured investigation case file, including delict, article, timing, location, linkage, authority, priority, and conclusion.",
   },
   {
     title: "Director",
@@ -203,7 +203,7 @@ export const reportedPartyClassificationOptions: Array<{
 ];
 
 export const verificationRecommendationOptions = [
-  { value: "review", label: "Review" },
+  { value: "review", label: "Investigation" },
   { value: "forward", label: "Forward" },
   { value: "archive", label: "Archive" },
 ];
@@ -299,10 +299,10 @@ export const demoReporterReports: ReporterReportSummary[] = [
     case: {
       case_number: "CASE-2026-0003",
       stage: "investigation_in_progress",
-      stage_label: "Review in Progress",
+      stage_label: "Investigation in Progress",
       assigned_unit: "Investigation Desk",
       current_role: "investigator",
-      current_role_label: "Reviewer",
+      current_role_label: "Investigator",
     },
   },
 ];
@@ -319,7 +319,7 @@ export const demoTrackingRecord: TrackingRecord = {
   case: {
     case_number: "CASE-2026-DEMO",
     stage: "investigation_in_progress",
-    stage_label: "Review in Progress",
+    stage_label: "Investigation in Progress",
     assigned_unit: "Investigation Desk",
     sla_due_at: "2026-03-22T16:00:00.000Z",
   },
@@ -344,7 +344,7 @@ export const demoTrackingRecord: TrackingRecord = {
     },
     {
       stage: "investigation_in_progress",
-      stage_label: "Review in Progress",
+      stage_label: "Investigation in Progress",
       headline: "Investigation delegated",
       detail:
         "The report is currently being analyzed in the investigation stage.",
@@ -455,17 +455,17 @@ export const demoWorkflowCases: WorkflowCase[] = [
     sla_due_at: "2026-03-22T10:00:00.000Z",
     last_activity_at: "2026-03-19T07:45:00.000Z",
     latest_internal_event: "Verification submitted to supervisor",
-    latest_public_event: "Verification review update",
+    latest_public_event: "Verification approval update",
     available_actions: ["review_verification"],
   },
   {
     id: 3,
     case_number: "CASE-2026-0003",
     stage: "investigation_in_progress",
-    stage_label: "Review in Progress",
+    stage_label: "Investigation in Progress",
     status: "investigation_in_progress",
     current_role: "investigator",
-    current_role_label: "Reviewer",
+    current_role_label: "Investigator",
     assigned_to: "Ayu Wicaksono",
     assigned_unit: "Investigation Desk",
     severity: "high",
@@ -595,7 +595,7 @@ const demoGovernanceGlobal = {
       code: "SEG-02",
       name: "Segregation of duties",
       description:
-        "Separate verification supervision, verification officer review, investigation supervision, and final approval.",
+        "Separate verification supervision, verification officer work, investigation supervision, and final approval.",
       owner_role: "Director",
       status: "active",
       target_metric: "Distinct accountable role at each stage",
@@ -606,7 +606,7 @@ const demoGovernanceGlobal = {
       code: "SLA-03",
       name: "Workflow timeliness",
       description:
-        "Monitor delegation and review timeliness across verification and investigation stages.",
+        "Monitor delegation and approval timeliness across verification and investigation stages.",
       owner_role: "Verification Supervisor",
       status: "warning",
       target_metric: "Average first delegation under 72 hours",
@@ -832,7 +832,7 @@ export function demoGovernanceDashboardForRole(
     },
     supervisor_of_investigator: {
       role: "supervisor_of_investigator",
-      role_label: "Review Supervisor",
+      role_label: "Investigation Supervisor",
       scope_label:
         "Your investigation supervision workload plus all investigator activity currently under that functional scope.",
       metrics: [
@@ -864,7 +864,7 @@ export function demoGovernanceDashboardForRole(
       action_items: [
         {
           title: "Delegate verified reports",
-          detail: "Approved verification cases are waiting for reviewer assignment.",
+          detail: "Approved verification cases are waiting for investigator assignment.",
           href: "/workflow",
           count: 2,
           tone: "warning" as const,
@@ -889,7 +889,7 @@ export function demoGovernanceDashboardForRole(
           is_self: true,
           subject_label: "Bagas Santoso (You)",
           role: "supervisor_of_investigator",
-          role_label: "Review Supervisor",
+          role_label: "Investigation Supervisor",
           unit: "Investigation Supervision",
           open_cases: 6,
           pending_queue: 2,
@@ -902,7 +902,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Ayu Wicaksono",
           role: "investigator",
-          role_label: "Reviewer",
+          role_label: "Investigator",
           unit: "Investigation Desk",
           open_cases: 3,
           pending_queue: 2,
@@ -915,7 +915,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Rizky Mahendra",
           role: "investigator",
-          role_label: "Reviewer",
+          role_label: "Investigator",
           unit: "Investigation Desk",
           open_cases: 2,
           pending_queue: 0,
@@ -928,8 +928,8 @@ export function demoGovernanceDashboardForRole(
     },
     investigator: {
       role: "investigator",
-      role_label: "Reviewer",
-      scope_label: "Your own review workload, timeliness, and completion performance.",
+      role_label: "Investigator",
+      scope_label: "Your own investigation workload, timeliness, and completion performance.",
       metrics: [
         {
           label: "Cases in your scope",
@@ -977,7 +977,7 @@ export function demoGovernanceDashboardForRole(
           is_self: true,
           subject_label: "Ayu Wicaksono (You)",
           role: "investigator",
-          role_label: "Reviewer",
+          role_label: "Investigator",
           unit: "Investigation Desk",
           open_cases: 5,
           pending_queue: 4,
@@ -1073,7 +1073,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Bagas Santoso",
           role: "supervisor_of_investigator",
-          role_label: "Review Supervisor",
+          role_label: "Investigation Supervisor",
           unit: "Investigation Supervision",
           open_cases: 6,
           pending_queue: 2,
@@ -1086,7 +1086,7 @@ export function demoGovernanceDashboardForRole(
           is_self: false,
           subject_label: "Ayu Wicaksono",
           role: "investigator",
-          role_label: "Reviewer",
+          role_label: "Investigator",
           unit: "Investigation Desk",
           open_cases: 5,
           pending_queue: 4,

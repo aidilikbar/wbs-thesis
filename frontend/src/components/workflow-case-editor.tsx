@@ -102,29 +102,29 @@ const actionMeta: Record<
   review_verification: {
     title: "Verification Approval",
     description:
-      "Approve or reject the verification outcome before the case is delegated to review or completed.",
+      "Approve or reject the verification outcome before the case is delegated to investigation or completed.",
     button: "Record Verification Approval",
     mode: "approval",
   },
   delegate_investigation: {
-    title: "Review Delegation",
+    title: "Investigation Delegation",
     description:
-      "Assign the approved verification case to a reviewer and capture the delegation note.",
-    button: "Delegate Review",
+      "Assign the approved verification case to an investigator and capture the delegation note.",
+    button: "Delegate Investigation",
     mode: "queue",
   },
   submit_investigation: {
-    title: "Review Assessment",
+    title: "Investigation Assessment",
     description:
-      "Prepare the formal review case record, legal references, timing, linkage, and conclusion.",
-    button: "Submit Review Assessment",
+      "Prepare the formal investigation case record, legal references, timing, linkage, and conclusion.",
+    button: "Submit Investigation Assessment",
     mode: "queue",
   },
   review_investigation: {
-    title: "Review Approval",
+    title: "Investigation Approval",
     description:
-      "Approve or reject the review result before the director records the final decision.",
-    button: "Record Review Approval",
+      "Approve or reject the investigation result before the director records the final decision.",
+    button: "Record Investigation Approval",
     mode: "approval",
   },
   director_review: {
@@ -792,13 +792,13 @@ export function WorkflowCaseEditor({
                       </span>
                     </div>
                     <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                      <span>Review Supervisor</span>
+                      <span>Investigation Supervisor</span>
                       <span className="text-right text-[var(--muted)]">
                         {record.workflow.investigation_supervisor ?? "Unassigned"}
                       </span>
                     </div>
                     <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                      <span>Reviewer</span>
+                      <span>Investigator</span>
                       <span className="text-right text-[var(--muted)]">
                         {record.workflow.investigator ?? "Unassigned"}
                       </span>
@@ -847,7 +847,7 @@ export function WorkflowCaseEditor({
               {reviewRecord ? (
                 <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
                   <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-                    Review Record
+                    Investigation Record
                   </p>
                   <div className="mt-4 space-y-5">
                     <div>
@@ -858,7 +858,7 @@ export function WorkflowCaseEditor({
                     </div>
                     <ReportedPartiesSummary
                       parties={readReportedParties(reviewRecord, "reported_parties", [])}
-                      title="Reported Parties in Review"
+                      title="Reported Parties in Investigation"
                     />
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
@@ -924,7 +924,7 @@ export function WorkflowCaseEditor({
             <p className="eyebrow">Secure Communication</p>
             <h3 className="mt-4 text-3xl">Communication opens only for active handler roles</h3>
             <p className="muted mt-4 max-w-3xl text-sm leading-7">
-              Secure discussion is available only to the assigned verification officer or reviewer during the active communication stage.
+              Secure discussion is available only to the assigned verification officer or investigator during the active communication stage.
             </p>
           </section>
         )
@@ -1167,7 +1167,7 @@ export function WorkflowCaseEditor({
                     }
                     required
                   >
-                    <option value="">Select reviewer</option>
+                    <option value="">Select investigator</option>
                     {assignees.map((assignee) => (
                       <option key={assignee.id} value={assignee.id}>
                         {assignee.name} · {assignee.unit ?? assignee.role_label}
@@ -1184,7 +1184,7 @@ export function WorkflowCaseEditor({
                     onChange={(event) =>
                       updateActionState("distribution_note", event.target.value)
                     }
-                    placeholder="Explain the review assignment and immediate focus."
+                    placeholder="Explain the investigation assignment and immediate focus."
                   />
                 </label>
               </>
@@ -1205,8 +1205,8 @@ export function WorkflowCaseEditor({
                 <ReportedPartiesEditor
                   parties={actionState.reported_parties}
                   options={reportedPartyClassificationOptions}
-                  title="Reported Parties in Review"
-                  description="Confirm or refine the parties carried into the review record."
+                  title="Reported Parties in Investigation"
+                  description="Confirm or refine the parties carried into the investigation record."
                   onChange={(reported_parties) =>
                     updateActionState("reported_parties", reported_parties)
                   }
@@ -1225,7 +1225,7 @@ export function WorkflowCaseEditor({
                 </label>
 
                 <div>
-                  <span className="mb-2 block text-sm font-semibold">Review Tagging</span>
+                  <span className="mb-2 block text-sm font-semibold">Investigation Tagging</span>
                   <div className="flex flex-wrap gap-3">
                     {governanceTagOptions.map((tag) => {
                       const active = actionState.corruption_aspect_tags.includes(tag.value);
@@ -1250,7 +1250,7 @@ export function WorkflowCaseEditor({
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block">
-                    <span className="mb-2 block text-sm font-semibold">Review Recommendation</span>
+                    <span className="mb-2 block text-sm font-semibold">Investigation Recommendation</span>
                     <select
                       className="field"
                       value={actionState.recommendation}

@@ -5,8 +5,8 @@ Laravel API for the role-based KPK Whistleblowing System prototype.
 ## Responsibilities
 
 - reporter registration and shared authentication
-- authenticated report intake
-- private attachment intake and download via S3-compatible object storage
+- authenticated report intake and update
+- private attachment intake and download through S3-compatible object storage
 - public reference and tracking token lookup
 - role-based case workflow orchestration
 - system administrator user provisioning
@@ -15,17 +15,108 @@ Laravel API for the role-based KPK Whistleblowing System prototype.
 
 ## Role Model
 
-The backend supports:
+The backend supports these user-facing labels:
 
 - Reporter
-- Supervisor of Verificator
-- Verificator
-- Supervisor of Investigator
+- Verification Supervisor
+- Verification Officer
+- Investigation Supervisor
 - Investigator
 - Director
 - System Administrator
 
-Reporter accounts register through `POST /api/auth/register`. All internal roles are created by the system administrator through `POST /api/admin/users`.
+Implementation note:
+- the persisted role keys remain `reporter`, `supervisor_of_verificator`, `verificator`, `supervisor_of_investigator`, `investigator`, `director`, and `system_administrator`
+- reporter accounts register through `POST /api/auth/register`
+- all internal roles are created by the system administrator through `POST /api/admin/users`
+
+## Current Workflow Payload Model
+
+### Reporter submission
+
+The reporter workspace currently captures:
+
+- `title`
+- `description`
+- `reported_parties[]`
+- `attachments[]`
+
+Each `reported_parties[]` item contains:
+
+- `full_name`
+- `position`
+- `classification`
+
+### Verification Supervisor screening
+
+`PATCH /api/workflow/cases/{case}/delegate-verification` accepts:
+
+- `reject_report`
+- `assignee_user_id`
+- `assigned_unit`
+- `distribution_note`
+
+### Verification Officer assessment
+
+`PATCH /api/workflow/cases/{case}/submit-verification` accepts:
+
+- `summary`
+- `corruption_aspect_tags[]`
+- `has_authority`
+- `criminal_assessment`
+- `reason`
+- `recommendation`
+- `forwarding_destination`
+- optional public update fields
+
+### Verification Supervisor approval
+
+`PATCH /api/workflow/cases/{case}/review-verification` accepts:
+
+- `decision`
+- `approval_note`
+- optional public update fields
+
+### Investigation Supervisor delegation
+
+`PATCH /api/workflow/cases/{case}/delegate-investigation` accepts:
+
+- `assignee_user_id`
+- `assigned_unit`
+- `distribution_note`
+
+### Investigator assessment
+
+`PATCH /api/workflow/cases/{case}/submit-investigation` accepts:
+
+- `case_name`
+- `reported_parties[]`
+- `description`
+- `corruption_aspect_tags[]`
+- `recommendation`
+- `delict`
+- `article`
+- `start_month`
+- `start_year`
+- `end_month`
+- `end_year`
+- `city`
+- `province`
+- `modus`
+- `related_report_reference`
+- `has_authority`
+- `is_priority`
+- `additional_information`
+- `conclusion`
+- optional public update fields
+
+### Investigation Supervisor and Director approvals
+
+`PATCH /api/workflow/cases/{case}/review-investigation` and `PATCH /api/workflow/cases/{case}/director-review` accept:
+
+- `decision`
+- `approval_note`
+- optional public update fields
 
 ## Main Endpoint Groups
 
@@ -46,7 +137,7 @@ Reporter accounts register through `POST /api/auth/register`. All internal roles
 - `DELETE /api/reporter/reports/{report}/attachments/{attachment}`
 - `GET /api/reporter/reports/{report}/attachments/{attachment}/download`
 
-The create and update report endpoints also accept multipart form submissions with `attachments[]`, so the reporter filing screens can validate files during the main form submit.
+The create and update endpoints accept JSON or `multipart/form-data`. When using multipart form submission, `attachments[]` can be sent in the same request.
 
 ### Public Tracking
 
@@ -89,6 +180,7 @@ Regenerate documentation manually if needed:
 
 ```bash
 php artisan l5-swagger:generate
+php artisan openapi:sync-server-url
 ```
 
 ## Local Run
@@ -99,7 +191,7 @@ composer install
 docker compose up -d minio minio_init
 php artisan key:generate
 php artisan migrate:fresh --seed
-php artisan serve
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
 PostgreSQL configuration:
@@ -122,10 +214,10 @@ Attachment storage configuration:
 All seeded accounts use password `Password123`.
 
 - System Administrator: `sysadmin@kpk-wbs.test`
-- Supervisor of Verificator: `supervisor.verificator@kpk-wbs.test`
-- Verificator: `verificator.1@kpk-wbs.test`
-- Verificator: `verificator.2@kpk-wbs.test`
-- Supervisor of Investigator: `supervisor.investigator@kpk-wbs.test`
+- Verification Supervisor: `supervisor.verificator@kpk-wbs.test`
+- Verification Officer: `verificator.1@kpk-wbs.test`
+- Verification Officer: `verificator.2@kpk-wbs.test`
+- Investigation Supervisor: `supervisor.investigator@kpk-wbs.test`
 - Investigator: `investigator.1@kpk-wbs.test`
 - Investigator: `investigator.2@kpk-wbs.test`
 - Director: `director@kpk-wbs.test`
@@ -136,4 +228,5 @@ All seeded accounts use password `Password123`.
 - `php artisan test`
 - `php artisan migrate:fresh --seed`
 - `php artisan l5-swagger:generate`
+- `php artisan openapi:sync-server-url`
 - `docker compose up -d minio minio_init`

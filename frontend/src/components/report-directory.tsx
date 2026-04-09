@@ -18,9 +18,9 @@ const statusOptions = [
   { value: "submitted", label: "Submitted" },
   { value: "verification_in_progress", label: "Verification in Progress" },
   { value: "verification_review", label: "Verification Approval" },
-  { value: "verified", label: "Awaiting Review Delegation" },
-  { value: "investigation_in_progress", label: "Review in Progress" },
-  { value: "investigation_review", label: "Review Approval" },
+  { value: "verified", label: "Awaiting Investigation Delegation" },
+  { value: "investigation_in_progress", label: "Investigation in Progress" },
+  { value: "investigation_review", label: "Investigation Approval" },
   { value: "director_review", label: "Director Review" },
   { value: "completed", label: "Completed" },
 ] as const;

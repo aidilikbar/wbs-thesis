@@ -9,6 +9,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $driver = DB::getDriverName();
+
         Schema::table('reports', function (Blueprint $table) {
             $table->json('reported_parties')->nullable()->after('accused_party');
         });
@@ -25,10 +27,15 @@ return new class extends Migration
 
         DB::table('reports')
             ->whereNotNull('accused_party')
-            ->where(function ($query) {
+            ->where(function ($query) use ($driver) {
                 $query
-                    ->whereNull('reported_parties')
-                    ->orWhereRaw("reported_parties::jsonb = '[]'::jsonb");
+                    ->whereNull('reported_parties');
+
+                if ($driver === 'pgsql') {
+                    $query->orWhereRaw("reported_parties::jsonb = '[]'::jsonb");
+                } else {
+                    $query->orWhere('reported_parties', json_encode([]));
+                }
             })
             ->orderBy('id')
             ->lazy()

@@ -37,8 +37,9 @@ const workflowMilestones = [
     description: "Verification supervision and the verification officer are assessing the report.",
   },
   {
-    label: "Review",
-    description: "The case is moving through review delegation, review approval, or director decision.",
+    label: "Investigation",
+    description:
+      "The case is moving through investigation delegation, investigation approval, or director decision.",
   },
   {
     label: "Closed",

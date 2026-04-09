@@ -1,8 +1,14 @@
 # API Notes
 
-Base URL: `http://localhost:8000/api`  
+Local base URL: `http://localhost:8000/api`  
 Swagger UI: `http://localhost:8000/api/documentation`  
 OpenAPI JSON: `http://localhost:8000/docs`
+
+## Terminology
+
+- `Reporter` is the user-facing term for the whistleblower account
+- internal role identifiers remain the persisted slugs such as `supervisor_of_verificator` and `supervisor_of_investigator`
+- the visible English labels are `Verification Supervisor`, `Verification Officer`, `Investigation Supervisor`, and `Investigator`
 
 ## Authentication
 
@@ -31,8 +37,14 @@ Returns:
 - roles and internal roles
 - categories
 - governance tags
-- anonymity modes
+- confidentiality modes
 - case stages
+- reported party classifications
+- corruption aspect tags
+- verification recommendations
+- investigation recommendations
+- delict tags
+- corruption articles
 - governance principles
 
 ## Reporter Workspace
@@ -59,7 +71,20 @@ Creates a report for the authenticated reporter and returns:
 - severity
 - next steps
 
-Reporter registration is mandatory. This endpoint accepts JSON or `multipart/form-data`. When using multipart form submission, `attachments[]` can be sent in the same request.
+This endpoint accepts JSON or `multipart/form-data`.
+
+Current payload highlights:
+
+- `title`
+- `description`
+- `reported_parties[]`
+- optional `attachments[]`
+
+Each `reported_parties[]` item contains:
+
+- `full_name`
+- `position`
+- `classification`
 
 ### `GET /reporter/reports/{report}`
 
@@ -109,8 +134,8 @@ Supported query parameters:
 - `page`
 - `per_page`
 
-`queue` is used for delegation, verification, and investigation work.  
-`approval` is used for Supervisor of Verificator, Supervisor of Investigator, and Director approvals.
+`queue` is used for screening, delegation, verification, and investigation work.  
+`approval` is used for Verification Supervisor, Investigation Supervisor, and Director approvals.
 
 ### `GET /workflow/cases/{case}`
 
@@ -122,20 +147,90 @@ Returns a single visible workflow case with:
 - attachments
 - timeline
 - available actions
+- structured workflow records for screening, verification, investigation, and approvals
 
 ### `GET /workflow/assignees?role=verificator|investigator`
 
 Returns active assignee candidates for delegation.
 
-### Workflow Actions
+### `PATCH /workflow/cases/{case}/delegate-verification`
 
-- `PATCH /workflow/cases/{case}/delegate-verification`
-- `PATCH /workflow/cases/{case}/submit-verification`
-- `PATCH /workflow/cases/{case}/review-verification`
-- `PATCH /workflow/cases/{case}/delegate-investigation`
-- `PATCH /workflow/cases/{case}/submit-investigation`
-- `PATCH /workflow/cases/{case}/review-investigation`
-- `PATCH /workflow/cases/{case}/director-review`
+Verification Supervisor screening and delegation payload:
+
+- `reject_report`
+- `assignee_user_id`
+- `assigned_unit`
+- `distribution_note`
+
+### `PATCH /workflow/cases/{case}/submit-verification`
+
+Verification Officer assessment payload:
+
+- `summary`
+- `corruption_aspect_tags[]`
+- `has_authority`
+- `criminal_assessment`
+- `reason`
+- `recommendation`
+- `forwarding_destination`
+- optional public update fields
+
+### `PATCH /workflow/cases/{case}/review-verification`
+
+Verification Supervisor approval payload:
+
+- `decision`
+- `approval_note`
+- optional public update fields
+
+### `PATCH /workflow/cases/{case}/delegate-investigation`
+
+Investigation Supervisor delegation payload:
+
+- `assignee_user_id`
+- `assigned_unit`
+- `distribution_note`
+
+### `PATCH /workflow/cases/{case}/submit-investigation`
+
+Investigator assessment payload:
+
+- `case_name`
+- `reported_parties[]`
+- `description`
+- `corruption_aspect_tags[]`
+- `recommendation`
+- `delict`
+- `article`
+- `start_month`
+- `start_year`
+- `end_month`
+- `end_year`
+- `city`
+- `province`
+- `modus`
+- `related_report_reference`
+- `has_authority`
+- `is_priority`
+- `additional_information`
+- `conclusion`
+- optional public update fields
+
+### `PATCH /workflow/cases/{case}/review-investigation`
+
+Investigation Supervisor approval payload:
+
+- `decision`
+- `approval_note`
+- optional public update fields
+
+### `PATCH /workflow/cases/{case}/director-review`
+
+Director decision payload:
+
+- `decision`
+- `approval_note`
+- optional public update fields
 
 ### Evidence Download
 
@@ -172,7 +267,17 @@ Returns current governance metrics, including:
 - total reports
 - open and completed cases
 - overdue cases
-- verification, investigation, and director-review queue counts
+- verification, investigation, and director-decision queue counts
 - risk and status distribution
 - governance controls
 - recent audit activity
+
+## Documentation Regeneration
+
+If the Swagger UI or JSON must be refreshed locally:
+
+```bash
+cd backend
+php artisan l5-swagger:generate
+php artisan openapi:sync-server-url
+```

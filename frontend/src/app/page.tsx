@@ -55,9 +55,9 @@ const lifecycleSteps = [
   },
   {
     step: "03",
-    title: "Verification and Review",
+    title: "Verification and Investigation",
     points: [
-      "Role-based workflow for verification and review",
+      "Role-based workflow for verification and investigation",
       "Secure access to evidence and case data",
     ],
   },

@@ -212,7 +212,7 @@ class CaseCommunicationTest extends TestCase
                 UploadedFile::fake()->image('annotated-ledger.png')->size(256),
             ],
         ])->assertCreated()
-            ->assertJsonPath('data.sender_role_label', 'Reviewer')
+            ->assertJsonPath('data.sender_role_label', 'Investigator')
             ->assertJsonPath('data.attachments.0.original_name', 'annotated-ledger.png');
 
         $this->assertDatabaseCount('case_messages', 2);

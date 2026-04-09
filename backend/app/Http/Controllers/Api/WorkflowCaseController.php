@@ -222,7 +222,7 @@ class WorkflowCaseController extends Controller
             new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Verification review recorded.', content: new OA\JsonContent(ref: '#/components/schemas/WorkflowMutationResponse')),
+            new OA\Response(response: 200, description: 'Verification approval recorded.', content: new OA\JsonContent(ref: '#/components/schemas/WorkflowMutationResponse')),
             new OA\Response(response: 422, description: 'Validation failed.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
         ]
     )]
@@ -235,7 +235,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->reviewVerification($caseFile, $user, $request->validated());
 
         return response()->json([
-            'message' => 'Verification review recorded.',
+            'message' => 'Verification approval recorded.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -265,7 +265,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->delegateToInvestigator($caseFile, $user, $assignee, $request->validated());
 
         return response()->json([
-            'message' => 'Case delegated to reviewer.',
+            'message' => 'Case delegated to investigator.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -294,7 +294,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->submitInvestigation($caseFile, $user, $request->validated());
 
         return response()->json([
-            'message' => 'Review assessment submitted to the review supervisor.',
+            'message' => 'Investigation assessment submitted to the investigation supervisor.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }
@@ -310,7 +310,7 @@ class WorkflowCaseController extends Controller
             new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Investigation review recorded.', content: new OA\JsonContent(ref: '#/components/schemas/WorkflowMutationResponse')),
+            new OA\Response(response: 200, description: 'Investigation approval recorded.', content: new OA\JsonContent(ref: '#/components/schemas/WorkflowMutationResponse')),
             new OA\Response(response: 422, description: 'Validation failed.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
         ]
     )]
@@ -323,7 +323,7 @@ class WorkflowCaseController extends Controller
         $caseFile = $workflow->reviewInvestigation($caseFile, $user, $request->validated());
 
         return response()->json([
-            'message' => 'Review approval recorded.',
+            'message' => 'Investigation approval recorded.',
             'data' => $this->transformCase($caseFile, $user),
         ]);
     }

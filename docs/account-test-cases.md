@@ -13,7 +13,7 @@ All seeded accounts use password `Password123`.
 
 - frontend is running at `http://localhost:3000`
 - backend is running at `http://localhost:8000`
-- MinIO is running for attachment scenarios
+- MinIO is running for local attachment scenarios
 - database has been reset with the latest seed before formal workflow testing
 
 ## Account Access Matrix
@@ -25,10 +25,10 @@ All seeded accounts use password `Password123`.
 | ACC-03 | `reporter.3@example.test` | Reporter | `/submit` | Sees a paginated report ledger with multiple seeded reports |
 | ACC-04 | `reporter.4@example.test` | Reporter | `/submit` | Sees a paginated report ledger with multiple seeded reports |
 | ACC-05 | `sysadmin@kpk-wbs.test` | System Administrator | `/admin` | Can manage the paginated user directory |
-| ACC-06 | `supervisor.verificator@kpk-wbs.test` | Supervisor of Verificator | `/workflow` | Uses workflow queue and approval queue |
-| ACC-07 | `verificator.1@kpk-wbs.test` | Verificator | `/workflow` | Uses workflow queue only |
-| ACC-08 | `verificator.2@kpk-wbs.test` | Verificator | `/workflow` | Uses workflow queue only |
-| ACC-09 | `supervisor.investigator@kpk-wbs.test` | Supervisor of Investigator | `/workflow` | Uses workflow queue and approval queue |
+| ACC-06 | `supervisor.verificator@kpk-wbs.test` | Verification Supervisor | `/workflow` | Uses workflow queue and approval queue |
+| ACC-07 | `verificator.1@kpk-wbs.test` | Verification Officer | `/workflow` | Uses workflow queue only |
+| ACC-08 | `verificator.2@kpk-wbs.test` | Verification Officer | `/workflow` | Uses workflow queue only |
+| ACC-09 | `supervisor.investigator@kpk-wbs.test` | Investigation Supervisor | `/workflow` | Uses workflow queue and approval queue |
 | ACC-10 | `investigator.1@kpk-wbs.test` | Investigator | `/workflow` | Uses workflow queue only |
 | ACC-11 | `investigator.2@kpk-wbs.test` | Investigator | `/workflow` | Uses workflow queue only |
 | ACC-12 | `director@kpk-wbs.test` | Director | `/workflow` | Uses approval queue for final decisions |
@@ -77,7 +77,7 @@ Verify the reporter report directory.
 - Pagination is 10 rows per page
 - Each row opens a dedicated detail page at `/submit/{reportId}/edit`
 
-### TC-RPT-02: Reporter creates a report with attachments
+### TC-RPT-02: Reporter creates a report with reported parties and attachments
 
 **Objective**  
 Verify authenticated report submission from the dedicated create page.
@@ -86,7 +86,10 @@ Verify authenticated report submission from the dedicated create page.
 
 1. Log in as any reporter
 2. Open `/submit/create`
-3. Complete the form with valid allegation data
+3. Complete the form with:
+   - title
+   - description
+   - at least one reported party entry
 4. Select valid files in the attachment section
 5. Submit the report
 
@@ -110,8 +113,8 @@ Verify that authenticated reporters can track their case without leaving the rep
 
 **Expected Result**
 
-- The page shows report detail plus case status
-- Public-safe timeline is visible
+- The page shows tracking status before report information
+- Case details and secure communication are separated into tabs
 - The reporter can still use `/track` separately if needed
 
 ### TC-RPT-04: Reporter uses public tracking
@@ -174,7 +177,7 @@ Verify dedicated create and edit pages.
 
 ## Workflow Test Cases
 
-### TC-WF-01: Supervisor of Verificator uses the workflow queue
+### TC-WF-01: Verification Supervisor uses the workflow queue
 
 **Account**  
 `supervisor.verificator@kpk-wbs.test`
@@ -184,7 +187,7 @@ Verify the queue page structure.
 
 **Steps**
 
-1. Log in as Supervisor of Verificator
+1. Log in as Verification Supervisor
 2. Open `/workflow`
 3. Confirm table rendering, search, stage filter, and pagination
 
@@ -195,7 +198,7 @@ Verify the queue page structure.
 - Search and stage filtering work
 - Actionable rows open `/workflow/{caseId}/edit`
 
-### TC-WF-02: Supervisor of Verificator delegates a case from a dedicated page
+### TC-WF-02: Verification Supervisor records screening and delegation
 
 **Accounts**
 
@@ -203,48 +206,56 @@ Verify the queue page structure.
 - `verificator.1@kpk-wbs.test` or `verificator.2@kpk-wbs.test`
 
 **Objective**  
-Verify delegation from the workflow queue.
+Verify the first workflow gate.
 
 **Steps**
 
-1. Log in as Supervisor of Verificator
+1. Log in as Verification Supervisor
 2. Open an actionable queue record from `/workflow`
 3. Confirm the page route is `/workflow/{caseId}/edit`
-4. Delegate the case to a verificator
-5. Return to `/workflow`
+4. Either:
+   - reject the report during screening, or
+   - assign it to a verification officer and enter a distribution note
 
 **Expected Result**
 
-- Delegation is handled on the dedicated edit page
+- Rejected reports move directly to completion
+- Delegated reports move to `verification_in_progress`
 - Save redirects back to `/workflow`
-- The case moves to `verification_in_progress`
 
-### TC-WF-03: Verificator submits verification from a dedicated page
+### TC-WF-03: Verification Officer submits the verification assessment
 
 **Objective**  
 Verify verification submission.
 
 **Steps**
 
-1. Log in as the assigned verificator
+1. Log in as the assigned Verification Officer
 2. Open `/workflow`
 3. Open the actionable case row
-4. Submit verification with an internal note
+4. Complete the verification fields:
+   - information summary
+   - corruption aspect tags
+   - authority assessment
+   - criminal assessment
+   - reason
+   - recommendation
+5. Submit the assessment
 
 **Expected Result**
 
 - The route is `/workflow/{caseId}/edit`
 - The case moves to `verification_review`
-- The case leaves the verificator queue
+- The case leaves the Verification Officer queue
 
-### TC-WF-04: Supervisor of Verificator uses the approval queue
+### TC-WF-04: Verification Supervisor uses the approval queue
 
 **Objective**  
-Verify that approval is separated from the execution queue.
+Verify that verification approval is separated from the execution queue.
 
 **Steps**
 
-1. Log in as Supervisor of Verificator
+1. Log in as Verification Supervisor
 2. Open `/workflow/approvals`
 3. Open a case waiting for verification approval
 4. Approve or reject it
@@ -255,7 +266,7 @@ Verify that approval is separated from the execution queue.
 - The case page route is `/workflow/{caseId}/approval`
 - Approval or rejection redirects back to `/workflow/approvals`
 
-### TC-WF-05: Supervisor of Investigator delegates a verified case
+### TC-WF-05: Investigation Supervisor delegates an approved case
 
 **Account**  
 `supervisor.investigator@kpk-wbs.test`
@@ -266,37 +277,49 @@ Verify delegation into investigation.
 **Steps**
 
 1. Open `/workflow`
-2. Locate a verified case
+2. Locate a case in `verified`
 3. Open its dedicated edit page
-4. Delegate it to an investigator
+4. Delegate it to an Investigator with a distribution note
 
 **Expected Result**
 
 - The case moves to `investigation_in_progress`
-- The assigned investigator can see it in their workflow queue
+- The assigned Investigator can see it in their workflow queue
 
-### TC-WF-06: Investigator submits analysis from the dedicated workflow page
+### TC-WF-06: Investigator submits the structured investigation assessment
 
 **Accounts**
 
 - `investigator.1@kpk-wbs.test` or `investigator.2@kpk-wbs.test`
 
 **Objective**  
-Verify investigator analysis submission.
+Verify investigator submission.
 
 **Steps**
 
-1. Log in as the assigned investigator
+1. Log in as the assigned Investigator
 2. Open `/workflow`
 3. Open an actionable case
-4. Submit analysis with an internal note
+4. Complete the investigation fields, including:
+   - case name
+   - reported parties
+   - recommendation
+   - delict
+   - article
+   - time window
+   - place
+   - modus
+   - authority
+   - priority
+   - conclusion
+5. Submit the investigation assessment
 
 **Expected Result**
 
 - The route is `/workflow/{caseId}/edit`
 - The case moves to `investigation_review`
 
-### TC-WF-07: Supervisor of Investigator uses the approval queue
+### TC-WF-07: Investigation Supervisor uses the approval queue
 
 **Account**  
 `supervisor.investigator@kpk-wbs.test`
