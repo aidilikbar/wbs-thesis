@@ -16,7 +16,7 @@ type NavItem = {
   label: string;
 };
 
-const CURRENT_RELEASE = "v0.1.3";
+const CURRENT_RELEASE = "v0.2.0";
 
 function navForRole(role?: string | null): NavItem[] {
   const items: NavItem[] = [

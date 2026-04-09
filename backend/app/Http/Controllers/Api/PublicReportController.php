@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TrackReportRequest;
+use App\Models\CaseFile;
 use App\Models\Report;
 use Illuminate\Http\JsonResponse;
 use OpenApi\Attributes as OA;
@@ -60,14 +61,14 @@ class PublicReportController extends Controller
                 'title' => $report->title,
                 'category' => $report->category,
                 'category_label' => config("wbs.categories.{$report->category}", $report->category),
-                'status' => $report->status,
+                'status' => $this->publicTrackingStage($report->caseFile) ?? $report->status,
                 'severity' => $report->severity,
                 'submitted_at' => $report->submitted_at?->toISOString(),
                 'confidentiality_level' => $report->anonymity_level,
                 'case' => [
                     'case_number' => $report->caseFile?->case_number,
-                    'stage' => $report->caseFile?->stage,
-                    'stage_label' => config("wbs.case_stages.{$report->caseFile?->stage}"),
+                    'stage' => $this->publicTrackingStage($report->caseFile),
+                    'stage_label' => $this->publicTrackingStageLabel($report->caseFile),
                     'assigned_unit' => $report->caseFile?->assigned_unit,
                     'sla_due_at' => $report->caseFile?->sla_due_at?->toISOString(),
                 ],
@@ -84,5 +85,25 @@ class PublicReportController extends Controller
                     ]),
             ],
         ]);
+    }
+
+    private function publicTrackingStage(?CaseFile $caseFile): ?string
+    {
+        if (! $caseFile) {
+            return null;
+        }
+
+        if ($caseFile->disposition === 'screening_rejected') {
+            return 'screening_closed';
+        }
+
+        return $caseFile->stage;
+    }
+
+    private function publicTrackingStageLabel(?CaseFile $caseFile): ?string
+    {
+        $stage = $this->publicTrackingStage($caseFile);
+
+        return $stage ? config("wbs.case_stages.{$stage}", $stage) : null;
     }
 }

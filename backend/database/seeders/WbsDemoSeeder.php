@@ -274,6 +274,7 @@ class WbsDemoSeeder extends Seeder
         );
 
         $this->seedAdditionalReporterTransactions($users, $workflow);
+        $this->alignAiAgentRegressionCases($users);
     }
 
     private function seedUsers(): array
@@ -502,6 +503,124 @@ class WbsDemoSeeder extends Seeder
         }
     }
 
+    private function alignAiAgentRegressionCases(array $users): void
+    {
+        $definitions = [
+            'CASE-2026-0002' => [
+                'title' => 'Possible conflict of interest in evaluation panel',
+                'reporter' => $users['reporter_2'],
+                'stage' => 'verification_review',
+                'verificator' => $users['verificator_1'],
+            ],
+            'CASE-2026-0006' => [
+                'title' => 'Unofficial donation request tied to access to public service queue',
+                'reporter' => $users['reporter_1'],
+                'stage' => 'verification_in_progress',
+                'verificator' => $users['verificator_2'],
+            ],
+            'CASE-2026-0009' => [
+                'title' => 'Performance score reduced after reporting irregular procurement communication',
+                'reporter' => $users['reporter_1'],
+                'stage' => 'investigation_review',
+                'investigator' => $users['investigator_1'],
+            ],
+            'CASE-2026-0011' => [
+                'title' => 'Threat of reassignment after staff questioned travel expense claims',
+                'reporter' => $users['reporter_1'],
+                'stage' => 'investigation_in_progress',
+                'investigator' => $users['investigator_2'],
+            ],
+            'CASE-2026-0016' => [
+                'title' => 'Performance score reduced after reporting irregular procurement communication',
+                'reporter' => $users['reporter_2'],
+                'stage' => 'director_review',
+                'investigator' => $users['investigator_2'],
+            ],
+            'CASE-2026-0020' => [
+                'title' => 'Meeting minutes altered after objection was formally recorded',
+                'reporter' => $users['reporter_2'],
+                'stage' => 'verification_in_progress',
+                'verificator' => $users['verificator_1'],
+            ],
+        ];
+
+        foreach ($definitions as $caseNumber => $definition) {
+            $this->alignAiAgentRegressionCase($caseNumber, $definition, $users);
+        }
+    }
+
+    private function alignAiAgentRegressionCase(string $caseNumber, array $definition, array $users): void
+    {
+        $caseFile = CaseFile::query()
+            ->with('report')
+            ->where('case_number', $caseNumber)
+            ->firstOrFail();
+        $report = $caseFile->report;
+        $reporter = $definition['reporter'];
+        $templateContext = $this->buildTemplateContext($definition['title'], $report);
+        $assignedRole = $this->assignedRoleForStage($definition['stage']);
+        $assignedUser = $definition['verificator']
+            ?? $definition['investigator']
+            ?? match ($assignedRole) {
+                User::ROLE_SUPERVISOR_OF_VERIFICATOR => $users['supervisor_of_verificator'],
+                User::ROLE_SUPERVISOR_OF_INVESTIGATOR => $users['supervisor_of_investigator'],
+                User::ROLE_DIRECTOR => $users['director'],
+                default => null,
+            };
+
+        $report->forceFill([
+            'reporter_user_id' => $reporter->id,
+            'title' => $definition['title'],
+            'category' => $templateContext['category'],
+            'description' => $templateContext['description'],
+            'incident_location' => $templateContext['incident_location'],
+            'accused_party' => $templateContext['accused_party'],
+            'reported_parties' => [[
+                'full_name' => $templateContext['accused_party'],
+                'position' => 'Not specified',
+                'classification' => 'other',
+            ]],
+            'evidence_summary' => $templateContext['evidence_summary'],
+            'reporter_name' => $reporter->name,
+            'reporter_email' => $reporter->email,
+            'reporter_phone' => $reporter->phone,
+            'governance_tags' => $templateContext['governance_tags'],
+            'status' => $this->reportStatusForStage($definition['stage']),
+        ])->save();
+
+        $caseFile->forceFill([
+            'stage' => $definition['stage'],
+            'current_role' => $assignedRole,
+            'disposition' => $this->dispositionForStage($definition['stage']),
+            'verification_supervisor_id' => $users['supervisor_of_verificator']->id,
+            'investigation_supervisor_id' => $users['supervisor_of_investigator']->id,
+            'director_id' => $users['director']->id,
+            'verificator_id' => isset($definition['verificator'])
+                ? $definition['verificator']->id
+                : $caseFile->verificator_id,
+            'investigator_id' => isset($definition['investigator'])
+                ? $definition['investigator']->id
+                : $caseFile->investigator_id,
+            'assigned_unit' => $assignedUser?->unit
+                ?? match ($assignedRole) {
+                    User::ROLE_SUPERVISOR_OF_VERIFICATOR => $users['supervisor_of_verificator']->unit,
+                    User::ROLE_SUPERVISOR_OF_INVESTIGATOR => $users['supervisor_of_investigator']->unit,
+                    User::ROLE_DIRECTOR => $users['director']->unit,
+                    default => $caseFile->assigned_unit,
+                },
+            'assigned_to' => $assignedUser?->name
+                ?? match ($assignedRole) {
+                    User::ROLE_SUPERVISOR_OF_VERIFICATOR => $users['supervisor_of_verificator']->name,
+                    User::ROLE_SUPERVISOR_OF_INVESTIGATOR => $users['supervisor_of_investigator']->name,
+                    User::ROLE_DIRECTOR => $users['director']->name,
+                    default => $caseFile->assigned_to,
+                },
+            'completed_at' => null,
+            'last_activity_at' => $report->last_public_update_at ?? $report->submitted_at ?? now(),
+            'notes' => $report->description,
+        ])->save();
+    }
+
     private function advanceSeededCaseToStatus(
         CaseFile $caseFile,
         string $targetStatus,
@@ -514,10 +633,7 @@ class WbsDemoSeeder extends Seeder
             return;
         }
 
-        $verificator = $faker->randomElement([
-            $users['verificator_1'],
-            $users['verificator_2'],
-        ]);
+        $verificator = $this->seededVerificatorForCase($caseFile, $users, $faker);
 
         $this->executeAt(
             $clock['delegate_verification'],
@@ -571,10 +687,7 @@ class WbsDemoSeeder extends Seeder
             return;
         }
 
-        $investigator = $faker->randomElement([
-            $users['investigator_1'],
-            $users['investigator_2'],
-        ]);
+        $investigator = $this->seededInvestigatorForCase($caseFile, $users, $faker);
 
         $this->executeAt(
             $clock['delegate_investigation'],
@@ -690,6 +803,37 @@ class WbsDemoSeeder extends Seeder
             ),
             'governance_tags' => array_slice($governanceTags, 0, 3),
         ];
+    }
+
+    private function seededVerificatorForCase(
+        CaseFile $caseFile,
+        array $users,
+        \Faker\Generator $faker,
+    ): User {
+        return match ($caseFile->case_number) {
+            'CASE-2026-0006' => $users['verificator_2'],
+            'CASE-2026-0020' => $users['verificator_1'],
+            default => $faker->randomElement([
+                $users['verificator_1'],
+                $users['verificator_2'],
+            ]),
+        };
+    }
+
+    private function seededInvestigatorForCase(
+        CaseFile $caseFile,
+        array $users,
+        \Faker\Generator $faker,
+    ): User {
+        return match ($caseFile->case_number) {
+            'CASE-2026-0009' => $users['investigator_1'],
+            'CASE-2026-0011' => $users['investigator_2'],
+            'CASE-2026-0016' => $users['investigator_2'],
+            default => $faker->randomElement([
+                $users['investigator_1'],
+                $users['investigator_2'],
+            ]),
+        };
     }
 
     private function additionalTransactionTemplates(): array
@@ -904,6 +1048,84 @@ class WbsDemoSeeder extends Seeder
                 ],
             ],
         ];
+    }
+
+    private function buildTemplateContext(string $title, ?Report $fallbackReport = null): array
+    {
+        $office = 'Jakarta Head Office';
+        $month = 'March 2026';
+
+        foreach ($this->additionalTransactionTemplates() as $category => $templates) {
+            foreach ($templates as $template) {
+                if ($template['title'] !== $title) {
+                    continue;
+                }
+
+                return [
+                    'category' => $category,
+                    'description' => sprintf($template['description'], $office, $month),
+                    'incident_location' => $template['incident_location'] ?? $office,
+                    'accused_party' => $template['accused_party'],
+                    'evidence_summary' => sprintf($template['evidence_summary'], $month),
+                    'governance_tags' => $template['governance_tags'] ?? [],
+                ];
+            }
+        }
+
+        if ($fallbackReport) {
+            return [
+                'category' => $fallbackReport->category,
+                'description' => $fallbackReport->description,
+                'incident_location' => $fallbackReport->incident_location,
+                'accused_party' => $fallbackReport->accused_party,
+                'evidence_summary' => $fallbackReport->evidence_summary,
+                'governance_tags' => $fallbackReport->governance_tags ?? [],
+            ];
+        }
+
+        throw new \RuntimeException("Seed template not found for title [{$title}].");
+    }
+
+    private function assignedRoleForStage(string $stage): string
+    {
+        return match ($stage) {
+            'verification_in_progress' => User::ROLE_VERIFICATOR,
+            'verification_review' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'verified', 'investigation_review' => User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            'investigation_in_progress' => User::ROLE_INVESTIGATOR,
+            'director_review', 'completed' => User::ROLE_DIRECTOR,
+            default => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+        };
+    }
+
+    private function dispositionForStage(string $stage): string
+    {
+        return match ($stage) {
+            'submitted' => 'submitted',
+            'verification_in_progress' => 'verification_in_progress',
+            'verification_review' => 'verification_review',
+            'verified' => 'awaiting_review_delegation',
+            'investigation_in_progress' => 'review_in_progress',
+            'investigation_review' => 'review_approval',
+            'director_review' => 'director_review',
+            'completed' => 'completed',
+            default => $stage,
+        };
+    }
+
+    private function reportStatusForStage(string $stage): string
+    {
+        return match ($stage) {
+            'submitted' => 'submitted',
+            'verification_in_progress' => 'verification_in_progress',
+            'verification_review' => 'verification_review',
+            'verified' => 'verified',
+            'investigation_in_progress' => 'investigation_in_progress',
+            'investigation_review' => 'investigation_review',
+            'director_review' => 'director_review',
+            'completed' => 'completed',
+            default => 'submitted',
+        };
     }
 
     private function submitSeededReportAt(

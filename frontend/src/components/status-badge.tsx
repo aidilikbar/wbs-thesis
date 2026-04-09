@@ -27,6 +27,7 @@ function badgeClasses(value: string) {
   if (
     [
       "completed",
+      "screening_closed",
       "active",
       "verification_in_progress",
       "verification_review",

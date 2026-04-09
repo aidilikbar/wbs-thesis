@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { attachmentAccept, validateAttachmentSelection } from "@/lib/attachment-validation";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
@@ -28,32 +28,55 @@ export function CaseMessageBoard({
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
-
-  const loadConversation = async () => {
-    const data =
-      scope.kind === "reporter" && reporterId !== null
-        ? await api.fetchReporterConversation(token, reporterId)
-        : await api.fetchWorkflowConversation(token, caseId as number);
-
-    setConversation(data);
-  };
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    let active = true;
+    isMountedRef.current = true;
 
-    const run = async () => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const loadConversation = useCallback(
+    async (options?: { background?: boolean }) => {
+      if (!options?.background && isMountedRef.current) {
+        setIsLoading(true);
+      }
+
       try {
         const data =
           scope.kind === "reporter" && reporterId !== null
             ? await api.fetchReporterConversation(token, reporterId)
             : await api.fetchWorkflowConversation(token, caseId as number);
 
+        if (isMountedRef.current) {
+          setConversation(data);
+          setMessage(null);
+        }
+
+        return data;
+      } finally {
+        if (!options?.background && isMountedRef.current) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [scope.kind, reporterId, caseId, token],
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    const run = async () => {
+      try {
+        const data = await loadConversation();
+
         if (!active) {
           return;
         }
 
         setConversation(data);
-        setMessage(null);
       } catch (error) {
         if (active) {
           setMessage(
@@ -61,10 +84,6 @@ export function CaseMessageBoard({
               ? error.message
               : "Secure communication could not be loaded.",
           );
-        }
-      } finally {
-        if (active) {
-          setIsLoading(false);
         }
       }
     };
@@ -74,7 +93,17 @@ export function CaseMessageBoard({
     return () => {
       active = false;
     };
-  }, [scope.kind, reporterId, caseId, token]);
+  }, [loadConversation]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void loadConversation({ background: true }).catch(() => null);
+    }, 5000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loadConversation]);
 
   const handleSelectedFilesChange = (files: File[]) => {
     setSelectedFiles(files);
@@ -167,6 +196,7 @@ export function CaseMessageBoard({
         setDraft("");
         setSelectedFiles([]);
         setValidationMessage(null);
+        await loadConversation({ background: true }).catch(() => null);
       } catch (error) {
         setMessage(
           error instanceof Error ? error.message : "Secure message could not be sent.",

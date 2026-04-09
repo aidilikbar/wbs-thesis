@@ -377,6 +377,59 @@ class InvestigatorWorkflowTest extends TestCase
         }
     }
 
+    public function test_public_tracking_exposes_screening_closure_as_a_distinct_terminal_stage(): void
+    {
+        $supervisor = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.screening.timeline@example.test',
+            'Verification Supervision'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.screening.timeline@example.test',
+            'Reporter'
+        );
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+
+        $this->postJson('/api/reporter/reports', [
+            'title' => 'Screening rejection timeline validation',
+            'category' => 'other',
+            'description' => 'A vague report used to validate the public tracking closure stage after initial screening.',
+            'incident_date' => now()->subDay()->toDateString(),
+            'incident_location' => 'Public Service Counter',
+            'accused_party' => 'Unknown Person',
+            'evidence_summary' => 'No corroborating evidence is available.',
+            'confidentiality_level' => 'identified',
+            'requested_follow_up' => false,
+            'witness_available' => false,
+            'governance_tags' => [],
+        ])->assertCreated();
+
+        $report = Report::query()->firstOrFail();
+        $caseFile = CaseFile::query()->firstOrFail();
+
+        Sanctum::actingAs($supervisor, [$supervisor->role]);
+
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
+            'reject_report' => true,
+            'distribution_note' => 'Closed during preliminary screening because the report is not actionable.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'completed');
+
+        $tracking = $this->postJson('/api/tracking', [
+            'reference' => $report->public_reference,
+            'token' => $report->tracking_token,
+        ])->assertOk();
+
+        $tracking
+            ->assertJsonPath('data.status', 'screening_closed')
+            ->assertJsonPath('data.case.stage', 'screening_closed')
+            ->assertJsonPath('data.case.stage_label', 'Closed during preliminary screening')
+            ->assertJsonPath('data.timeline.1.stage', 'screening_closed')
+            ->assertJsonPath('data.timeline.1.headline', 'Report closed during preliminary screening');
+    }
+
     private function createUser(string $role, string $email, string $unit): User
     {
         return User::query()->create([

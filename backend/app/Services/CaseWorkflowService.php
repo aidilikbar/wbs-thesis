@@ -268,7 +268,7 @@ class CaseWorkflowService
                     report: $caseFile->report,
                     caseFile: $caseFile,
                     visibility: 'public',
-                    stage: 'completed',
+                    stage: 'screening_closed',
                     headline: 'Report closed during preliminary screening',
                     detail: 'The report was closed after an initial screening by the verification supervisor.',
                     actorRole: $supervisor->role,

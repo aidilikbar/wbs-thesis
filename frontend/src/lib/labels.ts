@@ -12,6 +12,7 @@ export const roleLabels: Record<UserRole, string> = {
 
 export const stageLabels: Record<string, string> = {
   submitted: "Submitted",
+  screening_closed: "Closed during preliminary screening",
   verification_in_progress: "Verification in Progress",
   verification_review: "Verification Approval",
   verified: "Awaiting Investigation Delegation",
