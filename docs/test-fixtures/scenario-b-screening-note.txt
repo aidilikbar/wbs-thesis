@@ -1,0 +1,3 @@
+Scenario B invalid-submission note
+
+This file is included only to verify that the attachment workflow accepts a small TXT file during the screening rejection scenario.
