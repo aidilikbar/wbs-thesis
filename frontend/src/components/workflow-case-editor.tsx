@@ -36,6 +36,8 @@ type ActionState = {
   public_message: string;
 };
 
+type WorkflowTab = "details" | "communication" | "timeline";
+
 const actionMeta: Record<
   string,
   {
@@ -127,6 +129,7 @@ export function WorkflowCaseEditor({
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
+  const [activeTab, setActiveTab] = useState<WorkflowTab>("details");
   const [isPending, startTransition] = useTransition();
 
   const isInternalUser = isInternalRole(user?.role);
@@ -436,6 +439,11 @@ export function WorkflowCaseEditor({
   }
 
   const timeline = [...(record.timeline ?? [])].reverse();
+  const tabs: Array<{ id: WorkflowTab; label: string }> = [
+    { id: "details", label: "Case Details" },
+    { id: "communication", label: "Secure Communication" },
+    { id: "timeline", label: "Case Timeline" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -453,11 +461,20 @@ export function WorkflowCaseEditor({
                 "Review the selected case, inspect its protected evidence, and complete the role-specific swimlane step from this dedicated page."}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <StatusBadge value={record.status} />
             <StatusBadge value={record.severity} />
+            <Link href={backPath} className="ghost-button">
+              Back to Queue
+            </Link>
           </div>
         </div>
+
+        {usingFallback ? (
+          <p className="mt-6 inline-flex rounded-[0.45rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-2 text-sm text-[var(--secondary-strong)]">
+            Backend unavailable. Showing seeded workflow detail for interface review.
+          </p>
+        ) : null}
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <article className="outline-panel rounded-[0.9rem] px-5 py-4">
@@ -487,232 +504,356 @@ export function WorkflowCaseEditor({
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-        <section className="panel rounded-[1rem] p-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="eyebrow">Case Record</p>
-              <h3 className="mt-4 text-3xl">Protected allegation detail</h3>
-            </div>
-            <Link href={backPath} className="ghost-button">
-              Back to Queue
-            </Link>
-          </div>
+      <section className="panel rounded-[1rem] p-4 sm:p-5">
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
 
-          <dl className="mt-6 grid gap-5 md:grid-cols-2">
-            <div>
-              <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Category
-              </dt>
-              <dd className="mt-2 text-sm">{record.category_label ?? record.category}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Incident Date
-              </dt>
-              <dd className="mt-2 text-sm">
-                {record.incident_date ? formatDateTime(record.incident_date) : "Not recorded"}
-              </dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Incident Location
-              </dt>
-              <dd className="mt-2 text-sm">{record.incident_location ?? "Not recorded"}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Accused Party
-              </dt>
-              <dd className="mt-2 text-sm">{record.accused_party ?? "Not recorded"}</dd>
-            </div>
-          </dl>
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`rounded-[0.8rem] border px-4 py-3 text-sm font-semibold transition ${
+                  isActive
+                    ? "border-[rgba(239,47,39,0.2)] bg-[rgba(239,47,39,0.08)] text-[var(--primary)]"
+                    : "border-[var(--panel-border)] bg-white/76 text-[var(--muted)] hover:bg-white"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-          <div className="mt-6 grid gap-5">
-            <div>
-              <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Allegation Description
-              </p>
-              <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
-                {record.description ?? "No allegation description recorded."}
-              </p>
-            </div>
-            <div>
-              <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Evidence Summary
-              </p>
-              <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
-                {record.evidence_summary ?? "No evidence summary recorded."}
-              </p>
-            </div>
-            <div>
-              <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-                Governance Tags
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {record.governance_tags.length > 0 ? (
-                  record.governance_tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-[var(--panel-border)] px-3 py-1 text-xs uppercase tracking-[0.16em] text-[var(--muted)]"
-                    >
-                      {tag.replaceAll("_", " ")}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-[var(--muted)]">No governance tags.</span>
-                )}
+      {activeTab === "details" ? (
+        <section className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
+          <article className="panel rounded-[1rem] p-8">
+            <p className="eyebrow">Case Record</p>
+            <h3 className="mt-4 text-3xl">Protected allegation detail</h3>
+            <p className="muted mt-4 max-w-3xl text-sm leading-7">
+              Review the protected allegation record, reporter handling posture, and workflow ownership before recording the next step.
+            </p>
+
+            <dl className="mt-6 grid gap-5 md:grid-cols-2">
+              <div>
+                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Category
+                </dt>
+                <dd className="mt-2 text-sm">{record.category_label ?? record.category}</dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Incident Date
+                </dt>
+                <dd className="mt-2 text-sm">
+                  {record.incident_date ? formatDateTime(record.incident_date) : "Not recorded"}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Incident Location
+                </dt>
+                <dd className="mt-2 text-sm">{record.incident_location ?? "Not recorded"}</dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Accused Party
+                </dt>
+                <dd className="mt-2 text-sm">{record.accused_party ?? "Not recorded"}</dd>
+              </div>
+            </dl>
+
+            <div className="mt-6 space-y-5">
+              <div>
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Allegation Description
+                </p>
+                <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
+                  {record.description ?? "No allegation description recorded."}
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Evidence Summary
+                </p>
+                <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
+                  {record.evidence_summary ?? "No evidence summary recorded."}
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                  Governance Tags
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {record.governance_tags.length > 0 ? (
+                    record.governance_tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-[var(--panel-border)] px-3 py-1 text-xs uppercase tracking-[0.16em] text-[var(--muted)]"
+                      >
+                        {tag.replaceAll("_", " ")}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-[var(--muted)]">No governance tags.</span>
+                  )}
+                </div>
               </div>
             </div>
+
+            <div className="mt-8 grid gap-5 lg:grid-cols-2">
+              <div className="dark-card rounded-[1rem] border border-white/8 p-6">
+                <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary)]">
+                  Reporter Protection
+                </p>
+                <div className="mt-5 space-y-4 text-sm leading-7 text-white/76">
+                  <div>
+                    <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
+                      Reporter Identity
+                    </p>
+                    <p className="mt-1 text-white">
+                      {record.reporter.is_protected
+                        ? "Protected by anonymous mode"
+                        : record.reporter.name ?? "Protected"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
+                      Email
+                    </p>
+                    <p className="mt-1 text-white">
+                      {record.reporter.email ?? "Not visible to case handlers"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
+                      Phone
+                    </p>
+                    <p className="mt-1 text-white">
+                      {record.reporter.phone ?? "Not visible to case handlers"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="outline-panel rounded-[1rem] p-6">
+                <p className="eyebrow">Workflow Ownership</p>
+                <div className="mt-5 space-y-4 text-sm leading-7">
+                  <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
+                    <span>Verification Supervisor</span>
+                    <span className="text-right text-[var(--muted)]">
+                      {record.workflow.verification_supervisor ?? "Unassigned"}
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
+                    <span>Verification Officer</span>
+                    <span className="text-right text-[var(--muted)]">
+                      {record.workflow.verificator ?? "Unassigned"}
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
+                    <span>Investigation Supervisor</span>
+                    <span className="text-right text-[var(--muted)]">
+                      {record.workflow.investigation_supervisor ?? "Unassigned"}
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
+                    <span>Investigator</span>
+                    <span className="text-right text-[var(--muted)]">
+                      {record.workflow.investigator ?? "Unassigned"}
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <span>Director</span>
+                    <span className="text-right text-[var(--muted)]">
+                      {record.workflow.director ?? "Unassigned"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <WorkflowAttachmentPanel
+            token={token}
+            caseId={record.id}
+            attachments={record.attachments}
+          />
+        </section>
+      ) : null}
+
+      {activeTab === "communication" ? (
+        supportsSecureMessaging ? (
+          <CaseMessageBoard
+            token={token}
+            scope={{ kind: "workflow", caseId: record.id }}
+          />
+        ) : (
+          <section className="panel rounded-[1rem] p-8">
+            <p className="eyebrow">Secure Communication</p>
+            <h3 className="mt-4 text-3xl">Communication opens only for active handler roles</h3>
+            <p className="muted mt-4 max-w-3xl text-sm leading-7">
+              This role can review case progress and record workflow decisions, but secure discussion is available only to the assigned verification officer or investigator during the active communication stage.
+            </p>
+          </section>
+        )
+      ) : null}
+
+      {activeTab === "timeline" ? (
+        <section className="panel rounded-[1rem] p-8">
+          <p className="eyebrow">Case Timeline</p>
+          <h3 className="mt-4 text-3xl">Workflow history</h3>
+          <div className="mt-6 space-y-4">
+            {timeline.length > 0 ? (
+              timeline.map((entry, index) => (
+                <article
+                  key={`${entry.stage}-${entry.occurred_at}-${index}`}
+                  className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/78 p-5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusBadge value={entry.stage} />
+                        <span className="rounded-full border border-[var(--panel-border)] px-3 py-1 text-[0.62rem] font-mono uppercase tracking-[0.18em] text-[var(--muted)]">
+                          {entry.visibility ?? "internal"}
+                        </span>
+                      </div>
+                      <h4 className="mt-3 text-lg font-semibold">
+                        {normalizeWorkflowCopy(entry.headline)}
+                      </h4>
+                      <p className="muted mt-2 text-sm leading-7">
+                        {normalizeWorkflowCopy(entry.detail)}
+                      </p>
+                    </div>
+                    <div className="text-right text-sm text-[var(--muted)]">
+                      <p>{getRoleLabel(entry.actor_role)}</p>
+                      <p className="mt-2">
+                        {entry.occurred_at
+                          ? formatDateTime(entry.occurred_at)
+                          : "No timestamp"}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5 text-sm text-[var(--muted)]">
+                No workflow history is recorded for this case yet.
+              </div>
+            )}
           </div>
         </section>
+      ) : null}
 
-        <aside className="space-y-6">
-          <div className="dark-card rounded-[1rem] border border-white/8 p-6">
-            <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary)]">
-              Reporter Protection
-            </p>
-            <div className="mt-5 space-y-4 text-sm leading-7 text-white/76">
-              <div>
-                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                  Reporter Identity
-                </p>
-                <p className="mt-1 text-white">
-                  {record.reporter.is_protected
-                    ? "Protected by anonymous mode"
-                    : record.reporter.name ?? "Protected"}
-                </p>
-              </div>
-              <div>
-                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                  Email
-                </p>
-                <p className="mt-1 text-white">
-                  {record.reporter.email ?? "Not visible to case handlers"}
-                </p>
-              </div>
-              <div>
-                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                  Phone
-                </p>
-                <p className="mt-1 text-white">
-                  {record.reporter.phone ?? "Not visible to case handlers"}
-                </p>
-              </div>
-            </div>
-          </div>
+      <section className="panel rounded-[1rem] p-8">
+        <p className="eyebrow">
+          {view === "approval" ? "Approval Action" : "Execution Action"}
+        </p>
+        <h3 className="mt-4 text-3xl">
+          {meta?.title ?? "No action currently assigned"}
+        </h3>
+        <p className="muted mt-4 max-w-3xl text-sm leading-7">
+          {meta?.description ??
+            "This case does not currently expose an actionable step for the authenticated role."}
+        </p>
 
-          <div className="panel rounded-[1rem] p-6">
-            <p className="eyebrow">Workflow Ownership</p>
-            <div className="mt-5 space-y-4 text-sm leading-7">
-              <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                <span>Verification Supervisor</span>
-                <span className="text-right text-[var(--muted)]">
-                  {record.workflow.verification_supervisor ?? "Unassigned"}
-                </span>
-              </div>
-              <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                <span>Verification Officer</span>
-                <span className="text-right text-[var(--muted)]">
-                  {record.workflow.verificator ?? "Unassigned"}
-                </span>
-              </div>
-              <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                <span>Investigation Supervisor</span>
-                <span className="text-right text-[var(--muted)]">
-                  {record.workflow.investigation_supervisor ?? "Unassigned"}
-                </span>
-              </div>
-              <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                <span>Investigator</span>
-                <span className="text-right text-[var(--muted)]">
-                  {record.workflow.investigator ?? "Unassigned"}
-                </span>
-              </div>
-              <div className="flex items-start justify-between gap-4">
-                <span>Director</span>
-                <span className="text-right text-[var(--muted)]">
-                  {record.workflow.director ?? "Unassigned"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-        <section className="panel rounded-[1rem] p-8">
-          <p className="eyebrow">
-            {view === "approval" ? "Approval Action" : "Execution Action"}
+        {message ? (
+          <p className="mt-5 rounded-[0.7rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-3 text-sm text-[var(--secondary-strong)]">
+            {message}
           </p>
-          <h3 className="mt-4 text-3xl">
-            {meta?.title ?? "No action currently assigned"}
-          </h3>
-          <p className="muted mt-4 max-w-3xl text-sm leading-7">
-            {meta?.description ??
-              "This case does not currently expose an actionable step for the authenticated role."}
-          </p>
+        ) : null}
 
-          {message ? (
-            <p className="mt-5 rounded-[0.7rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-3 text-sm text-[var(--secondary-strong)]">
-              {message}
-            </p>
-          ) : null}
+        {currentAction && meta ? (
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+            {["delegate_verification", "delegate_investigation"].includes(currentAction) ? (
+              <>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold">Assignee</span>
+                  <select
+                    className="field"
+                    value={actionState.assignee_user_id}
+                    onChange={(event) =>
+                      updateActionState("assignee_user_id", event.target.value)
+                    }
+                    required
+                  >
+                    <option value="">Select assignee</option>
+                    {assignees.map((assignee) => (
+                      <option key={assignee.id} value={assignee.id}>
+                        {assignee.name} ·{" "}
+                        {assignee.unit ?? getRoleLabel(assignee.role, assignee.role_label)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-          {currentAction && meta ? (
-            <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-              {["delegate_verification", "delegate_investigation"].includes(currentAction) ? (
-                <>
+                <div className="grid gap-4 md:grid-cols-2">
                   <label className="block">
-                    <span className="mb-2 block text-sm font-semibold">Assignee</span>
-                    <select
+                    <span className="mb-2 block text-sm font-semibold">Assigned Unit</span>
+                    <input
                       className="field"
-                      value={actionState.assignee_user_id}
+                      value={actionState.assigned_unit}
                       onChange={(event) =>
-                        updateActionState("assignee_user_id", event.target.value)
+                        updateActionState("assigned_unit", event.target.value)
+                      }
+                      placeholder="Verification Desk"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold">Due in Days</span>
+                    <input
+                      className="field"
+                      type="number"
+                      min={1}
+                      max={90}
+                      value={actionState.due_in_days}
+                      onChange={(event) =>
+                        updateActionState("due_in_days", event.target.value)
                       }
                       required
-                    >
-                      <option value="">Select assignee</option>
-                      {assignees.map((assignee) => (
-                        <option key={assignee.id} value={assignee.id}>
-                          {assignee.name} · {assignee.unit ?? getRoleLabel(assignee.role, assignee.role_label)}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </label>
+                </div>
+              </>
+            ) : null}
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-semibold">Assigned Unit</span>
-                      <input
-                        className="field"
-                        value={actionState.assigned_unit}
-                        onChange={(event) =>
-                          updateActionState("assigned_unit", event.target.value)
-                        }
-                        placeholder="Verification Desk"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-semibold">Due in Days</span>
-                      <input
-                        className="field"
-                        type="number"
-                        min={1}
-                        max={90}
-                        value={actionState.due_in_days}
-                        onChange={(event) =>
-                          updateActionState("due_in_days", event.target.value)
-                        }
-                        required
-                      />
-                    </label>
-                  </div>
-                </>
-              ) : null}
+            {["submit_verification", "submit_investigation"].includes(currentAction) ? (
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">Internal Note</span>
+                <textarea
+                  className="field min-h-40"
+                  value={actionState.internal_note}
+                  onChange={(event) =>
+                    updateActionState("internal_note", event.target.value)
+                  }
+                  placeholder="Document the verification or investigation result."
+                  required
+                />
+              </label>
+            ) : null}
 
-              {["submit_verification", "submit_investigation"].includes(currentAction) ? (
+            {["review_verification", "review_investigation", "director_review"].includes(
+              currentAction,
+            ) ? (
+              <>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold">Decision</span>
+                  <select
+                    className="field"
+                    value={actionState.decision}
+                    onChange={(event) =>
+                      updateActionState(
+                        "decision",
+                        event.target.value as ActionState["decision"],
+                      )
+                    }
+                  >
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </label>
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold">Internal Note</span>
                   <textarea
@@ -721,160 +862,68 @@ export function WorkflowCaseEditor({
                     onChange={(event) =>
                       updateActionState("internal_note", event.target.value)
                     }
-                    placeholder="Document the verification or investigation result."
+                    placeholder="Record the approval rationale or rejection instruction."
                     required
                   />
                 </label>
-              ) : null}
+              </>
+            ) : null}
 
-              {["review_verification", "review_investigation", "director_review"].includes(
-                currentAction,
-              ) ? (
-                <>
-                  <label className="block">
-                    <span className="mb-2 block text-sm font-semibold">Decision</span>
-                    <select
-                      className="field"
-                      value={actionState.decision}
-                      onChange={(event) =>
-                        updateActionState(
-                          "decision",
-                          event.target.value as ActionState["decision"],
-                        )
-                      }
-                    >
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 block text-sm font-semibold">Internal Note</span>
+            {currentAction ? (
+              <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 p-5">
+                <label className="flex items-start gap-3 text-sm leading-7 text-[var(--foreground)]">
+                  <input
+                    type="checkbox"
+                    checked={actionState.publish_update}
+                    onChange={(event) =>
+                      updateActionState("publish_update", event.target.checked)
+                    }
+                    className="mt-1 h-4 w-4"
+                  />
+                  <span>
+                    Publish a public-safe update so the reporter can see progress in `/track` and on the authenticated report detail page.
+                  </span>
+                </label>
+
+                {actionState.publish_update ? (
+                  <label className="mt-4 block">
+                    <span className="mb-2 block text-sm font-semibold">Public Message</span>
                     <textarea
-                      className="field min-h-40"
-                      value={actionState.internal_note}
+                      className="field min-h-28"
+                      value={actionState.public_message}
                       onChange={(event) =>
-                        updateActionState("internal_note", event.target.value)
+                        updateActionState("public_message", event.target.value)
                       }
-                      placeholder="Record the approval rationale or rejection instruction."
+                      placeholder="Write a public-safe status update."
                       required
                     />
                   </label>
-                </>
-              ) : null}
-
-              {currentAction ? (
-                <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 p-5">
-                  <label className="flex items-start gap-3 text-sm leading-7 text-[var(--foreground)]">
-                    <input
-                      type="checkbox"
-                      checked={actionState.publish_update}
-                      onChange={(event) =>
-                        updateActionState("publish_update", event.target.checked)
-                      }
-                      className="mt-1 h-4 w-4"
-                    />
-                    <span>
-                      Publish a public-safe update so the reporter can see progress in `/track` and on the authenticated report detail page.
-                    </span>
-                  </label>
-
-                  {actionState.publish_update ? (
-                    <label className="mt-4 block">
-                      <span className="mb-2 block text-sm font-semibold">Public Message</span>
-                      <textarea
-                        className="field min-h-28"
-                        value={actionState.public_message}
-                        onChange={(event) =>
-                          updateActionState("public_message", event.target.value)
-                        }
-                        placeholder="Write a public-safe status update."
-                        required
-                      />
-                    </label>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  className="primary-button disabled:opacity-60"
-                  disabled={isPending || !currentAction}
-                >
-                  {isPending ? "Saving..." : meta.button}
-                </button>
-                <button
-                  type="button"
-                  className="ghost-button"
-                  onClick={() => router.push(backPath)}
-                >
-                  Cancel
-                </button>
+                ) : null}
               </div>
-            </form>
-          ) : (
-            <div className="mt-6 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5 text-sm leading-7 text-[var(--muted)]">
-              No workflow action is currently available for this case in the selected menu.
-            </div>
-          )}
-        </section>
+            ) : null}
 
-        <WorkflowAttachmentPanel
-          token={token}
-          caseId={record.id}
-          attachments={record.attachments}
-        />
-      </div>
-
-      {supportsSecureMessaging ? (
-        <CaseMessageBoard
-          token={token}
-          scope={{ kind: "workflow", caseId: record.id }}
-        />
-      ) : null}
-
-      <section className="panel rounded-[1rem] p-8">
-        <p className="eyebrow">Case Timeline</p>
-        <h3 className="mt-4 text-3xl">Workflow history</h3>
-        <div className="mt-6 space-y-4">
-          {timeline.length > 0 ? (
-            timeline.map((entry, index) => (
-              <article
-                key={`${entry.stage}-${entry.occurred_at}-${index}`}
-                className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/78 p-5"
+            <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--panel-border)] pt-6">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => router.push(backPath)}
               >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge value={entry.stage} />
-                      <span className="rounded-full border border-[var(--panel-border)] px-3 py-1 text-[0.62rem] font-mono uppercase tracking-[0.18em] text-[var(--muted)]">
-                        {entry.visibility ?? "internal"}
-                      </span>
-                    </div>
-                    <h4 className="mt-3 text-lg font-semibold">
-                      {normalizeWorkflowCopy(entry.headline)}
-                    </h4>
-                    <p className="muted mt-2 text-sm leading-7">
-                      {normalizeWorkflowCopy(entry.detail)}
-                    </p>
-                  </div>
-                  <div className="text-right text-sm text-[var(--muted)]">
-                    <p>{getRoleLabel(entry.actor_role)}</p>
-                    <p className="mt-2">
-                      {entry.occurred_at
-                        ? formatDateTime(entry.occurred_at)
-                        : "No timestamp"}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5 text-sm text-[var(--muted)]">
-              No workflow history is recorded for this case yet.
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="primary-button disabled:opacity-60"
+                disabled={isPending || !currentAction}
+              >
+                {isPending ? "Saving..." : meta.button}
+              </button>
             </div>
-          )}
-        </div>
+          </form>
+        ) : (
+          <div className="mt-6 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5 text-sm leading-7 text-[var(--muted)]">
+            No workflow action is currently available for this case in the selected menu.
+          </div>
+        )}
       </section>
     </div>
   );
