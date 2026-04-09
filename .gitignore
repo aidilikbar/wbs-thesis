@@ -25,4 +25,4 @@ docker-compose.override.yml
 /db_dump/
 
 # local AI agent test pack
-/docs/.ai-agent-test-pack/
+/docs/ai-agent-test-pack/
