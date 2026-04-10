@@ -479,6 +479,128 @@ class InvestigatorWorkflowTest extends TestCase
             ->assertJsonPath('data.timeline.0.visibility', 'public');
     }
 
+    public function test_all_case_view_includes_cases_that_have_progressed_beyond_queue_and_approval(): void
+    {
+        $supervisorOfVerificator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.allcase.verification@example.test',
+            'Verification Supervision'
+        );
+        $verificator = $this->createUser(
+            User::ROLE_VERIFICATOR,
+            'verificator.allcase@example.test',
+            'Verification Desk'
+        );
+        $supervisorOfInvestigator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            'supervisor.allcase.investigation@example.test',
+            'Investigation Supervision'
+        );
+        $investigator = $this->createUser(
+            User::ROLE_INVESTIGATOR,
+            'investigator.allcase@example.test',
+            'Investigation Desk'
+        );
+        $director = $this->createUser(
+            User::ROLE_DIRECTOR,
+            'director.allcase@example.test',
+            'Directorate'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.allcase@example.test',
+            'Reporter'
+        );
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+
+        $this->postJson('/api/reporter/reports', [
+            'title' => 'All case visibility after completion',
+            'category' => 'bribery',
+            'description' => 'Report used to verify that approval roles can still find progressed cases in the all-case directory.',
+            'confidentiality_level' => 'identified',
+        ])->assertCreated();
+
+        $caseFile = CaseFile::query()->firstOrFail();
+
+        Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
+            'assignee_user_id' => $verificator->id,
+            'assigned_unit' => 'Verification Desk',
+        ])->assertOk();
+
+        Sanctum::actingAs($verificator, [$verificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-verification", [
+            'summary' => 'Verification completed.',
+            'reason' => 'Escalation is required.',
+            'recommendation' => 'review',
+        ])->assertOk();
+
+        Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-verification", [
+            'decision' => 'approved',
+            'approval_note' => 'Approved for investigation handling.',
+        ])->assertOk();
+
+        Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-investigation", [
+            'assignee_user_id' => $investigator->id,
+            'assigned_unit' => 'Investigation Desk',
+        ])->assertOk();
+
+        Sanctum::actingAs($investigator, [$investigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-investigation", [
+            'case_name' => 'All case visibility after completion',
+            'reported_parties' => [[
+                'full_name' => 'Procurement Officer',
+                'position' => 'Procurement Officer',
+                'classification' => 'civil_servant',
+            ]],
+            'description' => 'Investigation record for all-case visibility test.',
+            'conclusion' => 'Investigation completed.',
+        ])->assertOk();
+
+        Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-investigation", [
+            'decision' => 'approved',
+            'approval_note' => 'Approved for director review.',
+        ])->assertOk();
+
+        Sanctum::actingAs($director, [$director->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/director-review", [
+            'decision' => 'approved',
+            'approval_note' => 'Completed.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'completed');
+
+        Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+        $this->getJson('/api/workflow/cases?view=all&search=visibility')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.stage', 'completed')
+            ->assertJsonPath('data.items.0.title', 'All case visibility after completion');
+
+        $this->getJson('/api/workflow/cases?view=queue&search=visibility')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 0);
+
+        $this->getJson('/api/workflow/cases?view=approval&search=visibility')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 0);
+
+        Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+        $this->getJson('/api/workflow/cases?view=all&search=visibility')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.stage', 'completed');
+
+        Sanctum::actingAs($director, [$director->role]);
+        $this->getJson('/api/workflow/cases?view=all&search=visibility')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.stage', 'completed');
+    }
+
     public function test_public_tracking_history_matches_progressed_workflow_sequence(): void
     {
         $supervisorOfVerificator = $this->createUser(

@@ -233,7 +233,7 @@ export type WorkflowAssignee = {
   unit: string | null;
 };
 
-export type WorkflowDirectoryView = "queue" | "approval";
+export type WorkflowDirectoryView = "all" | "queue" | "approval";
 
 export type WorkflowTimelineEntry = {
   visibility?: "public" | "internal";

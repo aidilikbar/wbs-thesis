@@ -11,9 +11,11 @@ import { formatDateTime } from "@/lib/format";
 import { getRoleLabel, getStageLabel } from "@/lib/labels";
 import { isInternalRole } from "@/lib/roles";
 import {
+  workflowCasePath,
   workflowActionPath,
   workflowActionShortLabel,
   workflowAllowedStagesForView,
+  workflowHasAllCaseMenu,
   workflowHasApprovalMenu,
   workflowMatchesSearch,
   workflowNoticeText,
@@ -110,6 +112,7 @@ export function WorkflowDirectory({
 
   const isSessionLoading = !isReady;
   const isInternalUser = isInternalRole(user?.role);
+  const canViewAllCases = workflowHasAllCaseMenu(user?.role);
   const canViewApprovals = workflowHasApprovalMenu(user?.role);
   const activeStageFilter = stageOptions.some((option) => option.value === stageFilter)
     ? stageFilter
@@ -117,6 +120,10 @@ export function WorkflowDirectory({
 
   useEffect(() => {
     if (!token || !isInternalUser) {
+      return;
+    }
+
+    if (view === "all" && !canViewAllCases) {
       return;
     }
 
@@ -187,6 +194,7 @@ export function WorkflowDirectory({
     deferredSearchTerm,
     activeStageFilter,
     canViewApprovals,
+    canViewAllCases,
   ]);
 
   if (isReady && (!isAuthenticated || !token || !isInternalUser || !user)) {
@@ -231,14 +239,33 @@ export function WorkflowDirectory({
     );
   }
 
+  if (isReady && view === "all" && !canViewAllCases) {
+    return (
+      <div className="space-y-6">
+        <WorkflowNavigation activeView="queue" role={user?.role} />
+        <div className="panel rounded-[1rem] p-8">
+          <p className="eyebrow">All Cases</p>
+          <h2 className="mt-4 text-3xl">This role does not use the all-cases directory</h2>
+          <p className="muted mt-4 max-w-3xl text-sm leading-7">
+            The all-cases view is reserved for verification supervisors, investigation supervisors, directors, and system administrator oversight accounts.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const heading =
     view === "approval"
       ? "Approval queue"
-      : "Operational workflow queue";
+      : view === "all"
+        ? "All cases directory"
+        : "Operational workflow queue";
   const description =
     view === "approval"
       ? "Review cases awaiting supervisor or director approval before they can progress or close."
-      : "Search the active work queue, then open a dedicated case page to delegate, verify, or analyse.";
+      : view === "all"
+        ? "Search all cases linked to your workflow responsibility, including active, approval, and completed records."
+        : "Search the active work queue, then open a dedicated case page to delegate, verify, or analyse.";
 
   return (
     <div className="space-y-6">
@@ -269,7 +296,9 @@ export function WorkflowDirectory({
       <div className="panel rounded-[1rem] p-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="eyebrow">{view === "approval" ? "Approval Menu" : "Workflow Menu"}</p>
+            <p className="eyebrow">
+              {view === "approval" ? "Approval Menu" : view === "all" ? "All Cases Menu" : "Workflow Menu"}
+            </p>
             <h2 className="mt-4 text-3xl">{heading}</h2>
           </div>
           <div className="text-right">
@@ -403,7 +432,12 @@ export function WorkflowDirectory({
                           {workflowActionShortLabel(caseItem.available_actions[0])}
                         </Link>
                       ) : (
-                        <span className="text-sm text-[var(--muted)]">No action</span>
+                        <Link
+                          href={workflowCasePath(caseItem)}
+                          className="ghost-button px-3 py-2 text-[0.65rem]"
+                        >
+                          Open Case
+                        </Link>
                       )}
                     </td>
                   </tr>

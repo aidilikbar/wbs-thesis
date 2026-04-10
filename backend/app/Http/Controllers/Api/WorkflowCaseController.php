@@ -29,7 +29,7 @@ class WorkflowCaseController extends Controller
             new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 10)),
             new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'view', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['queue', 'approval'], default: 'queue')),
+            new OA\Parameter(name: 'view', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['all', 'queue', 'approval'], default: 'queue')),
             new OA\Parameter(name: 'stage', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
         ],
         responses: [
@@ -428,8 +428,44 @@ class WorkflowCaseController extends Controller
             default => [],
         };
 
+        $allStages = match ($user->role) {
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR => [
+                'submitted',
+                'verification_in_progress',
+                'verification_review',
+                'verified',
+                'investigation_in_progress',
+                'investigation_review',
+                'director_review',
+                'completed',
+            ],
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR => [
+                'verified',
+                'investigation_in_progress',
+                'investigation_review',
+                'director_review',
+                'completed',
+            ],
+            User::ROLE_DIRECTOR => [
+                'director_review',
+                'completed',
+            ],
+            User::ROLE_SYSTEM_ADMINISTRATOR => [
+                'submitted',
+                'verification_in_progress',
+                'verification_review',
+                'verified',
+                'investigation_in_progress',
+                'investigation_review',
+                'director_review',
+                'completed',
+            ],
+            default => [],
+        };
+
         return match ($view) {
             'approval' => $approvalStages,
+            'all' => $allStages,
             default => $queueStages,
         };
     }

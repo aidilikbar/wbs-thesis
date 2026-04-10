@@ -20,6 +20,15 @@ export function workflowHasApprovalMenu(role?: string | null): boolean {
   ].includes(role ?? "");
 }
 
+export function workflowHasAllCaseMenu(role?: string | null): boolean {
+  return [
+    "supervisor_of_verificator",
+    "supervisor_of_investigator",
+    "director",
+    "system_administrator",
+  ].includes(role ?? "");
+}
+
 export function workflowAllowedStagesForView(
   role?: string | null,
   view: WorkflowDirectoryView = "queue",
@@ -49,8 +58,46 @@ export function workflowAllowedStagesForView(
     ],
   } satisfies Partial<Record<UserRole, string[]>>;
 
+  const allStages = {
+    supervisor_of_verificator: [
+      "submitted",
+      "verification_in_progress",
+      "verification_review",
+      "verified",
+      "investigation_in_progress",
+      "investigation_review",
+      "director_review",
+      "completed",
+    ],
+    supervisor_of_investigator: [
+      "verified",
+      "investigation_in_progress",
+      "investigation_review",
+      "director_review",
+      "completed",
+    ],
+    director: [
+      "director_review",
+      "completed",
+    ],
+    system_administrator: [
+      "submitted",
+      "verification_in_progress",
+      "verification_review",
+      "verified",
+      "investigation_in_progress",
+      "investigation_review",
+      "director_review",
+      "completed",
+    ],
+  } satisfies Partial<Record<UserRole, string[]>>;
+
   const map: Partial<Record<UserRole, string[]>> =
-    view === "approval" ? approvalStages : queueStages;
+    view === "approval"
+      ? approvalStages
+      : view === "all"
+        ? allStages
+        : queueStages;
 
   return role ? (map as Record<string, string[]>)[role] ?? [] : [];
 }
@@ -78,6 +125,18 @@ export function workflowNoticeText(notice?: string | null): string | null {
   return null;
 }
 
+export function workflowDetailPath(stage?: string | null): string {
+  if ([
+    "verification_review",
+    "investigation_review",
+    "director_review",
+  ].includes(stage ?? "")) {
+    return "approval";
+  }
+
+  return "edit";
+}
+
 export function isApprovalAction(action?: string | null): boolean {
   return [
     "review_verification",
@@ -92,6 +151,14 @@ export function workflowActionPath(caseId: number, action?: string | null): stri
   }
 
   return `/workflow/${caseId}/edit`;
+}
+
+export function workflowCasePath(caseItem: WorkflowCase): string {
+  if (caseItem.available_actions.length > 0) {
+    return workflowActionPath(caseItem.id, caseItem.available_actions[0]);
+  }
+
+  return `/workflow/${caseItem.id}/${workflowDetailPath(caseItem.stage)}`;
 }
 
 export function workflowActionShortLabel(action?: string | null): string {

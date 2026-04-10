@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { workflowHasApprovalMenu } from "@/lib/workflow";
+import { workflowHasAllCaseMenu, workflowHasApprovalMenu } from "@/lib/workflow";
 import type { WorkflowDirectoryView } from "@/lib/types";
 
 export function WorkflowNavigation({
@@ -11,10 +11,23 @@ export function WorkflowNavigation({
   activeView: WorkflowDirectoryView;
   role?: string | null;
 }) {
+  const showAllCaseMenu = workflowHasAllCaseMenu(role);
   const showApprovalMenu = workflowHasApprovalMenu(role);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
+      {showAllCaseMenu ? (
+        <Link
+          href="/workflow/all"
+          className={`rounded-[0.8rem] border px-4 py-3 text-sm font-semibold transition ${
+            activeView === "all"
+              ? "border-[var(--foreground)] bg-[rgba(19,19,19,0.06)] text-[var(--foreground)]"
+              : "border-[var(--panel-border)] bg-white/78 text-[var(--muted)] hover:border-[rgba(19,19,19,0.18)] hover:text-[var(--foreground)]"
+          }`}
+        >
+          All Cases
+        </Link>
+      ) : null}
       <Link
         href="/workflow"
         className={`rounded-[0.8rem] border px-4 py-3 text-sm font-semibold transition ${
