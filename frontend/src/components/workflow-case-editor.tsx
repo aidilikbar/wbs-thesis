@@ -363,6 +363,44 @@ function renderAuditSnapshot(title: string, items: Array<[string, string | null 
   );
 }
 
+function getOptionLabel(
+  value: string | null | undefined,
+  options: Array<{ value: string; label: string }>,
+): string {
+  if (!value) {
+    return "";
+  }
+
+  return (
+    options.find((option) => option.value === value)?.label ??
+    normalizeWorkflowCopy(value.replaceAll("_", " "))
+  );
+}
+
+function getOptionLabels(
+  values: string[],
+  options: Array<{ value: string; label: string }>,
+): string {
+  return values
+    .map((value) => getOptionLabel(value, options))
+    .filter((value) => value !== "")
+    .join(", ");
+}
+
+function formatMonthYear(month: string, year: string): string {
+  if (!month && !year) {
+    return "";
+  }
+
+  const monthLabel = getOptionLabel(month, monthOptions);
+
+  if (monthLabel && year) {
+    return `${monthLabel} ${year}`;
+  }
+
+  return monthLabel || year;
+}
+
 export function WorkflowCaseEditor({
   caseId,
   view,
@@ -723,6 +761,11 @@ export function WorkflowCaseEditor({
   const timeline = [...(record.timeline ?? [])].reverse();
   const verificationRecord = record.workflow_records?.verification;
   const reviewRecord = record.workflow_records?.review;
+  const linkedReviewReportReference = readString(reviewRecord, "related_report_reference");
+  const linkedReviewReport =
+    record.related_reports?.find(
+      (item) => item.public_reference === linkedReviewReportReference,
+    ) ?? null;
 
   return (
     <div className="space-y-6">
@@ -838,9 +881,10 @@ export function WorkflowCaseEditor({
                 ["Summary", readString(verificationRecord, "summary")],
                 [
                   "Corruption Tags",
-                  readStringArray(verificationRecord, "corruption_aspect_tags")
-                    .map((item) => item.replaceAll("_", " "))
-                    .join(", "),
+                  getOptionLabels(
+                    readStringArray(verificationRecord, "corruption_aspect_tags"),
+                    governanceTagOptions,
+                  ),
                 ],
                 [
                   "Authority",
@@ -852,10 +896,17 @@ export function WorkflowCaseEditor({
                 ],
                 [
                   "Criminal Assessment",
-                  readString(verificationRecord, "criminal_assessment")
-                    .replaceAll("_", " "),
+                  normalizeWorkflowCopy(
+                    readString(verificationRecord, "criminal_assessment").replaceAll("_", " "),
+                  ),
                 ],
-                ["Recommendation", readString(verificationRecord, "recommendation").replaceAll("_", " ")],
+                [
+                  "Recommendation",
+                  getOptionLabel(
+                    readString(verificationRecord, "recommendation"),
+                    verificationRecommendationOptions,
+                  ),
+                ],
                 ["Reason", readString(verificationRecord, "reason")],
                 ["Forwarding Destination", readString(verificationRecord, "forwarding_destination")],
               ])}
@@ -877,6 +928,14 @@ export function WorkflowCaseEditor({
                       </p>
                       <p className="mt-2 text-sm">{readString(reviewRecord, "case_name")}</p>
                     </div>
+                    <div>
+                      <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                        Complaint Description
+                      </p>
+                      <p className="mt-2 text-sm leading-7">
+                        {readString(reviewRecord, "description")}
+                      </p>
+                    </div>
                     <ReportedPartiesSummary
                       parties={readReportedParties(reviewRecord, "reported_parties", [])}
                       title="Reported Parties in Investigation"
@@ -884,10 +943,24 @@ export function WorkflowCaseEditor({
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                          Corruption Tags
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {getOptionLabels(
+                            readStringArray(reviewRecord, "corruption_aspect_tags"),
+                            governanceTagOptions,
+                          ) || "Not specified"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                           Recommendation
                         </p>
                         <p className="mt-2 text-sm">
-                          {readString(reviewRecord, "recommendation").replaceAll("_", " ")}
+                          {getOptionLabel(
+                            readString(reviewRecord, "recommendation"),
+                            reviewRecommendationOptions,
+                          )}
                         </p>
                       </div>
                       <div>
@@ -895,7 +968,7 @@ export function WorkflowCaseEditor({
                           Delict
                         </p>
                         <p className="mt-2 text-sm">
-                          {readString(reviewRecord, "delict").replaceAll("_", " ")}
+                          {getOptionLabel(readString(reviewRecord, "delict"), delictOptions)}
                         </p>
                       </div>
                       <div>
@@ -903,7 +976,18 @@ export function WorkflowCaseEditor({
                           Article
                         </p>
                         <p className="mt-2 text-sm">
-                          {readString(reviewRecord, "article").replaceAll("_", " ")}
+                          {getOptionLabel(
+                            readString(reviewRecord, "article"),
+                            corruptionArticleOptions,
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                          Authority
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {readBoolean(reviewRecord, "has_authority") ? "Yes" : "No"}
                         </p>
                       </div>
                       <div>
@@ -914,7 +998,79 @@ export function WorkflowCaseEditor({
                           {readBoolean(reviewRecord, "is_priority") ? "Yes" : "No"}
                         </p>
                       </div>
+                      <div>
+                        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                          Start of Incident
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {formatMonthYear(
+                            readString(reviewRecord, "start_month"),
+                            readString(reviewRecord, "start_year"),
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                          End of Incident
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {formatMonthYear(
+                            readString(reviewRecord, "end_month"),
+                            readString(reviewRecord, "end_year"),
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                          Incident Location
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {[readString(reviewRecord, "city"), readString(reviewRecord, "province")]
+                            .filter((value) => value !== "")
+                            .join(", ")}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                          Related WBS Report
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {linkedReviewReportReference
+                            ? linkedReviewReport
+                              ? `${linkedReviewReportReference} · ${linkedReviewReport.title}`
+                              : linkedReviewReportReference
+                            : "Not linked"}
+                        </p>
+                      </div>
                     </div>
+                    <div>
+                      <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                        Modus
+                      </p>
+                      <p className="mt-2 text-sm leading-7">
+                        {readString(reviewRecord, "modus")}
+                      </p>
+                    </div>
+                    {linkedReviewReport?.description ? (
+                      <div>
+                        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                          Related Report Description
+                        </p>
+                        <p className="mt-2 text-sm leading-7">
+                          {linkedReviewReport.description}
+                        </p>
+                      </div>
+                    ) : null}
+                    {readString(reviewRecord, "additional_information") ? (
+                      <div>
+                        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                          Additional Information
+                        </p>
+                        <p className="mt-2 text-sm leading-7">
+                          {readString(reviewRecord, "additional_information")}
+                        </p>
+                      </div>
+                    ) : null}
                     <div>
                       <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
                         Conclusion
