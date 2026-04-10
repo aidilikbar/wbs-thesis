@@ -384,6 +384,14 @@ export function WorkflowCaseEditor({
   const isInternalUser = isInternalRole(user?.role);
   const supportsSecureMessaging =
     user?.role === "verificator" || user?.role === "investigator";
+  const canReadApprovalCommunication =
+    view === "approval" &&
+    [
+      "supervisor_of_verificator",
+      "supervisor_of_investigator",
+      "director",
+    ].includes(user?.role ?? "");
+  const canOpenSecureMessaging = supportsSecureMessaging || canReadApprovalCommunication;
   const canViewApprovals = workflowHasApprovalMenu(user?.role);
   const backPath = view === "approval" ? "/workflow/approvals" : "/workflow";
 
@@ -940,7 +948,7 @@ export function WorkflowCaseEditor({
       ) : null}
 
       {activeTab === "communication" ? (
-        supportsSecureMessaging ? (
+        canOpenSecureMessaging ? (
           <CaseMessageBoard token={token} scope={{ kind: "workflow", caseId: record.id }} />
         ) : (
           <section className="panel rounded-[1rem] p-8">

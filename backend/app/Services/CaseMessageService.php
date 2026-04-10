@@ -55,8 +55,20 @@ class CaseMessageService
             return (int) $caseFile->verificator_id === (int) $user->id;
         }
 
+        if ($user->hasRole(User::ROLE_SUPERVISOR_OF_VERIFICATOR)) {
+            return (int) $caseFile->verification_supervisor_id === (int) $user->id;
+        }
+
         if ($user->hasRole(User::ROLE_INVESTIGATOR)) {
             return (int) $caseFile->investigator_id === (int) $user->id;
+        }
+
+        if ($user->hasRole(User::ROLE_SUPERVISOR_OF_INVESTIGATOR)) {
+            return (int) $caseFile->investigation_supervisor_id === (int) $user->id;
+        }
+
+        if ($user->hasRole(User::ROLE_DIRECTOR)) {
+            return (int) $caseFile->director_id === (int) $user->id;
         }
 
         return false;

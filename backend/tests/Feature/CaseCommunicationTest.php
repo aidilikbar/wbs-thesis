@@ -218,6 +218,140 @@ class CaseCommunicationTest extends TestCase
         $this->assertDatabaseCount('case_messages', 2);
     }
 
+    public function test_approval_roles_can_view_secure_communication_in_read_only_mode(): void
+    {
+        Storage::fake('attachments');
+
+        $supervisorOfVerificator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.approval.view@example.test',
+            'Verification Supervision'
+        );
+        $verificator = $this->createUser(
+            User::ROLE_VERIFICATOR,
+            'verificator.approval.view@example.test',
+            'Verification Desk'
+        );
+        $supervisorOfInvestigator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            'supervisor.investigation.approval.view@example.test',
+            'Investigation Supervision'
+        );
+        $investigator = $this->createUser(
+            User::ROLE_INVESTIGATOR,
+            'investigator.approval.view@example.test',
+            'Investigation Desk'
+        );
+        $director = $this->createUser(
+            User::ROLE_DIRECTOR,
+            'director.approval.view@example.test',
+            'Directorate'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.approval.view@example.test',
+            'Reporter'
+        );
+
+        $report = $this->submitReport($reporter, 'Approval read-only communication case');
+        $caseFile = $report->caseFile()->firstOrFail();
+
+        Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
+            'assignee_user_id' => $verificator->id,
+            'assigned_unit' => 'Verification Desk',
+        ])->assertOk();
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+        $this->postJson("/api/reporter/reports/{$report->id}/messages", [
+            'body' => 'Reporter verification-stage clarification.',
+        ])->assertCreated();
+
+        Sanctum::actingAs($verificator, [$verificator->role]);
+        $this->postJson("/api/workflow/cases/{$caseFile->id}/messages", [
+            'body' => 'Verification officer response before approval.',
+        ])->assertCreated();
+
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-verification", [
+            'summary' => 'Verification completed.',
+            'reason' => 'Verification indicates escalation is needed.',
+            'recommendation' => 'review',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'verification_review');
+
+        Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+        $this->getJson("/api/workflow/cases/{$caseFile->id}/messages")
+            ->assertOk()
+            ->assertJsonPath('data.can_send_message', false)
+            ->assertJsonPath('data.messages.0.sender_role', User::ROLE_REPORTER)
+            ->assertJsonPath('data.messages.1.sender_role', User::ROLE_VERIFICATOR);
+
+        $this->postJson("/api/workflow/cases/{$caseFile->id}/messages", [
+            'body' => 'Supervisor should not be able to send in approval mode.',
+        ])->assertStatus(422);
+
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-verification", [
+            'decision' => 'approved',
+            'approval_note' => 'Approved for investigation handling.',
+        ])->assertOk();
+
+        Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-investigation", [
+            'assignee_user_id' => $investigator->id,
+            'assigned_unit' => 'Investigation Desk',
+        ])->assertOk();
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+        $this->postJson("/api/reporter/reports/{$report->id}/messages", [
+            'body' => 'Reporter investigation-stage clarification.',
+        ])->assertCreated();
+
+        Sanctum::actingAs($investigator, [$investigator->role]);
+        $this->postJson("/api/workflow/cases/{$caseFile->id}/messages", [
+            'body' => 'Investigator response before approval.',
+        ])->assertCreated();
+
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-investigation", [
+            'case_name' => 'Approval read-only communication case',
+            'reported_parties' => [[
+                'full_name' => 'Procurement Officer',
+                'position' => 'Procurement Officer',
+                'classification' => 'civil_servant',
+            ]],
+            'description' => 'Investigation record for approval read-only communication.',
+            'conclusion' => 'Investigation completed for review.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'investigation_review');
+
+        Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+        $this->getJson("/api/workflow/cases/{$caseFile->id}/messages")
+            ->assertOk()
+            ->assertJsonPath('data.can_send_message', false)
+            ->assertJsonPath('data.messages.2.sender_role', User::ROLE_REPORTER)
+            ->assertJsonPath('data.messages.3.sender_role', User::ROLE_INVESTIGATOR);
+
+        $this->postJson("/api/workflow/cases/{$caseFile->id}/messages", [
+            'body' => 'Investigation supervisor should not be able to send in approval mode.',
+        ])->assertStatus(422);
+
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-investigation", [
+            'decision' => 'approved',
+            'approval_note' => 'Approved for director review.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'director_review');
+
+        Sanctum::actingAs($director, [$director->role]);
+        $this->getJson("/api/workflow/cases/{$caseFile->id}/messages")
+            ->assertOk()
+            ->assertJsonPath('data.can_send_message', false)
+            ->assertJsonPath('data.messages.0.sender_role', User::ROLE_REPORTER)
+            ->assertJsonPath('data.messages.3.sender_role', User::ROLE_INVESTIGATOR);
+
+        $this->postJson("/api/workflow/cases/{$caseFile->id}/messages", [
+            'body' => 'Director should not be able to send in approval mode.',
+        ])->assertStatus(422);
+    }
+
     private function createUser(string $role, string $email, string $unit): User
     {
         return User::query()->create([
