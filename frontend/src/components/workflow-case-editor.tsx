@@ -279,13 +279,18 @@ function buildActionState(record: WorkflowCase | null): ActionState {
     assignee_user_id: "",
     assigned_unit: record?.assigned_unit ?? "",
     distribution_note:
-      readString(record?.workflow_records?.screening, "distribution_note") ||
-      readString(reviewDistribution, "distribution_note"),
+      currentAction === "delegate_investigation"
+        ? readString(reviewDistribution, "distribution_note")
+        : readString(record?.workflow_records?.screening, "distribution_note"),
     decision: "approved",
     approval_note:
-      readString(record?.workflow_records?.verification_approval, "approval_note") ||
-      readString(record?.workflow_records?.review_approval, "approval_note") ||
-      readString(record?.workflow_records?.director_approval, "approval_note"),
+      currentAction === "review_verification"
+        ? readString(record?.workflow_records?.verification_approval, "approval_note")
+        : currentAction === "review_investigation"
+          ? readString(record?.workflow_records?.review_approval, "approval_note")
+          : currentAction === "director_review"
+            ? readString(record?.workflow_records?.director_approval, "approval_note")
+            : "",
     publish_update: false,
     public_message: "",
     summary: readString(verification, "summary"),
@@ -325,11 +330,7 @@ function buildActionState(record: WorkflowCase | null): ActionState {
     city: readString(review, "city"),
     province: readString(review, "province"),
     modus: readString(review, "modus", record?.description ?? ""),
-    related_report_reference: readString(
-      review,
-      "related_report_reference",
-      record?.public_reference ?? "",
-    ),
+    related_report_reference: readString(review, "related_report_reference"),
     is_priority: readBoolean(review, "is_priority"),
     additional_information: readString(review, "additional_information"),
     conclusion: readString(review, "conclusion"),
@@ -444,6 +445,10 @@ export function WorkflowCaseEditor({
   const meta = currentAction ? actionMeta[currentAction] : null;
   const currentActionMode =
     currentAction && isApprovalAction(currentAction) ? "approval" : "queue";
+  const selectedRelatedReport =
+    record?.related_reports?.find(
+      (item) => item.public_reference === actionState.related_report_reference,
+    ) ?? null;
   const screeningRejected = readBoolean(record?.workflow_records?.screening, "reject_report");
   const screeningNoteLabel = actionState.reject_report ? "Reason of Rejection" : "Distribution Note";
   const screeningNotePlaceholder = actionState.reject_report
@@ -1406,16 +1411,33 @@ export function WorkflowCaseEditor({
 
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold">Related WBS Report</span>
-                  <input
+                  <select
                     className="field"
                     name="related_report_reference"
                     value={actionState.related_report_reference}
                     onChange={(event) =>
                       updateActionState("related_report_reference", event.target.value)
                     }
-                    placeholder="WBS-2026-0001"
-                  />
+                  >
+                    <option value="">Select a related report</option>
+                    {(record.related_reports ?? []).map((item) => (
+                      <option key={item.public_reference} value={item.public_reference}>
+                        {item.public_reference} · {item.title}
+                      </option>
+                    ))}
+                  </select>
                 </label>
+
+                {selectedRelatedReport ? (
+                  <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-4 text-sm leading-7 text-[var(--muted)]">
+                    <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                      Related Complaint Description
+                    </p>
+                    <p className="mt-2 text-[var(--foreground)]">
+                      {selectedRelatedReport.description || "No complaint description available."}
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block">

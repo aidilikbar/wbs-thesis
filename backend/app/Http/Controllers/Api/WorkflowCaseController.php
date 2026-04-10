@@ -9,6 +9,7 @@ use App\Http\Requests\VerificationDelegationRequest;
 use App\Http\Requests\VerificationSubmissionRequest;
 use App\Http\Requests\WorkflowApprovalRequest;
 use App\Models\CaseFile;
+use App\Models\Report;
 use App\Models\User;
 use App\Services\CaseWorkflowService;
 use Illuminate\Database\Eloquent\Builder;
@@ -554,6 +555,16 @@ class WorkflowCaseController extends Controller
                     'actor_role' => $event->actor_role,
                     'actor_name' => $event->actor_name,
                     'occurred_at' => $event->occurred_at?->toISOString(),
+                ]),
+            'related_reports' => Report::query()
+                ->whereKeyNot($caseFile->report?->getKey())
+                ->latest('submitted_at')
+                ->limit(25)
+                ->get(['public_reference', 'title', 'description'])
+                ->map(fn (Report $report) => [
+                    'public_reference' => $report->public_reference,
+                    'title' => $report->title,
+                    'description' => $report->description,
                 ]),
             'available_actions' => $this->availableActions($caseFile, $viewer),
         ];

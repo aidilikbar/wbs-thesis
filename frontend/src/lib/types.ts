@@ -298,6 +298,11 @@ export type WorkflowCase = {
   latest_internal_event: string | null;
   latest_public_event: string | null;
   timeline?: WorkflowTimelineEntry[];
+  related_reports?: Array<{
+    public_reference: string;
+    title: string;
+    description: string | null;
+  }>;
   available_actions: string[];
 };
 
