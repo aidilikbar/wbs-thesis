@@ -22,13 +22,13 @@ export function CaseMessageBoard({
   const reporterId = scope.kind === "reporter" ? scope.reportId : null;
   const caseId = scope.kind === "workflow" ? scope.caseId : null;
   const [conversation, setConversation] = useState<CaseMessageConversation | null>(null);
-  const [draft, setDraft] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const isMountedRef = useRef(true);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -145,8 +145,15 @@ export function CaseMessageBoard({
       return;
     }
 
-    const trimmed = draft.trim();
-    const filesError = validateAttachmentSelection(selectedFiles);
+    const formElement = event.currentTarget;
+    const formData = new FormData(formElement);
+    const trimmed = String(formData.get("body") ?? "").trim();
+    const attachedFiles = formData
+      .getAll("attachments")
+      .filter(
+        (item): item is File => item instanceof File && item.name.trim() !== "",
+      );
+    const filesError = validateAttachmentSelection(attachedFiles);
 
     setValidationMessage(filesError);
 
@@ -154,7 +161,7 @@ export function CaseMessageBoard({
       return;
     }
 
-    if (trimmed === "" && selectedFiles.length === 0) {
+    if (trimmed === "" && attachedFiles.length === 0) {
       setMessage("Write a message or attach at least one file before sending.");
 
       return;
@@ -176,13 +183,13 @@ export function CaseMessageBoard({
                 token,
                 scope.reportId,
                 trimmed,
-                selectedFiles,
+                attachedFiles,
               )
             : await api.sendWorkflowConversationMessage(
                 token,
                 scope.caseId,
                 trimmed,
-                selectedFiles,
+                attachedFiles,
               );
 
         setConversation((current) =>
@@ -193,7 +200,10 @@ export function CaseMessageBoard({
               }
             : current,
         );
-        setDraft("");
+        formElement.reset();
+        if (attachmentInputRef.current) {
+          attachmentInputRef.current.value = "";
+        }
         setSelectedFiles([]);
         setValidationMessage(null);
         await loadConversation({ background: true }).catch(() => null);
@@ -294,12 +304,13 @@ export function CaseMessageBoard({
             New Message
           </p>
           <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
-            <label className="block">
+            <label className="block" htmlFor={`case-message-body-${scope.kind}-${reporterId ?? caseId}`}>
               <span className="mb-2 block text-sm font-semibold">Message</span>
               <textarea
+                id={`case-message-body-${scope.kind}-${reporterId ?? caseId}`}
+                name="body"
+                aria-label="Message"
                 className="field min-h-40"
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
                 placeholder="Request clarification, answer questions, or provide a protected follow-up."
                 disabled={!conversation?.can_send_message || isPending}
               />
@@ -310,7 +321,9 @@ export function CaseMessageBoard({
                 File Attachments
               </p>
               <input
+                ref={attachmentInputRef}
                 type="file"
+                name="attachments"
                 multiple
                 accept={attachmentAccept}
                 className="mt-4 block w-full text-sm"
@@ -367,6 +380,9 @@ export function CaseMessageBoard({
                 onClick={() => {
                   setSelectedFiles([]);
                   setValidationMessage(null);
+                  if (attachmentInputRef.current) {
+                    attachmentInputRef.current.value = "";
+                  }
                 }}
               >
                 Clear Files

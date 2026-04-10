@@ -8,27 +8,24 @@ import { roleHomePath } from "@/lib/roles";
 export function RegisterForm() {
   const router = useRouter();
   const { registerReporter } = useAuth();
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    password_confirmation: "",
-  });
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  const updateField = (field: keyof typeof form, value: string) => {
-    setForm((current) => ({ ...current, [field]: value }));
-  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
+    const formData = new FormData(event.currentTarget);
+    const payload = {
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      phone: String(formData.get("phone") ?? ""),
+      password: String(formData.get("password") ?? ""),
+      password_confirmation: String(formData.get("password_confirmation") ?? ""),
+    };
 
     startTransition(async () => {
       try {
-        const session = await registerReporter(form);
+        const session = await registerReporter(payload);
         router.push(roleHomePath(session.user.role));
         router.refresh();
       } catch (error) {
@@ -53,53 +50,61 @@ export function RegisterForm() {
 
       <div className="p-8">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="block">
+          <label className="block" htmlFor="register-name">
             <span className="mb-2 block text-sm font-semibold">Full name</span>
             <input
+              id="register-name"
+              name="name"
+              aria-label="Full name"
+              autoComplete="name"
               className="field"
-              value={form.name}
-              onChange={(event) => updateField("name", event.target.value)}
               required
             />
           </label>
-          <label className="block">
+          <label className="block" htmlFor="register-phone">
             <span className="mb-2 block text-sm font-semibold">Phone</span>
             <input
+              id="register-phone"
+              name="phone"
+              aria-label="Phone"
+              autoComplete="tel"
               className="field"
-              value={form.phone}
-              onChange={(event) => updateField("phone", event.target.value)}
               required
             />
           </label>
-          <label className="block md:col-span-2">
+          <label className="block md:col-span-2" htmlFor="register-email">
             <span className="mb-2 block text-sm font-semibold">Email</span>
             <input
+              id="register-email"
+              name="email"
+              aria-label="Email"
+              autoComplete="email"
               className="field"
               type="email"
-              value={form.email}
-              onChange={(event) => updateField("email", event.target.value)}
               required
             />
           </label>
-          <label className="block">
+          <label className="block" htmlFor="register-password">
             <span className="mb-2 block text-sm font-semibold">Password</span>
             <input
+              id="register-password"
+              name="password"
+              aria-label="Password"
+              autoComplete="new-password"
               className="field"
               type="password"
-              value={form.password}
-              onChange={(event) => updateField("password", event.target.value)}
               required
             />
           </label>
-          <label className="block">
+          <label className="block" htmlFor="register-password-confirmation">
             <span className="mb-2 block text-sm font-semibold">Confirm password</span>
             <input
+              id="register-password-confirmation"
+              name="password_confirmation"
+              aria-label="Confirm password"
+              autoComplete="new-password"
               className="field"
               type="password"
-              value={form.password_confirmation}
-              onChange={(event) =>
-                updateField("password_confirmation", event.target.value)
-              }
               required
             />
           </label>
