@@ -341,6 +341,10 @@ export const api = {
     request<WorkflowCase>(`/workflow/cases/${caseId}`, {
       token,
     }),
+  downloadWorkflowCasePdf: (token: string, caseId: number) =>
+    requestBlob(`/workflow/cases/${caseId}/export-pdf`, {
+      token,
+    }),
   fetchWorkflowConversation: (token: string, caseId: number) =>
     request<CaseMessageConversation>(`/workflow/cases/${caseId}/messages`, {
       token,

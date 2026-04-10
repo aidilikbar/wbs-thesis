@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('workflow')->group(function () {
         Route::get('/cases', [WorkflowCaseController::class, 'index']);
         Route::get('/cases/{caseFile}', [WorkflowCaseController::class, 'show']);
+        Route::get('/cases/{caseFile}/export-pdf', [WorkflowCaseController::class, 'exportPdf']);
         Route::get('/cases/{caseFile}/messages', [CaseMessageController::class, 'workflowIndex']);
         Route::post('/cases/{caseFile}/messages', [CaseMessageController::class, 'workflowStore']);
         Route::get('/cases/{caseFile}/messages/{message}/attachments/{attachment}/download', [CaseMessageController::class, 'workflowDownload']);

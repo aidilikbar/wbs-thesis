@@ -12,10 +12,13 @@ use App\Models\CaseFile;
 use App\Models\Report;
 use App\Models\User;
 use App\Services\CaseWorkflowService;
+use App\Services\WorkflowCasePdfService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\Response;
 
 class WorkflowCaseController extends Controller
 {
@@ -93,6 +96,30 @@ class WorkflowCaseController extends Controller
         return response()->json([
             'data' => $this->transformCase($caseFile, $user),
         ]);
+    }
+
+    public function exportPdf(
+        Request $request,
+        CaseFile $caseFile,
+        WorkflowCasePdfService $pdfService,
+    ): Response|JsonResponse {
+        $user = $this->authorizeInternalUser($request);
+        $caseFile = $this->findVisibleCaseOrFail($caseFile, $user);
+
+        if ($caseFile->stage !== 'completed') {
+            return response()->json([
+                'message' => 'Only completed cases can be exported as PDF.',
+            ], 422);
+        }
+
+        $fileName = sprintf(
+            '%s-kpk-case-dossier.pdf',
+            str($caseFile->case_number ?: 'workflow-case')->slug()
+        );
+
+        return Pdf::loadView('pdf.workflow-case', $pdfService->build($caseFile, $user))
+            ->setPaper('a4')
+            ->download($fileName);
     }
 
     #[OA\Get(

@@ -8,6 +8,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -772,6 +773,97 @@ class InvestigatorWorkflowTest extends TestCase
             ->assertJsonPath('data.case.stage_label', 'Closed during preliminary screening')
             ->assertJsonPath('data.timeline.1.stage', 'screening_closed')
             ->assertJsonPath('data.timeline.1.headline', 'Report closed during preliminary screening');
+    }
+
+    public function test_completed_case_can_be_exported_as_pdf(): void
+    {
+        $director = $this->createUser(
+            User::ROLE_DIRECTOR,
+            'director.export@example.test',
+            'Directorate'
+        );
+
+        $report = Report::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'public_reference' => 'WBS-2026-9001',
+            'tracking_token' => 'EXPORT9001AA',
+            'title' => 'Completed procurement case for PDF export',
+            'category' => 'procurement',
+            'description' => 'A completed case used to validate PDF export output.',
+            'anonymity_level' => 'identified',
+            'severity' => 'high',
+            'status' => 'completed',
+            'submitted_at' => now()->subDays(5),
+            'created_at' => now()->subDays(5),
+            'updated_at' => now()->subDay(),
+        ]);
+
+        $caseFile = CaseFile::query()->create([
+            'report_id' => $report->id,
+            'case_number' => 'CASE-2026-9001',
+            'stage' => 'completed',
+            'disposition' => 'completed',
+            'assigned_unit' => 'Directorate',
+            'assigned_to' => $director->name,
+            'confidentiality_level' => 'identified',
+            'current_role' => User::ROLE_DIRECTOR,
+            'director_id' => $director->id,
+            'last_activity_at' => now()->subDay(),
+            'completed_at' => now()->subDay(),
+        ]);
+
+        Sanctum::actingAs($director, [$director->role]);
+
+        $response = $this->get("/api/workflow/cases/{$caseFile->id}/export-pdf");
+
+        $response->assertOk()
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertHeader('content-disposition', 'attachment; filename=case-2026-9001-kpk-case-dossier.pdf');
+
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_incomplete_case_cannot_be_exported_as_pdf(): void
+    {
+        $supervisor = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.export@example.test',
+            'Verification Supervision'
+        );
+
+        $report = Report::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'public_reference' => 'WBS-2026-9002',
+            'tracking_token' => 'EXPORT9002AA',
+            'title' => 'Active verification case for PDF export guard',
+            'category' => 'fraud',
+            'description' => 'An in-progress case that must not be exportable yet.',
+            'anonymity_level' => 'identified',
+            'severity' => 'medium',
+            'status' => 'verification_in_progress',
+            'submitted_at' => now()->subDays(2),
+            'created_at' => now()->subDays(2),
+            'updated_at' => now()->subDay(),
+        ]);
+
+        $caseFile = CaseFile::query()->create([
+            'report_id' => $report->id,
+            'case_number' => 'CASE-2026-9002',
+            'stage' => 'verification_in_progress',
+            'disposition' => 'verification_in_progress',
+            'assigned_unit' => 'Verification Supervision',
+            'assigned_to' => $supervisor->name,
+            'confidentiality_level' => 'identified',
+            'current_role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'verification_supervisor_id' => $supervisor->id,
+            'last_activity_at' => now()->subDay(),
+        ]);
+
+        Sanctum::actingAs($supervisor, [$supervisor->role]);
+
+        $this->getJson("/api/workflow/cases/{$caseFile->id}/export-pdf")
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Only completed cases can be exported as PDF.');
     }
 
     private function createUser(string $role, string $email, string $unit): User

@@ -1762,8 +1762,19 @@ export function WorkflowCaseEditor({
             </div>
           </form>
         ) : (
-          <div className="mt-6 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5 text-sm leading-7 text-[var(--muted)]">
-            No workflow action is currently available for this case in the selected menu.
+          <div className="mt-6 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76">
+            <div className="p-5 text-sm leading-7 text-[var(--muted)]">
+              No workflow action is currently available for this case in the selected menu.
+            </div>
+            <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--panel-border)] px-5 py-4">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => router.push(backPath)}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </section>

@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { WorkflowNavigation } from "@/components/workflow-navigation";
 import { api } from "@/lib/api";
 import { demoWorkflowCases } from "@/lib/demo-data";
+import { triggerBlobDownload } from "@/lib/file-utils";
 import { formatDateTime } from "@/lib/format";
 import { getRoleLabel, getStageLabel } from "@/lib/labels";
 import { isInternalRole } from "@/lib/roles";
@@ -109,6 +110,7 @@ export function WorkflowDirectory({
       : null;
   });
   const [usingFallback, setUsingFallback] = useState(false);
+  const [exportingCaseId, setExportingCaseId] = useState<number | null>(null);
 
   const isSessionLoading = !isReady;
   const isInternalUser = isInternalRole(user?.role);
@@ -267,6 +269,35 @@ export function WorkflowDirectory({
         ? "Search all cases linked to your workflow responsibility, including active, approval, and completed records."
         : "Search the active work queue, then open a dedicated case page to delegate, verify, or analyse.";
 
+  const handleExportPdf = async (caseItem: WorkflowCase) => {
+    if (!token) {
+      return;
+    }
+
+    if (usingFallback) {
+      setNotice({
+        tone: "error",
+        text: "PDF export is unavailable while the backend is offline.",
+      });
+
+      return;
+    }
+
+    setExportingCaseId(caseItem.id);
+
+    try {
+      const blob = await api.downloadWorkflowCasePdf(token, caseItem.id);
+      triggerBlobDownload(blob, `${caseItem.case_number}-case-dossier.pdf`);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "PDF export failed.",
+      });
+    } finally {
+      setExportingCaseId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <aside className="dark-card rounded-[1rem] border border-white/8 p-7">
@@ -421,24 +452,36 @@ export function WorkflowDirectory({
                         : "No activity recorded"}
                     </td>
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                      {caseItem.available_actions.length > 0 ? (
-                        <Link
-                          href={workflowActionPath(
-                            caseItem.id,
-                            caseItem.available_actions[0],
-                          )}
-                          className="ghost-button px-3 py-2 text-[0.65rem]"
-                        >
-                          {workflowActionShortLabel(caseItem.available_actions[0])}
-                        </Link>
-                      ) : (
-                        <Link
-                          href={workflowCasePath(caseItem)}
-                          className="ghost-button px-3 py-2 text-[0.65rem]"
-                        >
-                          Open Case
-                        </Link>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {caseItem.available_actions.length > 0 ? (
+                          <Link
+                            href={workflowActionPath(
+                              caseItem.id,
+                              caseItem.available_actions[0],
+                            )}
+                            className="ghost-button px-3 py-2 text-[0.65rem]"
+                          >
+                            {workflowActionShortLabel(caseItem.available_actions[0])}
+                          </Link>
+                        ) : (
+                          <Link
+                            href={workflowCasePath(caseItem)}
+                            className="ghost-button px-3 py-2 text-[0.65rem]"
+                          >
+                            Open Case
+                          </Link>
+                        )}
+                        {view === "all" && caseItem.stage === "completed" ? (
+                          <button
+                            type="button"
+                            className="ghost-button px-3 py-2 text-[0.65rem] disabled:opacity-50"
+                            onClick={() => void handleExportPdf(caseItem)}
+                            disabled={exportingCaseId === caseItem.id || usingFallback}
+                          >
+                            {exportingCaseId === caseItem.id ? "Exporting..." : "Export PDF"}
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))
