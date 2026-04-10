@@ -102,7 +102,7 @@ const actionMeta: Record<
   review_verification: {
     title: "Verification Approval",
     description:
-      "Approve or reject the verification outcome before the case is delegated to investigation or completed.",
+      "Approve the verification outcome or return it to the Verification Officer with an approval note for revision.",
     button: "Record Verification Approval",
     mode: "approval",
   },
@@ -123,14 +123,14 @@ const actionMeta: Record<
   review_investigation: {
     title: "Investigation Approval",
     description:
-      "Approve or reject the investigation result before the director records the final decision.",
+      "Approve the investigation result or return it to the Investigator with an approval note for revision.",
     button: "Record Investigation Approval",
     mode: "approval",
   },
   director_review: {
     title: "Director Decision",
     description:
-      "Record the final director approval or rejection with a formal approval note.",
+      "Record the final director approval or return the case to the Investigator with a formal approval note for revision.",
     button: "Record Director Decision",
     mode: "approval",
   },
@@ -282,7 +282,7 @@ function buildActionState(record: WorkflowCase | null): ActionState {
       currentAction === "delegate_investigation"
         ? readString(reviewDistribution, "distribution_note")
         : readString(record?.workflow_records?.screening, "distribution_note"),
-    decision: "approved",
+    decision: "rejected",
     approval_note:
       currentAction === "review_verification"
         ? readString(record?.workflow_records?.verification_approval, "approval_note")
@@ -450,10 +450,17 @@ export function WorkflowCaseEditor({
       (item) => item.public_reference === actionState.related_report_reference,
     ) ?? null;
   const screeningRejected = readBoolean(record?.workflow_records?.screening, "reject_report");
+  const verificationApprovalRecord = record?.workflow_records?.verification_approval;
+  const investigationApprovalRecord = record?.workflow_records?.review_approval;
+  const directorApprovalRecord = record?.workflow_records?.director_approval;
   const screeningNoteLabel = actionState.reject_report ? "Reason of Rejection" : "Distribution Note";
   const screeningNotePlaceholder = actionState.reject_report
     ? "Document why the report is rejected at initial screening."
     : "Document the screening rationale or delegation note.";
+  const rejectedDecisionHelper =
+    currentAction === "review_verification"
+      ? "Return the case to the Verification Officer for revision based on the approval note."
+      : "Return the case to the Investigator for revision based on the approval note.";
 
   useEffect(() => {
     if (!record || !currentAction || !token || usingFallback) {
@@ -845,6 +852,11 @@ export function WorkflowCaseEditor({
                 ["Forwarding Destination", readString(verificationRecord, "forwarding_destination")],
               ])}
 
+              {renderAuditSnapshot("Verification Approval Record", [
+                ["Decision", readString(verificationApprovalRecord, "decision").replaceAll("_", " ")],
+                ["Approval Note", readString(verificationApprovalRecord, "approval_note")],
+              ])}
+
               {reviewRecord ? (
                 <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
                   <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
@@ -906,6 +918,16 @@ export function WorkflowCaseEditor({
                   </div>
                 </div>
               ) : null}
+
+              {renderAuditSnapshot("Investigation Approval Record", [
+                ["Decision", readString(investigationApprovalRecord, "decision").replaceAll("_", " ")],
+                ["Approval Note", readString(investigationApprovalRecord, "approval_note")],
+              ])}
+
+              {renderAuditSnapshot("Director Decision Record", [
+                ["Decision", readString(directorApprovalRecord, "decision").replaceAll("_", " ")],
+                ["Approval Note", readString(directorApprovalRecord, "approval_note")],
+              ])}
             </div>
           </article>
 
@@ -1498,23 +1520,51 @@ export function WorkflowCaseEditor({
               currentAction,
             ) ? (
               <>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold">Decision</span>
-                  <select
-                    className="field"
-                    name="decision"
-                    value={actionState.decision}
-                    onChange={(event) =>
-                      updateActionState(
-                        "decision",
-                        event.target.value as ActionState["decision"],
-                      )
-                    }
-                  >
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                </label>
+                <fieldset className="block">
+                  <legend className="mb-3 block text-sm font-semibold">Decision</legend>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="flex items-start gap-3 rounded-[0.9rem] border border-[var(--panel-border)] bg-white px-4 py-4 text-sm text-[var(--foreground)]">
+                      <input
+                        type="radio"
+                        name="decision"
+                        value="rejected"
+                        checked={actionState.decision === "rejected"}
+                        onChange={(event) =>
+                          updateActionState(
+                            "decision",
+                            event.target.value as ActionState["decision"],
+                          )
+                        }
+                      />
+                      <span>
+                        <span className="block font-semibold">Rejected</span>
+                        <span className="mt-1 block text-[var(--muted)]">
+                          {rejectedDecisionHelper}
+                        </span>
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-3 rounded-[0.9rem] border border-[var(--panel-border)] bg-white px-4 py-4 text-sm text-[var(--foreground)]">
+                      <input
+                        type="radio"
+                        name="decision"
+                        value="approved"
+                        checked={actionState.decision === "approved"}
+                        onChange={(event) =>
+                          updateActionState(
+                            "decision",
+                            event.target.value as ActionState["decision"],
+                          )
+                        }
+                      />
+                      <span>
+                        <span className="block font-semibold">Approved</span>
+                        <span className="mt-1 block text-[var(--muted)]">
+                          Allow the case to continue to the next workflow outcome.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                </fieldset>
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold">Approval Note</span>
                   <textarea

@@ -503,7 +503,7 @@ class CaseWorkflowService
                 visibility: 'internal',
                 stage: $caseFile->stage,
                 headline: match (true) {
-                    ! $approved => 'Verification returned for revision',
+                    ! $approved => 'Verification returned to verification officer',
                     $recommendation === 'review' => 'Verification approved for review delegation',
                     $recommendation === 'forward' => 'Verification approved for forwarding completion',
                     default => 'Verification approved for archival completion',
@@ -518,14 +518,14 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 stage: $caseFile->stage,
                 headline: match (true) {
-                    ! $approved => 'Verification requires follow-up',
+                    ! $approved => 'Verification returned for revision',
                     $recommendation === 'review' => 'Verification completed',
                     $recommendation === 'forward' => 'Case forwarded after verification',
                     default => 'Case archived after verification',
                 },
                 payload: $payload,
                 defaultMessage: match (true) {
-                    ! $approved => 'Your report requires additional verification follow-up before it can move forward.',
+                    ! $approved => 'Your report has been returned for additional verification before it can move forward.',
                     $recommendation === 'review' => 'Verification has been completed and the report is moving to investigation handling.',
                     $recommendation === 'forward' => 'Verification has been completed and the report has been closed with a forwarding outcome.',
                     default => 'Verification has been completed and the report has been closed.',
@@ -772,7 +772,7 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 visibility: 'internal',
                 stage: $caseFile->stage,
-                headline: $approved ? 'Review approved for director decision' : 'Review returned for revision',
+                headline: $approved ? 'Review approved for director decision' : 'Investigation returned to investigator',
                 detail: $approvalNote,
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
@@ -782,11 +782,11 @@ class CaseWorkflowService
             $this->maybeAddPublicUpdate(
                 caseFile: $caseFile,
                 stage: $caseFile->stage,
-                headline: $approved ? 'Review completed' : 'Review requires follow-up',
+                headline: $approved ? 'Review completed' : 'Investigation returned for revision',
                 payload: $payload,
                 defaultMessage: $approved
                     ? 'Investigation review has been completed and the report is moving to director decision.'
-                    : 'Your report requires additional investigation follow-up before final decision.',
+                    : 'Your report has been returned for additional investigation before final decision.',
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $reviewedAt,
@@ -847,7 +847,7 @@ class CaseWorkflowService
                 caseFile: $caseFile,
                 visibility: 'internal',
                 stage: $caseFile->stage,
-                headline: $approved ? 'Director approved report completion' : 'Director returned report for additional review',
+                headline: $approved ? 'Director approved report completion' : 'Director returned investigation to investigator',
                 detail: $approvalNote,
                 actorRole: $director->role,
                 actorName: $director->name,
@@ -857,11 +857,11 @@ class CaseWorkflowService
             $this->maybeAddPublicUpdate(
                 caseFile: $caseFile,
                 stage: $caseFile->stage,
-                headline: $approved ? 'Report completed' : 'Report requires further review',
+                headline: $approved ? 'Report completed' : 'Investigation returned after director review',
                 payload: $payload,
                 defaultMessage: $approved
                     ? 'A final decision has been recorded and the current workflow is complete.'
-                    : 'The report requires additional investigation before a final decision can be recorded.',
+                    : 'The report has been returned for additional investigation before a final decision can be recorded.',
                 actorRole: $director->role,
                 actorName: $director->name,
                 occurredAt: $reviewedAt,

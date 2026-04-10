@@ -194,6 +194,228 @@ class InvestigatorWorkflowTest extends TestCase
             ->assertJsonPath('data.items.0.reporter.is_protected', false);
     }
 
+    public function test_verification_rejection_returns_case_to_verification_officer(): void
+    {
+        $supervisor = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.revision@example.test',
+            'Verification Supervision'
+        );
+        $verificator = $this->createUser(
+            User::ROLE_VERIFICATOR,
+            'verificator.revision@example.test',
+            'Verification Desk'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.revision@example.test',
+            'Reporter'
+        );
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+
+        $this->postJson('/api/reporter/reports', [
+            'title' => 'Verification revision loop test',
+            'category' => 'fraud',
+            'description' => 'Report used to verify the verification rejection return path.',
+            'confidentiality_level' => 'identified',
+        ])->assertCreated();
+
+        $caseFile = CaseFile::query()->firstOrFail();
+
+        Sanctum::actingAs($supervisor, [$supervisor->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
+            'assignee_user_id' => $verificator->id,
+            'assigned_unit' => 'Verification Desk',
+        ])->assertOk();
+
+        Sanctum::actingAs($verificator, [$verificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-verification", [
+            'summary' => 'Initial verification summary.',
+            'reason' => 'Initial verification reason.',
+            'recommendation' => 'review',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'verification_review');
+
+        Sanctum::actingAs($supervisor, [$supervisor->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-verification", [
+            'decision' => 'rejected',
+            'approval_note' => 'Please clarify the basis for authority and strengthen the verification rationale.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'verification_in_progress')
+            ->assertJsonPath('data.current_role', User::ROLE_VERIFICATOR)
+            ->assertJsonPath('data.assigned_to', $verificator->name);
+
+        $this->assertDatabaseHas('case_files', [
+            'id' => $caseFile->id,
+            'stage' => 'verification_in_progress',
+            'current_role' => User::ROLE_VERIFICATOR,
+            'assigned_to' => $verificator->name,
+        ]);
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $caseFile->report_id,
+            'status' => 'verification_in_progress',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'case_file_id' => $caseFile->id,
+            'action' => 'verification_rejected',
+            'actor_role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+        ]);
+    }
+
+    public function test_investigation_and_director_rejections_return_case_to_investigator(): void
+    {
+        $supervisorOfVerificator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.loop.verification@example.test',
+            'Verification Supervision'
+        );
+        $verificator = $this->createUser(
+            User::ROLE_VERIFICATOR,
+            'verificator.loop@example.test',
+            'Verification Desk'
+        );
+        $supervisorOfInvestigator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            'supervisor.loop.investigation@example.test',
+            'Investigation Supervision'
+        );
+        $investigator = $this->createUser(
+            User::ROLE_INVESTIGATOR,
+            'investigator.loop@example.test',
+            'Investigation Desk'
+        );
+        $director = $this->createUser(
+            User::ROLE_DIRECTOR,
+            'director.loop@example.test',
+            'Directorate'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.loop@example.test',
+            'Reporter'
+        );
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+        $this->postJson('/api/reporter/reports', [
+            'title' => 'Investigation revision loop test',
+            'category' => 'bribery',
+            'description' => 'Report used to verify investigation and director rejection return paths.',
+            'confidentiality_level' => 'identified',
+        ])->assertCreated();
+
+        $caseFile = CaseFile::query()->firstOrFail();
+
+        Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
+            'assignee_user_id' => $verificator->id,
+            'assigned_unit' => 'Verification Desk',
+        ])->assertOk();
+
+        Sanctum::actingAs($verificator, [$verificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-verification", [
+            'summary' => 'Verification complete.',
+            'reason' => 'Verification indicates further investigation is required.',
+            'recommendation' => 'review',
+        ])->assertOk();
+
+        Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-verification", [
+            'decision' => 'approved',
+            'approval_note' => 'Approved for investigation handling.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'verified');
+
+        Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-investigation", [
+            'assignee_user_id' => $investigator->id,
+            'assigned_unit' => 'Investigation Desk',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'investigation_in_progress');
+
+        Sanctum::actingAs($investigator, [$investigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-investigation", [
+            'case_name' => 'Investigation revision case',
+            'reported_parties' => [[
+                'full_name' => 'Procurement Officer',
+                'position' => 'Procurement Officer',
+                'classification' => 'civil_servant',
+            ]],
+            'description' => 'Investigation draft awaiting supervisory review.',
+            'conclusion' => 'First investigation draft.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'investigation_review');
+
+        Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-investigation", [
+            'decision' => 'rejected',
+            'approval_note' => 'Please strengthen the chronology and attach clearer evidentiary references.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'investigation_in_progress')
+            ->assertJsonPath('data.current_role', User::ROLE_INVESTIGATOR)
+            ->assertJsonPath('data.assigned_to', $investigator->name);
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $caseFile->report_id,
+            'status' => 'investigation_in_progress',
+        ]);
+
+        Sanctum::actingAs($investigator, [$investigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-investigation", [
+            'case_name' => 'Investigation revision case',
+            'reported_parties' => [[
+                'full_name' => 'Procurement Officer',
+                'position' => 'Procurement Officer',
+                'classification' => 'civil_servant',
+            ]],
+            'description' => 'Updated investigation draft after supervisory rejection.',
+            'conclusion' => 'Second investigation draft.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'investigation_review');
+
+        Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-investigation", [
+            'decision' => 'approved',
+            'approval_note' => 'Approved for director review.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'director_review');
+
+        Sanctum::actingAs($director, [$director->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/director-review", [
+            'decision' => 'rejected',
+            'approval_note' => 'Please expand the evidentiary link before final decision.',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'investigation_in_progress')
+            ->assertJsonPath('data.current_role', User::ROLE_INVESTIGATOR)
+            ->assertJsonPath('data.assigned_to', $investigator->name);
+
+        $this->assertDatabaseHas('case_files', [
+            'id' => $caseFile->id,
+            'stage' => 'investigation_in_progress',
+            'current_role' => User::ROLE_INVESTIGATOR,
+            'assigned_to' => $investigator->name,
+        ]);
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $caseFile->report_id,
+            'status' => 'investigation_in_progress',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'case_file_id' => $caseFile->id,
+            'action' => 'review_rejected',
+            'actor_role' => User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'case_file_id' => $caseFile->id,
+            'action' => 'director_rejected',
+            'actor_role' => User::ROLE_DIRECTOR,
+        ]);
+    }
+
     public function test_workflow_directory_supports_queue_and_approval_views_with_pagination(): void
     {
         $supervisor = $this->createUser(
