@@ -444,6 +444,11 @@ export function WorkflowCaseEditor({
   const meta = currentAction ? actionMeta[currentAction] : null;
   const currentActionMode =
     currentAction && isApprovalAction(currentAction) ? "approval" : "queue";
+  const screeningRejected = readBoolean(record?.workflow_records?.screening, "reject_report");
+  const screeningNoteLabel = actionState.reject_report ? "Reason of Rejection" : "Distribution Note";
+  const screeningNotePlaceholder = actionState.reject_report
+    ? "Document why the report is rejected at initial screening."
+    : "Document the screening rationale or delegation note.";
 
   useEffect(() => {
     if (!record || !currentAction || !token || usingFallback) {
@@ -812,81 +817,21 @@ export function WorkflowCaseEditor({
 
               <ReportedPartiesSummary parties={record.reported_parties ?? []} />
 
-              <div className="grid gap-5 lg:grid-cols-2">
-                <div className="dark-card rounded-[1rem] border border-white/8 p-6">
-                  <p className="font-mono text-[0.64rem] uppercase tracking-[0.24em] text-[var(--secondary)]">
-                    Reporter Visibility
-                  </p>
-                  <div className="mt-5 space-y-4 text-sm leading-7 text-white/76">
-                    <div>
-                      <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                        Reporter Name
-                      </p>
-                      <p className="mt-1 text-white">
-                        {record.reporter.is_protected
-                          ? "Protected by anonymous mode"
-                          : record.reporter.name ?? "Not available"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                        Email
-                      </p>
-                      <p className="mt-1 text-white">
-                        {record.reporter.email ?? "Not visible to case handlers"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/44">
-                        Phone
-                      </p>
-                      <p className="mt-1 text-white">
-                        {record.reporter.phone ?? "Not visible to case handlers"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="outline-panel rounded-[1rem] p-6">
-                  <p className="eyebrow">Workflow Ownership</p>
-                  <div className="mt-5 space-y-4 text-sm leading-7">
-                    <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                      <span>Verification Supervisor</span>
-                      <span className="text-right text-[var(--muted)]">
-                        {record.workflow.verification_supervisor ?? "Unassigned"}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                      <span>Verification Officer</span>
-                      <span className="text-right text-[var(--muted)]">
-                        {record.workflow.verificator ?? "Unassigned"}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                      <span>Investigation Supervisor</span>
-                      <span className="text-right text-[var(--muted)]">
-                        {record.workflow.investigation_supervisor ?? "Unassigned"}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between gap-4 border-b border-[var(--panel-border)] pb-3">
-                      <span>Investigator</span>
-                      <span className="text-right text-[var(--muted)]">
-                        {record.workflow.investigator ?? "Unassigned"}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between gap-4">
-                      <span>Director</span>
-                      <span className="text-right text-[var(--muted)]">
-                        {record.workflow.director ?? "Unassigned"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-5">
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--neutral)]">
+                  Reporter
+                </p>
+                <p className="mt-2 text-sm text-[var(--foreground)]">
+                  {record.reporter.name ?? "Not available"}
+                </p>
               </div>
 
               {renderAuditSnapshot("Screening Record", [
-                ["Rejected", readBoolean(record.workflow_records?.screening, "reject_report") ? "Yes" : ""],
-                ["Distribution Note", readString(record.workflow_records?.screening, "distribution_note")],
+                ["Rejected", screeningRejected ? "Yes" : ""],
+                [
+                  screeningRejected ? "Reason of Rejection" : "Distribution Note",
+                  readString(record.workflow_records?.screening, "distribution_note"),
+                ],
               ])}
 
               {renderAuditSnapshot("Verification Record", [
@@ -1104,7 +1049,7 @@ export function WorkflowCaseEditor({
                 ) : null}
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-semibold">Distribution Note</span>
+                  <span className="mb-2 block text-sm font-semibold">{screeningNoteLabel}</span>
                   <textarea
                     className="field min-h-32"
                     name="distribution_note"
@@ -1112,7 +1057,7 @@ export function WorkflowCaseEditor({
                     onChange={(event) =>
                       updateActionState("distribution_note", event.target.value)
                     }
-                    placeholder="Document the screening rationale or delegation note."
+                    placeholder={screeningNotePlaceholder}
                   />
                 </label>
               </>

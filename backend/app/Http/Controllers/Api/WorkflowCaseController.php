@@ -505,7 +505,7 @@ class WorkflowCaseController extends Controller
             'governance_tags' => $caseFile->report?->governance_tags ?? [],
             'confidentiality_level' => $caseFile->confidentiality_level,
             'reporter' => [
-                'name' => $reporterVisible ? $caseFile->report?->reporter_name : null,
+                'name' => $reporterVisible ? $caseFile->report?->reporter_name : 'Anonymous',
                 'email' => $reporterVisible ? $caseFile->report?->reporter_email : null,
                 'phone' => $reporterVisible ? $caseFile->report?->reporter_phone : null,
                 'is_protected' => ! $reporterVisible,
