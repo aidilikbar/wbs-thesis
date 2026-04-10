@@ -70,7 +70,7 @@ class InvestigatorWorkflowTest extends TestCase
 
         $this->getJson('/api/workflow/cases')
             ->assertOk()
-            ->assertJsonPath('data.items.0.reporter.name', null)
+            ->assertJsonPath('data.items.0.reporter.name', 'Anonymous')
             ->assertJsonPath('data.items.0.reporter.email', null)
             ->assertJsonPath('data.items.0.reporter.is_protected', true);
 

@@ -551,10 +551,6 @@ export function WorkflowCaseEditor({
               resolvedActionState.recommendation === "forward"
                 ? resolvedActionState.forwarding_destination
                 : undefined,
-            publish_update: resolvedActionState.publish_update,
-            public_message: resolvedActionState.publish_update
-              ? resolvedActionState.public_message
-              : undefined,
           });
         }
 
@@ -562,10 +558,6 @@ export function WorkflowCaseEditor({
           await api.reviewVerification(token, record.id, {
             decision: resolvedActionState.decision,
             approval_note: resolvedActionState.approval_note,
-            publish_update: resolvedActionState.publish_update,
-            public_message: resolvedActionState.publish_update
-              ? resolvedActionState.public_message
-              : undefined,
           });
         }
 
@@ -598,10 +590,6 @@ export function WorkflowCaseEditor({
             is_priority: resolvedActionState.is_priority,
             additional_information: resolvedActionState.additional_information || undefined,
             conclusion: resolvedActionState.conclusion,
-            publish_update: resolvedActionState.publish_update,
-            public_message: resolvedActionState.publish_update
-              ? resolvedActionState.public_message
-              : undefined,
           });
         }
 
@@ -609,10 +597,6 @@ export function WorkflowCaseEditor({
           await api.reviewInvestigation(token, record.id, {
             decision: resolvedActionState.decision,
             approval_note: resolvedActionState.approval_note,
-            publish_update: resolvedActionState.publish_update,
-            public_message: resolvedActionState.publish_update
-              ? resolvedActionState.public_message
-              : undefined,
           });
         }
 
@@ -620,10 +604,6 @@ export function WorkflowCaseEditor({
           await api.directorReview(token, record.id, {
             decision: resolvedActionState.decision,
             approval_note: resolvedActionState.approval_note,
-            publish_update: resolvedActionState.publish_update,
-            public_message: resolvedActionState.publish_update
-              ? resolvedActionState.public_message
-              : undefined,
           });
         }
 
@@ -1526,43 +1506,6 @@ export function WorkflowCaseEditor({
                   />
                 </label>
               </>
-            ) : null}
-
-            {["submit_verification", "review_verification", "submit_investigation", "review_investigation", "director_review"].includes(
-              currentAction,
-            ) ? (
-              <div className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 p-5">
-                <label className="flex items-start gap-3 text-sm leading-7 text-[var(--foreground)]">
-                  <input
-                    type="checkbox"
-                    name="publish_update"
-                    checked={actionState.publish_update}
-                    onChange={(event) =>
-                      updateActionState("publish_update", event.target.checked)
-                    }
-                    className="mt-1 h-4 w-4"
-                  />
-                  <span>
-                    Publish a public-safe update so the reporter can see progress in the tracking workflow.
-                  </span>
-                </label>
-
-                {actionState.publish_update ? (
-                  <label className="mt-4 block">
-                    <span className="mb-2 block text-sm font-semibold">Public Message</span>
-                    <textarea
-                      className="field min-h-28"
-                      name="public_message"
-                      value={actionState.public_message}
-                      onChange={(event) =>
-                        updateActionState("public_message", event.target.value)
-                      }
-                      placeholder="Write a public-safe status update."
-                      required
-                    />
-                  </label>
-                ) : null}
-              </div>
             ) : null}
 
             <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--panel-border)] pt-6">

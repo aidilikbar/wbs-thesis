@@ -395,7 +395,7 @@ class CaseWorkflowService
                 'status' => self::REPORT_STATUSES['verification_review'],
                 'governance_tags' => $verificationPayload['corruption_aspect_tags'],
                 'severity' => $this->determineVerificationSeverity($verificationPayload),
-                'last_public_update_at' => ($payload['publish_update'] ?? false) ? $submittedAt : $caseFile->report->last_public_update_at,
+                'last_public_update_at' => $submittedAt,
             ])->save();
 
             $this->addTimelineEvent(
@@ -415,6 +415,7 @@ class CaseWorkflowService
                 stage: 'verification_review',
                 headline: 'Verification review update',
                 payload: $payload,
+                defaultMessage: 'Your report has completed the verification assessment and is waiting for supervisory review.',
                 actorRole: $verificator->role,
                 actorName: $verificator->name,
                 occurredAt: $submittedAt,
@@ -492,7 +493,7 @@ class CaseWorkflowService
 
             $caseFile->report->forceFill([
                 'status' => self::REPORT_STATUSES[$caseFile->stage],
-                'last_public_update_at' => ($payload['publish_update'] ?? false) ? $reviewedAt : $caseFile->report->last_public_update_at,
+                'last_public_update_at' => $reviewedAt,
             ])->save();
 
             $this->addTimelineEvent(
@@ -522,6 +523,12 @@ class CaseWorkflowService
                     default => 'Case archived after verification',
                 },
                 payload: $payload,
+                defaultMessage: match (true) {
+                    ! $approved => 'Your report requires additional verification follow-up before it can move forward.',
+                    $recommendation === 'review' => 'Verification has been completed and the report is moving to investigation handling.',
+                    $recommendation === 'forward' => 'Verification has been completed and the report has been closed with a forwarding outcome.',
+                    default => 'Verification has been completed and the report has been closed.',
+                },
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $reviewedAt,
@@ -683,7 +690,7 @@ class CaseWorkflowService
                 'status' => self::REPORT_STATUSES['investigation_review'],
                 'governance_tags' => $reviewPayload['corruption_aspect_tags'],
                 'severity' => $this->determineReviewSeverity($reviewPayload),
-                'last_public_update_at' => ($payload['publish_update'] ?? false) ? $submittedAt : $caseFile->report->last_public_update_at,
+                'last_public_update_at' => $submittedAt,
             ])->save();
 
             $this->addTimelineEvent(
@@ -703,6 +710,7 @@ class CaseWorkflowService
                 stage: 'investigation_review',
                 headline: 'Investigation assessment update',
                 payload: $payload,
+                defaultMessage: 'Your report has completed the investigation assessment and is waiting for supervisory review.',
                 actorRole: $investigator->role,
                 actorName: $investigator->name,
                 occurredAt: $submittedAt,
@@ -755,7 +763,7 @@ class CaseWorkflowService
 
             $caseFile->report->forceFill([
                 'status' => self::REPORT_STATUSES[$caseFile->stage],
-                'last_public_update_at' => ($payload['publish_update'] ?? false) ? $reviewedAt : $caseFile->report->last_public_update_at,
+                'last_public_update_at' => $reviewedAt,
             ])->save();
 
             $this->addTimelineEvent(
@@ -775,6 +783,9 @@ class CaseWorkflowService
                 stage: $caseFile->stage,
                 headline: $approved ? 'Review completed' : 'Review requires follow-up',
                 payload: $payload,
+                defaultMessage: $approved
+                    ? 'Investigation review has been completed and the report is moving to director decision.'
+                    : 'Your report requires additional investigation follow-up before final decision.',
                 actorRole: $supervisor->role,
                 actorName: $supervisor->name,
                 occurredAt: $reviewedAt,
@@ -827,7 +838,7 @@ class CaseWorkflowService
 
             $caseFile->report->forceFill([
                 'status' => self::REPORT_STATUSES[$caseFile->stage],
-                'last_public_update_at' => ($payload['publish_update'] ?? false) ? $reviewedAt : $caseFile->report->last_public_update_at,
+                'last_public_update_at' => $reviewedAt,
             ])->save();
 
             $this->addTimelineEvent(
@@ -847,6 +858,9 @@ class CaseWorkflowService
                 stage: $caseFile->stage,
                 headline: $approved ? 'Report completed' : 'Report requires further review',
                 payload: $payload,
+                defaultMessage: $approved
+                    ? 'A final decision has been recorded and the current workflow is complete.'
+                    : 'The report requires additional investigation before a final decision can be recorded.',
                 actorRole: $director->role,
                 actorName: $director->name,
                 occurredAt: $reviewedAt,
@@ -974,12 +988,15 @@ class CaseWorkflowService
         string $stage,
         string $headline,
         array $payload,
+        string $defaultMessage,
         string $actorRole,
         string $actorName,
         $occurredAt,
     ): void {
-        if (! ($payload['publish_update'] ?? false) || empty($payload['public_message'])) {
-            return;
+        $detail = trim((string) ($payload['public_message'] ?? ''));
+
+        if ($detail === '') {
+            $detail = $defaultMessage;
         }
 
         $this->addTimelineEvent(
@@ -988,7 +1005,7 @@ class CaseWorkflowService
             visibility: 'public',
             stage: $stage,
             headline: $headline,
-            detail: $payload['public_message'],
+            detail: $detail,
             actorRole: $actorRole,
             actorName: $actorName,
             occurredAt: $occurredAt,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId, useRef } from "react";
 import { formatDateTime } from "@/lib/format";
 import { formatFileSize } from "@/lib/file-utils";
 import { attachmentAccept } from "@/lib/attachment-validation";
@@ -30,6 +31,32 @@ export function ReportAttachmentField({
   onDownloadAttachment?: (attachment: ReportAttachment) => void;
   onDeleteAttachment?: (attachmentId: number) => void;
 }) {
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const mergeFiles = (incoming: File[]) => {
+    const merged = [...selectedFiles];
+
+    for (const file of incoming) {
+      const exists = merged.some(
+        (item) =>
+          item.name === file.name &&
+          item.size === file.size &&
+          item.lastModified === file.lastModified,
+      );
+
+      if (!exists) {
+        merged.push(file);
+      }
+    }
+
+    onSelectedFilesChange(merged);
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  };
+
   return (
     <section className="panel rounded-[1rem] p-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -48,15 +75,26 @@ export function ReportAttachmentField({
             Submission Queue
           </p>
           <input
+            id={inputId}
+            ref={inputRef}
             type="file"
             multiple
             accept={attachmentAccept}
-            className="mt-4 block w-full text-sm"
+            className="sr-only"
             disabled={!canMutate || isBusy}
-            onChange={(event) =>
-              onSelectedFilesChange(Array.from(event.target.files ?? []))
-            }
+            onChange={(event) => mergeFiles(Array.from(event.target.files ?? []))}
           />
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <label
+              htmlFor={inputId}
+              className={`primary-button ${!canMutate || isBusy ? "pointer-events-none opacity-60" : "cursor-pointer"}`}
+            >
+              Add Files
+            </label>
+            <span className="text-sm text-[var(--muted)]">
+              You can select multiple files in one picker or add more files again.
+            </span>
+          </div>
           <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
             Selected files will be validated and uploaded when you submit this form.
           </p>
