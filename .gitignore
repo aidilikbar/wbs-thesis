@@ -29,3 +29,6 @@ docker-compose.override.yml
 
 # local AI agent test results
 /docs/ai-agent-test-result/
+
+# local human test pack
+/docs/human-test-pack/
