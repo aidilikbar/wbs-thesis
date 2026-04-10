@@ -108,6 +108,7 @@ export function WorkflowDirectory({
   });
   const [usingFallback, setUsingFallback] = useState(false);
 
+  const isSessionLoading = !isReady;
   const isInternalUser = isInternalRole(user?.role);
   const canViewApprovals = workflowHasApprovalMenu(user?.role);
   const activeStageFilter = stageOptions.some((option) => option.value === stageFilter)
@@ -188,15 +189,7 @@ export function WorkflowDirectory({
     canViewApprovals,
   ]);
 
-  if (!isReady) {
-    return (
-      <div className="panel rounded-[1rem] p-8">
-        <p className="text-sm text-[var(--muted)]">Loading workflow session.</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !token || !isInternalUser || !user) {
+  if (isReady && (!isAuthenticated || !token || !isInternalUser || !user)) {
     return (
       <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="panel rounded-[1rem] p-8">
@@ -223,10 +216,10 @@ export function WorkflowDirectory({
     );
   }
 
-  if (view === "approval" && !canViewApprovals) {
+  if (isReady && view === "approval" && !canViewApprovals) {
     return (
       <div className="space-y-6">
-        <WorkflowNavigation activeView="queue" role={user.role} />
+        <WorkflowNavigation activeView="queue" role={user?.role} />
         <div className="panel rounded-[1rem] p-8">
           <p className="eyebrow">Approval Queue</p>
           <h2 className="mt-4 text-3xl">Approval access is not assigned to this role</h2>
@@ -259,12 +252,16 @@ export function WorkflowDirectory({
               {description}
             </p>
           </div>
-          <WorkflowNavigation activeView={view} role={user.role} />
+          <WorkflowNavigation activeView={view} role={user?.role} />
         </div>
 
         {usingFallback ? (
           <p className="mt-5 rounded-[0.75rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-3 text-sm text-[var(--secondary)]">
             Backend unavailable. Showing seeded workflow cases for interface review.
+          </p>
+        ) : isSessionLoading ? (
+          <p className="mt-5 rounded-[0.75rem] border border-[var(--panel-border)] bg-white/12 px-4 py-3 text-sm text-white/72">
+            Loading workflow session.
           </p>
         ) : null}
       </aside>
@@ -287,6 +284,10 @@ export function WorkflowDirectory({
           <p className={`mt-5 rounded-[0.65rem] px-4 py-3 text-sm ${noticeClasses(notice.tone)}`}>
             {notice.text}
           </p>
+        ) : isSessionLoading ? (
+          <p className="mt-5 rounded-[0.65rem] border border-[var(--panel-border)] bg-white/72 px-4 py-3 text-sm text-[var(--muted)]">
+            Loading workflow session.
+          </p>
         ) : null}
 
         <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
@@ -295,6 +296,7 @@ export function WorkflowDirectory({
             <input
               className="field"
               value={searchTerm}
+              disabled={isSessionLoading}
               onChange={(event) => {
                 setSearchTerm(event.target.value);
                 setPage(1);
@@ -307,6 +309,7 @@ export function WorkflowDirectory({
             <select
               className="field"
               value={activeStageFilter}
+              disabled={isSessionLoading}
               onChange={(event) => {
                 setStageFilter(event.target.value);
                 setPage(1);
@@ -346,7 +349,16 @@ export function WorkflowDirectory({
               </tr>
             </thead>
             <tbody>
-              {directory.items.length > 0 ? (
+              {isSessionLoading ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="border-b border-[rgba(19,19,19,0.06)] px-4 py-8 text-sm text-[var(--muted)]"
+                  >
+                    Loading workflow session.
+                  </td>
+                </tr>
+              ) : directory.items.length > 0 ? (
                 directory.items.map((caseItem) => (
                   <tr key={caseItem.id} className="align-top">
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">

@@ -146,6 +146,83 @@ function readBoolean(record: WorkflowRecord, key: string, fallback = false): boo
   return typeof value === "boolean" ? value : fallback;
 }
 
+function readFormString(formData: FormData, key: string, fallback = ""): string {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value : fallback;
+}
+
+function resolveNativeActionState(base: ActionState, formData: FormData): ActionState {
+  const publishUpdate = formData.has("publish_update");
+
+  return {
+    ...base,
+    reject_report: formData.has("reject_report"),
+    assignee_user_id: readFormString(formData, "assignee_user_id", base.assignee_user_id),
+    assigned_unit: readFormString(formData, "assigned_unit", base.assigned_unit),
+    distribution_note: readFormString(
+      formData,
+      "distribution_note",
+      base.distribution_note,
+    ),
+    decision:
+      readFormString(formData, "decision", base.decision) === "rejected"
+        ? "rejected"
+        : "approved",
+    approval_note: readFormString(formData, "approval_note", base.approval_note),
+    publish_update: publishUpdate,
+    public_message: publishUpdate
+      ? readFormString(formData, "public_message", base.public_message)
+      : "",
+    summary: readFormString(formData, "summary", base.summary),
+    has_authority:
+      readFormString(formData, "has_authority", base.has_authority ? "yes" : "no") ===
+      "yes",
+    criminal_assessment:
+      readFormString(
+        formData,
+        "criminal_assessment",
+        base.criminal_assessment,
+      ) === "not_indicated"
+        ? "not_indicated"
+        : "indicated",
+    reason: readFormString(formData, "reason", base.reason),
+    recommendation: readFormString(
+      formData,
+      "recommendation",
+      base.recommendation,
+    ),
+    forwarding_destination: readFormString(
+      formData,
+      "forwarding_destination",
+      base.forwarding_destination,
+    ),
+    case_name: readFormString(formData, "case_name", base.case_name),
+    description: readFormString(formData, "description", base.description),
+    delict: readFormString(formData, "delict", base.delict),
+    article: readFormString(formData, "article", base.article),
+    start_month: readFormString(formData, "start_month", base.start_month),
+    start_year: readFormString(formData, "start_year", base.start_year),
+    end_month: readFormString(formData, "end_month", base.end_month),
+    end_year: readFormString(formData, "end_year", base.end_year),
+    city: readFormString(formData, "city", base.city),
+    province: readFormString(formData, "province", base.province),
+    modus: readFormString(formData, "modus", base.modus),
+    related_report_reference: readFormString(
+      formData,
+      "related_report_reference",
+      base.related_report_reference,
+    ),
+    is_priority: formData.has("is_priority"),
+    additional_information: readFormString(
+      formData,
+      "additional_information",
+      base.additional_information,
+    ),
+    conclusion: readFormString(formData, "conclusion", base.conclusion),
+  };
+}
+
 function readStringArray(record: WorkflowRecord, key: string): string[] {
   const value = record?.[key];
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
@@ -438,104 +515,109 @@ export function WorkflowCaseEditor({
 
     setMessage(null);
 
+    const resolvedActionState = resolveNativeActionState(
+      actionState,
+      new FormData(event.currentTarget),
+    );
+
     startTransition(async () => {
       try {
         if (currentAction === "delegate_verification") {
           await api.delegateVerification(token, record.id, {
-            reject_report: actionState.reject_report,
+            reject_report: resolvedActionState.reject_report,
             assignee_user_id:
-              actionState.reject_report || actionState.assignee_user_id === ""
+              resolvedActionState.reject_report || resolvedActionState.assignee_user_id === ""
                 ? undefined
-                : Number(actionState.assignee_user_id),
-            assigned_unit: actionState.assigned_unit || undefined,
-            distribution_note: actionState.distribution_note || undefined,
+                : Number(resolvedActionState.assignee_user_id),
+            assigned_unit: resolvedActionState.assigned_unit || undefined,
+            distribution_note: resolvedActionState.distribution_note || undefined,
           });
         }
 
         if (currentAction === "submit_verification") {
           await api.submitVerification(token, record.id, {
-            summary: actionState.summary,
-            corruption_aspect_tags: actionState.corruption_aspect_tags,
-            has_authority: actionState.has_authority,
-            criminal_assessment: actionState.criminal_assessment,
-            reason: actionState.reason,
-            recommendation: actionState.recommendation,
+            summary: resolvedActionState.summary,
+            corruption_aspect_tags: resolvedActionState.corruption_aspect_tags,
+            has_authority: resolvedActionState.has_authority,
+            criminal_assessment: resolvedActionState.criminal_assessment,
+            reason: resolvedActionState.reason,
+            recommendation: resolvedActionState.recommendation,
             forwarding_destination:
-              actionState.recommendation === "forward"
-                ? actionState.forwarding_destination
+              resolvedActionState.recommendation === "forward"
+                ? resolvedActionState.forwarding_destination
                 : undefined,
-            publish_update: actionState.publish_update,
-            public_message: actionState.publish_update
-              ? actionState.public_message
+            publish_update: resolvedActionState.publish_update,
+            public_message: resolvedActionState.publish_update
+              ? resolvedActionState.public_message
               : undefined,
           });
         }
 
         if (currentAction === "review_verification") {
           await api.reviewVerification(token, record.id, {
-            decision: actionState.decision,
-            approval_note: actionState.approval_note,
-            publish_update: actionState.publish_update,
-            public_message: actionState.publish_update
-              ? actionState.public_message
+            decision: resolvedActionState.decision,
+            approval_note: resolvedActionState.approval_note,
+            publish_update: resolvedActionState.publish_update,
+            public_message: resolvedActionState.publish_update
+              ? resolvedActionState.public_message
               : undefined,
           });
         }
 
         if (currentAction === "delegate_investigation") {
           await api.delegateInvestigation(token, record.id, {
-            assignee_user_id: Number(actionState.assignee_user_id),
-            assigned_unit: actionState.assigned_unit || undefined,
-            distribution_note: actionState.distribution_note || undefined,
+            assignee_user_id: Number(resolvedActionState.assignee_user_id),
+            assigned_unit: resolvedActionState.assigned_unit || undefined,
+            distribution_note: resolvedActionState.distribution_note || undefined,
           });
         }
 
         if (currentAction === "submit_investigation") {
           await api.submitInvestigation(token, record.id, {
-            case_name: actionState.case_name,
-            reported_parties: actionState.reported_parties,
-            description: actionState.description,
-            corruption_aspect_tags: actionState.corruption_aspect_tags,
-            recommendation: actionState.recommendation,
-            delict: actionState.delict,
-            article: actionState.article,
-            start_month: actionState.start_month,
-            start_year: actionState.start_year,
-            end_month: actionState.end_month,
-            end_year: actionState.end_year,
-            city: actionState.city,
-            province: actionState.province,
-            modus: actionState.modus,
-            related_report_reference: actionState.related_report_reference || undefined,
-            has_authority: actionState.has_authority,
-            is_priority: actionState.is_priority,
-            additional_information: actionState.additional_information || undefined,
-            conclusion: actionState.conclusion,
-            publish_update: actionState.publish_update,
-            public_message: actionState.publish_update
-              ? actionState.public_message
+            case_name: resolvedActionState.case_name,
+            reported_parties: resolvedActionState.reported_parties,
+            description: resolvedActionState.description,
+            corruption_aspect_tags: resolvedActionState.corruption_aspect_tags,
+            recommendation: resolvedActionState.recommendation,
+            delict: resolvedActionState.delict,
+            article: resolvedActionState.article,
+            start_month: resolvedActionState.start_month,
+            start_year: resolvedActionState.start_year,
+            end_month: resolvedActionState.end_month,
+            end_year: resolvedActionState.end_year,
+            city: resolvedActionState.city,
+            province: resolvedActionState.province,
+            modus: resolvedActionState.modus,
+            related_report_reference: resolvedActionState.related_report_reference || undefined,
+            has_authority: resolvedActionState.has_authority,
+            is_priority: resolvedActionState.is_priority,
+            additional_information: resolvedActionState.additional_information || undefined,
+            conclusion: resolvedActionState.conclusion,
+            publish_update: resolvedActionState.publish_update,
+            public_message: resolvedActionState.publish_update
+              ? resolvedActionState.public_message
               : undefined,
           });
         }
 
         if (currentAction === "review_investigation") {
           await api.reviewInvestigation(token, record.id, {
-            decision: actionState.decision,
-            approval_note: actionState.approval_note,
-            publish_update: actionState.publish_update,
-            public_message: actionState.publish_update
-              ? actionState.public_message
+            decision: resolvedActionState.decision,
+            approval_note: resolvedActionState.approval_note,
+            publish_update: resolvedActionState.publish_update,
+            public_message: resolvedActionState.publish_update
+              ? resolvedActionState.public_message
               : undefined,
           });
         }
 
         if (currentAction === "director_review") {
           await api.directorReview(token, record.id, {
-            decision: actionState.decision,
-            approval_note: actionState.approval_note,
-            publish_update: actionState.publish_update,
-            public_message: actionState.publish_update
-              ? actionState.public_message
+            decision: resolvedActionState.decision,
+            approval_note: resolvedActionState.approval_note,
+            publish_update: resolvedActionState.publish_update,
+            public_message: resolvedActionState.publish_update
+              ? resolvedActionState.public_message
               : undefined,
           });
         }
@@ -987,6 +1069,7 @@ export function WorkflowCaseEditor({
                 <label className="flex items-start gap-3 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 px-5 py-4 text-sm leading-7">
                   <input
                     type="checkbox"
+                    name="reject_report"
                     checked={actionState.reject_report}
                     onChange={(event) =>
                       updateActionState("reject_report", event.target.checked)
@@ -1003,6 +1086,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Distribution Target</span>
                     <select
                       className="field"
+                      name="assignee_user_id"
                       value={actionState.assignee_user_id}
                       onChange={(event) =>
                         updateActionState("assignee_user_id", event.target.value)
@@ -1023,6 +1107,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Distribution Note</span>
                   <textarea
                     className="field min-h-32"
+                    name="distribution_note"
                     value={actionState.distribution_note}
                     onChange={(event) =>
                       updateActionState("distribution_note", event.target.value)
@@ -1039,6 +1124,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Information Summary</span>
                   <textarea
                     className="field min-h-32"
+                    name="summary"
                     value={actionState.summary}
                     onChange={(event) => updateActionState("summary", event.target.value)}
                     required
@@ -1074,6 +1160,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Has KPK Authority?</span>
                     <select
                       className="field"
+                      name="has_authority"
                       value={actionState.has_authority ? "yes" : "no"}
                       onChange={(event) =>
                         updateActionState("has_authority", event.target.value === "yes")
@@ -1087,6 +1174,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Criminal Assessment</span>
                     <select
                       className="field"
+                      name="criminal_assessment"
                       value={actionState.criminal_assessment}
                       onChange={(event) =>
                         updateActionState(
@@ -1105,6 +1193,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Reason</span>
                   <textarea
                     className="field min-h-28"
+                    name="reason"
                     value={actionState.reason}
                     onChange={(event) => updateActionState("reason", event.target.value)}
                     required
@@ -1115,6 +1204,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Recommendation</span>
                   <select
                     className="field"
+                    name="recommendation"
                     value={actionState.recommendation}
                     onChange={(event) =>
                       updateActionState("recommendation", event.target.value)
@@ -1133,6 +1223,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Forwarding Destination</span>
                     <input
                       className="field"
+                      name="forwarding_destination"
                       value={actionState.forwarding_destination}
                       onChange={(event) =>
                         updateActionState("forwarding_destination", event.target.value)
@@ -1150,6 +1241,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Distribution Target</span>
                   <select
                     className="field"
+                    name="assignee_user_id"
                     value={actionState.assignee_user_id}
                     onChange={(event) =>
                       updateActionState("assignee_user_id", event.target.value)
@@ -1169,6 +1261,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Distribution Note</span>
                   <textarea
                     className="field min-h-32"
+                    name="distribution_note"
                     value={actionState.distribution_note}
                     onChange={(event) =>
                       updateActionState("distribution_note", event.target.value)
@@ -1185,6 +1278,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Case Name</span>
                   <input
                     className="field"
+                    name="case_name"
                     value={actionState.case_name}
                     onChange={(event) => updateActionState("case_name", event.target.value)}
                     required
@@ -1205,6 +1299,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Complaint Description</span>
                   <textarea
                     className="field min-h-32"
+                    name="description"
                     value={actionState.description}
                     onChange={(event) =>
                       updateActionState("description", event.target.value)
@@ -1242,6 +1337,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Investigation Recommendation</span>
                     <select
                       className="field"
+                      name="recommendation"
                       value={actionState.recommendation}
                       onChange={(event) =>
                         updateActionState("recommendation", event.target.value)
@@ -1258,6 +1354,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Delict</span>
                     <select
                       className="field"
+                      name="delict"
                       value={actionState.delict}
                       onChange={(event) => updateActionState("delict", event.target.value)}
                     >
@@ -1272,6 +1369,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Article</span>
                     <select
                       className="field"
+                      name="article"
                       value={actionState.article}
                       onChange={(event) => updateActionState("article", event.target.value)}
                     >
@@ -1289,6 +1387,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Start Month</span>
                     <select
                       className="field"
+                      name="start_month"
                       value={actionState.start_month}
                       onChange={(event) =>
                         updateActionState("start_month", event.target.value)
@@ -1305,6 +1404,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Start Year</span>
                     <input
                       className="field"
+                      name="start_year"
                       value={actionState.start_year}
                       onChange={(event) =>
                         updateActionState("start_year", event.target.value)
@@ -1316,6 +1416,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">End Month</span>
                     <select
                       className="field"
+                      name="end_month"
                       value={actionState.end_month}
                       onChange={(event) =>
                         updateActionState("end_month", event.target.value)
@@ -1332,6 +1433,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">End Year</span>
                     <input
                       className="field"
+                      name="end_year"
                       value={actionState.end_year}
                       onChange={(event) =>
                         updateActionState("end_year", event.target.value)
@@ -1346,6 +1448,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">City</span>
                     <input
                       className="field"
+                      name="city"
                       value={actionState.city}
                       onChange={(event) => updateActionState("city", event.target.value)}
                       required
@@ -1355,6 +1458,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Province</span>
                     <input
                       className="field"
+                      name="province"
                       value={actionState.province}
                       onChange={(event) =>
                         updateActionState("province", event.target.value)
@@ -1368,6 +1472,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Modus</span>
                   <textarea
                     className="field min-h-28"
+                    name="modus"
                     value={actionState.modus}
                     onChange={(event) => updateActionState("modus", event.target.value)}
                     required
@@ -1378,6 +1483,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Related WBS Report</span>
                   <input
                     className="field"
+                    name="related_report_reference"
                     value={actionState.related_report_reference}
                     onChange={(event) =>
                       updateActionState("related_report_reference", event.target.value)
@@ -1391,6 +1497,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Has Authority?</span>
                     <select
                       className="field"
+                      name="has_authority"
                       value={actionState.has_authority ? "yes" : "no"}
                       onChange={(event) =>
                         updateActionState("has_authority", event.target.value === "yes")
@@ -1403,6 +1510,7 @@ export function WorkflowCaseEditor({
                   <label className="flex items-center gap-3 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 px-5 py-4 text-sm font-semibold">
                     <input
                       type="checkbox"
+                      name="is_priority"
                       checked={actionState.is_priority}
                       onChange={(event) =>
                         updateActionState("is_priority", event.target.checked)
@@ -1416,6 +1524,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Additional Information</span>
                   <textarea
                     className="field min-h-28"
+                    name="additional_information"
                     value={actionState.additional_information}
                     onChange={(event) =>
                       updateActionState("additional_information", event.target.value)
@@ -1427,6 +1536,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Conclusion</span>
                   <textarea
                     className="field min-h-32"
+                    name="conclusion"
                     value={actionState.conclusion}
                     onChange={(event) =>
                       updateActionState("conclusion", event.target.value)
@@ -1445,6 +1555,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Decision</span>
                   <select
                     className="field"
+                    name="decision"
                     value={actionState.decision}
                     onChange={(event) =>
                       updateActionState(
@@ -1461,6 +1572,7 @@ export function WorkflowCaseEditor({
                   <span className="mb-2 block text-sm font-semibold">Approval Note</span>
                   <textarea
                     className="field min-h-32"
+                    name="approval_note"
                     value={actionState.approval_note}
                     onChange={(event) =>
                       updateActionState("approval_note", event.target.value)
@@ -1478,6 +1590,7 @@ export function WorkflowCaseEditor({
                 <label className="flex items-start gap-3 text-sm leading-7 text-[var(--foreground)]">
                   <input
                     type="checkbox"
+                    name="publish_update"
                     checked={actionState.publish_update}
                     onChange={(event) =>
                       updateActionState("publish_update", event.target.checked)
@@ -1494,6 +1607,7 @@ export function WorkflowCaseEditor({
                     <span className="mb-2 block text-sm font-semibold">Public Message</span>
                     <textarea
                       className="field min-h-28"
+                      name="public_message"
                       value={actionState.public_message}
                       onChange={(event) =>
                         updateActionState("public_message", event.target.value)
