@@ -8,18 +8,21 @@ import { roleHomePath } from "@/lib/roles";
 export function LoginForm() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
+    const formData = new FormData(event.currentTarget);
+    const credentials = {
+      email: String(formData.get("email") ?? ""),
+      password: String(formData.get("password") ?? ""),
+    };
 
     startTransition(async () => {
       try {
-        const session = await login({ email, password });
+        const session = await login(credentials);
         router.push(roleHomePath(session.user.role));
         router.refresh();
       } catch (error) {
@@ -42,23 +45,27 @@ export function LoginForm() {
 
       <div className="p-8">
         <div className="space-y-4">
-          <label className="block">
+          <label className="block" htmlFor="login-email">
             <span className="mb-2 block text-sm font-semibold">Email</span>
             <input
+              id="login-email"
+              name="email"
+              aria-label="Email"
+              autoComplete="email"
               className="field"
               type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
               required
             />
           </label>
-          <label className="block">
+          <label className="block" htmlFor="login-password">
             <span className="mb-2 block text-sm font-semibold">Password</span>
             <input
+              id="login-password"
+              name="password"
+              aria-label="Password"
+              autoComplete="current-password"
               className="field"
               type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
               required
             />
           </label>

@@ -9,8 +9,6 @@ import { getStageLabel, normalizeWorkflowCopy } from "@/lib/labels";
 import type { TrackingRecord } from "@/lib/types";
 
 export function TrackingWorkbench() {
-  const [reference, setReference] = useState("");
-  const [token, setToken] = useState("");
   const [record, setRecord] = useState<TrackingRecord | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -18,6 +16,9 @@ export function TrackingWorkbench() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
+    const formData = new FormData(event.currentTarget);
+    const reference = String(formData.get("reference") ?? "");
+    const token = String(formData.get("token") ?? "");
 
     startTransition(async () => {
       try {
@@ -45,22 +46,24 @@ export function TrackingWorkbench() {
           </p>
 
           <div className="mt-6 space-y-4">
-            <label className="block">
+            <label className="block" htmlFor="tracking-reference">
               <span className="mb-2 block text-sm font-semibold">Public reference</span>
               <input
+                id="tracking-reference"
+                name="reference"
+                aria-label="Public reference"
                 className="field"
-                value={reference}
-                onChange={(event) => setReference(event.target.value)}
                 placeholder="Example: WBS-2026-0001"
                 required
               />
             </label>
-            <label className="block">
+            <label className="block" htmlFor="tracking-token">
               <span className="mb-2 block text-sm font-semibold">Tracking token</span>
               <input
+                id="tracking-token"
+                name="token"
+                aria-label="Tracking token"
                 className="field font-mono"
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
                 placeholder="Example: TRACK123456"
                 required
               />
