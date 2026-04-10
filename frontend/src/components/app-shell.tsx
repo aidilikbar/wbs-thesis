@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
+import { getRoleLabel } from "@/lib/labels";
 import {
   isInternalRole,
   isReporter,
@@ -133,6 +134,9 @@ export function AppShell({ children }: PropsWithChildren) {
                         <span className="min-w-0 text-left text-[var(--muted)]">
                           <span className="block truncate text-sm font-semibold text-[var(--foreground)]">
                             {user.name}
+                          </span>
+                          <span className="mt-0.5 block truncate font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[var(--muted)]">
+                            {getRoleLabel(user.role, user.role_label)}
                           </span>
                         </span>
                       </Link>
