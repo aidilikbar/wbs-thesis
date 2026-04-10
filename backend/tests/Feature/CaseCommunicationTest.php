@@ -245,7 +245,7 @@ class CaseCommunicationTest extends TestCase
         $director = $this->createUser(
             User::ROLE_DIRECTOR,
             'director.approval.view@example.test',
-            'Directorate'
+            'Directorate of Public Reports and Complaints'
         );
         $reporter = $this->createUser(
             User::ROLE_REPORTER,

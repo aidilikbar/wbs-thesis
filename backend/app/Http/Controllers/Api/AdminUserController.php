@@ -131,13 +131,14 @@ class AdminUserController extends Controller
     public function store(CreateUserRequest $request): JsonResponse
     {
         $this->authorizeSystemAdministrator($request);
+        $role = $request->string('role')->toString();
 
         $user = User::query()->create([
             'name' => $request->string('name')->toString(),
             'email' => $request->string('email')->toString(),
             'phone' => $request->string('phone')->toString(),
-            'role' => $request->string('role')->toString(),
-            'unit' => $request->string('unit')->toString() ?: null,
+            'role' => $role,
+            'unit' => User::resolveUnitForRole($role, $request->string('unit')->toString() ?: null),
             'is_active' => true,
             'password' => $request->string('password')->toString(),
         ]);
@@ -177,7 +178,7 @@ class AdminUserController extends Controller
             'phone' => $request->string('phone')->toString(),
             'unit' => $user->hasRole(User::ROLE_REPORTER)
                 ? 'Reporter'
-                : ($request->string('unit')->toString() ?: null),
+                : User::resolveUnitForRole($user->role, $request->string('unit')->toString() ?: null),
             'is_active' => $nextIsActive,
         ];
 
@@ -347,7 +348,7 @@ class AdminUserController extends Controller
             'phone' => $user->phone,
             'role' => $user->role,
             'role_label' => $user->role_label,
-            'unit' => $user->unit,
+            'unit' => $user->operationalUnit(),
             'is_active' => $user->is_active,
             'created_at' => $user->created_at?->toISOString(),
         ];

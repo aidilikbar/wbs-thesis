@@ -113,8 +113,8 @@ class WorkflowCaseController extends Controller
         }
 
         $fileName = sprintf(
-            '%s-kpk-case-dossier.pdf',
-            str($caseFile->case_number ?: 'workflow-case')->slug()
+            '%s.pdf',
+            $caseFile->case_number ?: 'workflow-case'
         );
 
         return Pdf::loadView('pdf.workflow-case', $pdfService->build($caseFile, $user))
@@ -170,7 +170,7 @@ class WorkflowCaseController extends Controller
                 'phone' => $candidate->phone,
                 'role' => $candidate->role,
                 'role_label' => $candidate->role_label,
-                'unit' => $candidate->unit,
+                'unit' => $candidate->operationalUnit(),
             ]);
 
         return response()->json([

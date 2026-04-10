@@ -28,7 +28,7 @@ class WorkflowCasePdfService
             : null;
 
         return [
-            'document_title' => 'KPK Whistleblowing System Case Dossier',
+            'document_title' => 'KPK Whistleblowing System Case Report',
             'case_title' => $report?->title ?? 'Untitled case',
             'case_number' => $caseFile->case_number,
             'public_reference' => $report?->public_reference,

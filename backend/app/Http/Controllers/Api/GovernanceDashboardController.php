@@ -487,7 +487,7 @@ class GovernanceDashboardController extends Controller
             'subject_label' => $subject->id === $viewer->id ? "{$subject->name} (You)" : $subject->name,
             'role' => $subject->role,
             'role_label' => $subject->role_label,
-            'unit' => $subject->unit,
+            'unit' => $subject->operationalUnit(),
             'open_cases' => $subjectCases->where('stage', '!=', 'completed')->count(),
             'pending_queue' => $subjectCases
                 ->filter(fn (CaseFile $caseFile) => $caseFile->current_role === $subject->role && in_array($caseFile->stage, $queueStages, true))

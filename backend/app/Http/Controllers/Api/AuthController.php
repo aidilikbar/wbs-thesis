@@ -147,7 +147,7 @@ class AuthController extends Controller
             'phone' => $user?->phone,
             'role' => $user?->role,
             'role_label' => $user?->role_label,
-            'unit' => $user?->unit,
+            'unit' => $user?->operationalUnit(),
             'is_active' => $user?->is_active,
         ];
     }

@@ -69,7 +69,7 @@ class CaseWorkflowService
                 'stage' => 'submitted',
                 'current_role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
                 'disposition' => 'submitted',
-                'assigned_unit' => $verificationSupervisor->unit ?: $verificationSupervisor->role_label,
+                'assigned_unit' => $verificationSupervisor->operationalUnit() ?: $verificationSupervisor->role_label,
                 'assigned_to' => $verificationSupervisor->name,
                 'verification_supervisor_id' => $verificationSupervisor->id,
                 'investigation_supervisor_id' => $this->findActiveUserByRole(User::ROLE_SUPERVISOR_OF_INVESTIGATOR)?->id,
@@ -239,7 +239,7 @@ class CaseWorkflowService
                     'stage' => 'completed',
                     'current_role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
                     'disposition' => 'screening_rejected',
-                    'assigned_unit' => $supervisor->unit ?: $supervisor->role_label,
+                    'assigned_unit' => $supervisor->operationalUnit() ?: $supervisor->role_label,
                     'assigned_to' => $supervisor->name,
                     'last_activity_at' => $assignedAt,
                     'screening_payload' => $screeningPayload,
@@ -303,7 +303,7 @@ class CaseWorkflowService
                 'current_role' => User::ROLE_VERIFICATOR,
                 'disposition' => 'verification_in_progress',
                 'assigned_unit' => $payload['assigned_unit']
-                    ?? ($verificator->unit ?: $verificator->role_label),
+                    ?? ($verificator->operationalUnit() ?: $verificator->role_label),
                 'assigned_to' => $verificator->name,
                 'verificator_id' => $verificator->id,
                 'triaged_at' => $caseFile->triaged_at ?? $assignedAt,
@@ -385,7 +385,7 @@ class CaseWorkflowService
                 'stage' => 'verification_review',
                 'current_role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
                 'disposition' => 'verification_review',
-                'assigned_unit' => $caseFile->verificationSupervisor?->unit ?: $caseFile->verificationSupervisor?->role_label,
+                'assigned_unit' => $caseFile->verificationSupervisor?->operationalUnit() ?: $caseFile->verificationSupervisor?->role_label,
                 'assigned_to' => $caseFile->verificationSupervisor?->name,
                 'last_activity_at' => $submittedAt,
                 'notes' => $summary,
@@ -476,10 +476,10 @@ class CaseWorkflowService
                 'current_role' => $nextRole,
                 'disposition' => $nextDisposition,
                 'assigned_unit' => $approved && $recommendation === 'review'
-                    ? ($reviewSupervisor->unit ?: $reviewSupervisor->role_label)
+                    ? ($reviewSupervisor->operationalUnit() ?: $reviewSupervisor->role_label)
                     : ($approved
-                        ? ($caseFile->assigned_unit ?: $supervisor->unit ?: $supervisor->role_label)
-                        : ($caseFile->verificator?->unit ?: $caseFile->verificator?->role_label)),
+                        ? ($caseFile->assigned_unit ?: $supervisor->operationalUnit() ?: $supervisor->role_label)
+                        : ($caseFile->verificator?->operationalUnit() ?: $caseFile->verificator?->role_label)),
                 'assigned_to' => $approved && $recommendation === 'review'
                     ? $reviewSupervisor->name
                     : ($approved ? $supervisor->name : $caseFile->verificator?->name),
@@ -574,7 +574,7 @@ class CaseWorkflowService
                 'current_role' => User::ROLE_INVESTIGATOR,
                 'disposition' => 'review_in_progress',
                 'assigned_unit' => $payload['assigned_unit']
-                    ?? ($investigator->unit ?: $investigator->role_label),
+                    ?? ($investigator->operationalUnit() ?: $investigator->role_label),
                 'assigned_to' => $investigator->name,
                 'investigator_id' => $investigator->id,
                 'sla_due_at' => $assignedAt->copy()->addDays(10),
@@ -680,7 +680,7 @@ class CaseWorkflowService
                 'stage' => 'investigation_review',
                 'current_role' => User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
                 'disposition' => 'review_approval',
-                'assigned_unit' => $caseFile->investigationSupervisor?->unit ?: $caseFile->investigationSupervisor?->role_label,
+                'assigned_unit' => $caseFile->investigationSupervisor?->operationalUnit() ?: $caseFile->investigationSupervisor?->role_label,
                 'assigned_to' => $caseFile->investigationSupervisor?->name,
                 'last_activity_at' => $submittedAt,
                 'notes' => $reviewPayload['conclusion'],
@@ -753,8 +753,8 @@ class CaseWorkflowService
                 'current_role' => $approved ? User::ROLE_DIRECTOR : User::ROLE_INVESTIGATOR,
                 'disposition' => $approved ? 'director_review' : 'review_rejected',
                 'assigned_unit' => $approved
-                    ? ($director->unit ?: $director->role_label)
-                    : ($caseFile->investigator?->unit ?: $caseFile->investigator?->role_label),
+                    ? ($director->operationalUnit() ?: $director->role_label)
+                    : ($caseFile->investigator?->operationalUnit() ?: $caseFile->investigator?->role_label),
                 'assigned_to' => $approved ? $director->name : $caseFile->investigator?->name,
                 'director_id' => $approved ? $director->id : $caseFile->director_id,
                 'last_activity_at' => $reviewedAt,
@@ -828,8 +828,8 @@ class CaseWorkflowService
                 'current_role' => $approved ? User::ROLE_DIRECTOR : User::ROLE_INVESTIGATOR,
                 'disposition' => $approved ? 'completed' : 'director_rejected',
                 'assigned_unit' => $approved
-                    ? ($director->unit ?: $director->role_label)
-                    : ($caseFile->investigator?->unit ?: $caseFile->investigator?->role_label),
+                    ? ($director->operationalUnit() ?: $director->role_label)
+                    : ($caseFile->investigator?->operationalUnit() ?: $caseFile->investigator?->role_label),
                 'assigned_to' => $approved ? $director->name : $caseFile->investigator?->name,
                 'completed_at' => $approved ? $reviewedAt : null,
                 'last_activity_at' => $reviewedAt,

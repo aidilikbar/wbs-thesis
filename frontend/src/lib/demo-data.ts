@@ -1102,7 +1102,7 @@ export function demoGovernanceDashboardForRole(
           subject_label: "Nadia Prabowo (You)",
           role: "director",
           role_label: "Director",
-          unit: "Directorate",
+          unit: "Directorate of Public Reports and Complaints",
           open_cases: 2,
           pending_queue: 0,
           pending_approvals: 2,

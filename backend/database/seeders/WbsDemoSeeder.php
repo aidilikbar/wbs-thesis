@@ -348,7 +348,7 @@ class WbsDemoSeeder extends Seeder
                 'email' => 'director@kpk-wbs.test',
                 'phone' => '+62-812-1000-0008',
                 'role' => User::ROLE_DIRECTOR,
-                'unit' => 'Directorate',
+                'unit' => User::defaultUnitForRole(User::ROLE_DIRECTOR),
                 'is_active' => true,
                 'password' => 'Password123',
             ]),
@@ -433,7 +433,7 @@ class WbsDemoSeeder extends Seeder
             User::ROLE_VERIFICATOR => $index % 2 === 0 ? 'Verification Desk' : 'Protected Verification Desk',
             User::ROLE_SUPERVISOR_OF_INVESTIGATOR => 'Investigation Supervision',
             User::ROLE_INVESTIGATOR => $index % 2 === 0 ? 'Investigation Desk' : 'Protected Investigation Desk',
-            User::ROLE_DIRECTOR => 'Directorate',
+            User::ROLE_DIRECTOR => User::defaultUnitForRole(User::ROLE_DIRECTOR) ?? 'Directorate of Public Reports and Complaints',
             User::ROLE_SYSTEM_ADMINISTRATOR => 'System Administration',
             default => 'General Unit',
         };
@@ -602,11 +602,11 @@ class WbsDemoSeeder extends Seeder
             'investigator_id' => isset($definition['investigator'])
                 ? $definition['investigator']->id
                 : $caseFile->investigator_id,
-            'assigned_unit' => $assignedUser?->unit
+            'assigned_unit' => $assignedUser?->operationalUnit()
                 ?? match ($assignedRole) {
-                    User::ROLE_SUPERVISOR_OF_VERIFICATOR => $users['supervisor_of_verificator']->unit,
-                    User::ROLE_SUPERVISOR_OF_INVESTIGATOR => $users['supervisor_of_investigator']->unit,
-                    User::ROLE_DIRECTOR => $users['director']->unit,
+                    User::ROLE_SUPERVISOR_OF_VERIFICATOR => $users['supervisor_of_verificator']->operationalUnit(),
+                    User::ROLE_SUPERVISOR_OF_INVESTIGATOR => $users['supervisor_of_investigator']->operationalUnit(),
+                    User::ROLE_DIRECTOR => $users['director']->operationalUnit(),
                     default => $caseFile->assigned_unit,
                 },
             'assigned_to' => $assignedUser?->name
@@ -643,7 +643,7 @@ class WbsDemoSeeder extends Seeder
                 $users['supervisor_of_verificator'],
                 $verificator,
                 [
-                    'assigned_unit' => $verificator->unit,
+                    'assigned_unit' => $verificator->operationalUnit(),
                     'due_in_days' => $faker->numberBetween(3, 7),
                 ]
             )
@@ -697,7 +697,7 @@ class WbsDemoSeeder extends Seeder
                 $users['supervisor_of_investigator'],
                 $investigator,
                 [
-                    'assigned_unit' => $investigator->unit,
+                    'assigned_unit' => $investigator->operationalUnit(),
                     'due_in_days' => $faker->numberBetween(5, 10),
                 ]
             )

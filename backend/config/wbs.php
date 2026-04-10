@@ -39,6 +39,15 @@ return [
         'director',
         'system_administrator',
     ],
+    'default_units' => [
+        'reporter' => 'Reporter',
+        'supervisor_of_verificator' => 'Verification Supervision',
+        'verificator' => 'Verification Desk',
+        'supervisor_of_investigator' => 'Investigation Supervision',
+        'investigator' => 'Investigation Desk',
+        'director' => 'Directorate of Public Reports and Complaints',
+        'system_administrator' => 'System Administration',
+    ],
     'categories' => [
         'kpk_report' => 'KPK whistleblowing report',
         'bribery' => 'Bribery and gratuities',

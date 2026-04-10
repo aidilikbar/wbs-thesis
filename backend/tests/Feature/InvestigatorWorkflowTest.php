@@ -41,7 +41,7 @@ class InvestigatorWorkflowTest extends TestCase
         $director = $this->createUser(
             User::ROLE_DIRECTOR,
             'director@example.test',
-            'Directorate'
+            'Directorate of Public Reports and Complaints'
         );
         $reporter = $this->createUser(
             User::ROLE_REPORTER,
@@ -291,7 +291,7 @@ class InvestigatorWorkflowTest extends TestCase
         $director = $this->createUser(
             User::ROLE_DIRECTOR,
             'director.loop@example.test',
-            'Directorate'
+            'Directorate of Public Reports and Complaints'
         );
         $reporter = $this->createUser(
             User::ROLE_REPORTER,
@@ -505,7 +505,7 @@ class InvestigatorWorkflowTest extends TestCase
         $director = $this->createUser(
             User::ROLE_DIRECTOR,
             'director.allcase@example.test',
-            'Directorate'
+            'Directorate of Public Reports and Complaints'
         );
         $reporter = $this->createUser(
             User::ROLE_REPORTER,
@@ -780,7 +780,7 @@ class InvestigatorWorkflowTest extends TestCase
         $director = $this->createUser(
             User::ROLE_DIRECTOR,
             'director.export@example.test',
-            'Directorate'
+            'Directorate of Public Reports and Complaints'
         );
 
         $report = Report::query()->create([
@@ -803,7 +803,7 @@ class InvestigatorWorkflowTest extends TestCase
             'case_number' => 'CASE-2026-9001',
             'stage' => 'completed',
             'disposition' => 'completed',
-            'assigned_unit' => 'Directorate',
+            'assigned_unit' => 'Directorate of Public Reports and Complaints',
             'assigned_to' => $director->name,
             'confidentiality_level' => 'identified',
             'current_role' => User::ROLE_DIRECTOR,
@@ -818,7 +818,7 @@ class InvestigatorWorkflowTest extends TestCase
 
         $response->assertOk()
             ->assertHeader('content-type', 'application/pdf')
-            ->assertHeader('content-disposition', 'attachment; filename=case-2026-9001-kpk-case-dossier.pdf');
+            ->assertHeader('content-disposition', 'attachment; filename=CASE-2026-9001.pdf');
 
         $this->assertStringStartsWith('%PDF', $response->getContent());
     }

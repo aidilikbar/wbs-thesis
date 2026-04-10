@@ -44,7 +44,7 @@ class GovernanceDashboardTest extends TestCase
             'Director',
             'director@example.test',
             User::ROLE_DIRECTOR,
-            'Directorate'
+            'Directorate of Public Reports and Complaints'
         );
 
         GovernanceControl::query()->create([
@@ -129,7 +129,7 @@ class GovernanceDashboardTest extends TestCase
             'Director',
             'director@example.test',
             User::ROLE_DIRECTOR,
-            'Directorate'
+            'Directorate of Public Reports and Complaints'
         );
         $supervisor = $this->createUser(
             'Supervisor Verificator',
@@ -157,7 +157,7 @@ class GovernanceDashboardTest extends TestCase
             'case_number' => 'CASE-2026-7101',
             'stage' => 'director_review',
             'current_role' => User::ROLE_DIRECTOR,
-            'assigned_unit' => 'Directorate',
+            'assigned_unit' => 'Directorate of Public Reports and Complaints',
             'verification_supervisor_id' => $supervisor->id,
             'verificator_id' => $verificator->id,
             'director_id' => $director->id,

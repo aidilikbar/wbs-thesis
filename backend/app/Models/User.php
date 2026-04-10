@@ -49,6 +49,27 @@ class User extends Authenticatable
         );
     }
 
+    public static function defaultUnitForRole(string $role): ?string
+    {
+        return config("wbs.default_units.{$role}");
+    }
+
+    public static function resolveUnitForRole(string $role, ?string $unit = null): ?string
+    {
+        $resolved = trim((string) ($unit ?? ''));
+
+        if ($resolved !== '') {
+            return $resolved;
+        }
+
+        return self::defaultUnitForRole($role);
+    }
+
+    public function operationalUnit(): ?string
+    {
+        return self::resolveUnitForRole($this->role, $this->unit);
+    }
+
     public function reports(): HasMany
     {
         return $this->hasMany(Report::class, 'reporter_user_id');

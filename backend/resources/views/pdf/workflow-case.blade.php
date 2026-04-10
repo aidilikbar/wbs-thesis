@@ -10,15 +10,16 @@
 
         body {
             font-family: DejaVu Sans, sans-serif;
-            color: #172033;
+            color: #26221d;
             font-size: 11px;
             line-height: 1.45;
         }
 
         .header {
-            background: #edf3f9;
-            color: #10233e;
-            border: 1px solid #d7e2ee;
+            background: #fbf7ef;
+            color: #26221d;
+            border: 1px solid #decfb1;
+            border-top: 4px solid #b84a55;
             border-radius: 14px;
             padding: 22px 24px;
         }
@@ -48,14 +49,14 @@
             margin-top: 10px;
             font-size: 10px;
             line-height: 1.35;
-            color: #41536c;
+            color: #6b604f;
         }
 
         .kicker {
             font-size: 10px;
             letter-spacing: 0.24em;
             text-transform: uppercase;
-            color: #7a5a00;
+            color: #9b8662;
             margin-bottom: 10px;
         }
 
@@ -63,7 +64,7 @@
             margin: 0;
             font-size: 24px;
             line-height: 1.2;
-            color: #10233e;
+            color: #27231e;
         }
 
         .header-meta {
@@ -75,12 +76,12 @@
         .header-meta td {
             padding: 4px 0;
             vertical-align: top;
-            color: #172033;
+            color: #3b342b;
         }
 
         .header-meta .label {
             width: 140px;
-            color: #5b6b82;
+            color: #8f7d60;
             text-transform: uppercase;
             font-size: 9px;
             letter-spacing: 0.14em;
@@ -97,45 +98,40 @@
             font-weight: 700;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            background: #d9e6f3;
-            border: 1px solid #bdd0e4;
-            color: #10233e;
+            background: #efe6d4;
+            border: 1px solid #d8c5a4;
+            color: #564938;
         }
 
         .section {
             margin-top: 18px;
-            page-break-inside: avoid;
+            page-break-inside: auto;
         }
 
         .section-title {
             margin: 0 0 10px;
             padding: 10px 14px;
             border-radius: 10px;
-            background: #eef3f8;
-            color: #10233e;
+            background: #f3ead9;
+            border-left: 5px solid #b84a55;
+            color: #5f4d1f;
             font-size: 12px;
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-        }
-
-        .two-col {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 12px 0;
-            margin: 0 -12px;
-        }
-
-        .two-col > tbody > tr > td {
-            width: 50%;
-            vertical-align: top;
+            page-break-after: avoid;
         }
 
         .panel {
-            border: 1px solid #d8e1eb;
+            border: 1px solid #e5d8bf;
             border-radius: 12px;
             padding: 14px 16px;
-            background: #ffffff;
+            background: #fffdfa;
+            page-break-inside: auto;
+        }
+
+        .panel + .panel {
+            margin-top: 12px;
         }
 
         .detail-table,
@@ -166,7 +162,7 @@
             font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.12em;
-            color: #5b6b82;
+            color: #9b5b62;
             font-weight: 700;
             padding-right: 12px;
         }
@@ -174,11 +170,11 @@
         .value {
             white-space: pre-wrap;
             word-break: break-word;
-            color: #172033;
+            color: #2f2a24;
         }
 
         .empty {
-            color: #7c8aa0;
+            color: #8b7c65;
             font-style: italic;
         }
 
@@ -187,7 +183,7 @@
             font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.12em;
-            color: #5b6b82;
+            color: #9b5b62;
             font-weight: 700;
             padding-right: 12px;
         }
@@ -197,13 +193,13 @@
             left: 0;
             right: 0;
             bottom: -20px;
-            color: #607086;
+            color: #857864;
             font-size: 9px;
         }
 
         .footer-table {
             width: 100%;
-            border-top: 1px solid #d8e1eb;
+            border-top: 1px solid #ddd1ba;
             border-collapse: collapse;
         }
 
@@ -225,7 +221,7 @@
                     <img class="brand-logo" src="{{ public_path('logos/kws_logo_header.png') }}" alt="KWS logo">
                     <div class="brand-name">
                         KPK Whistleblowing System<br>
-                        Case Dossier Export
+                        Case Report Export
                     </div>
                 </td>
                 <td>
@@ -263,40 +259,32 @@
 
     <section class="section">
         <h2 class="section-title">Case Overview</h2>
-        <table class="two-col">
-            <tr>
-                <td>
-                    <div class="panel">
-                        <table class="detail-table">
-                            @foreach ($overview_rows as $row)
-                                <tr>
-                                    <th>{{ $row['label'] }}</th>
-                                    <td class="value">{{ $row['value'] }}</td>
-                                </tr>
-                            @endforeach
-                        </table>
-                    </div>
-                </td>
-                <td>
-                    <div class="panel">
-                        <table class="detail-table">
-                            @foreach ($reporter_rows as $row)
-                                <tr>
-                                    <th>{{ $row['label'] }}</th>
-                                    <td class="value">{{ $row['value'] }}</td>
-                                </tr>
-                            @endforeach
-                            @foreach ($workflow_rows as $row)
-                                <tr>
-                                    <th>{{ $row['label'] }}</th>
-                                    <td class="value">{{ $row['value'] }}</td>
-                                </tr>
-                            @endforeach
-                        </table>
-                    </div>
-                </td>
-            </tr>
-        </table>
+        <div class="panel">
+            <table class="detail-table">
+                @foreach ($overview_rows as $row)
+                    <tr>
+                        <th>{{ $row['label'] }}</th>
+                        <td class="value">{{ $row['value'] }}</td>
+                    </tr>
+                @endforeach
+            </table>
+        </div>
+        <div class="panel">
+            <table class="detail-table">
+                @foreach ($reporter_rows as $row)
+                    <tr>
+                        <th>{{ $row['label'] }}</th>
+                        <td class="value">{{ $row['value'] }}</td>
+                    </tr>
+                @endforeach
+                @foreach ($workflow_rows as $row)
+                    <tr>
+                        <th>{{ $row['label'] }}</th>
+                        <td class="value">{{ $row['value'] }}</td>
+                    </tr>
+                @endforeach
+            </table>
+        </div>
     </section>
 
     @foreach ($records as $record)
@@ -380,7 +368,7 @@
     <footer class="footer">
         <table class="footer-table">
             <tr>
-                <td>Confidential workflow dossier generated from the KPK Whistleblowing System prototype.</td>
+                <td>Confidential workflow record generated from the KPK Whistleblowing System prototype.</td>
                 <td class="footer-right">Generated {{ $exported_at }} by {{ $exported_by }}</td>
             </tr>
         </table>

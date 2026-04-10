@@ -287,7 +287,7 @@ export function WorkflowDirectory({
 
     try {
       const blob = await api.downloadWorkflowCasePdf(token, caseItem.id);
-      triggerBlobDownload(blob, `${caseItem.case_number}-case-dossier.pdf`);
+      triggerBlobDownload(blob, `${caseItem.case_number}.pdf`);
     } catch (error) {
       setNotice({
         tone: "error",
