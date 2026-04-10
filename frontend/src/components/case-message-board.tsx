@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { attachmentAccept, validateAttachmentSelection } from "@/lib/attachment-validation";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
@@ -29,6 +29,7 @@ export function CaseMessageBoard({
   const [isPending, startTransition] = useTransition();
   const isMountedRef = useRef(true);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentInputId = useId();
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -110,6 +111,29 @@ export function CaseMessageBoard({
     setValidationMessage(validateAttachmentSelection(files));
   };
 
+  const mergeSelectedFiles = (incoming: File[]) => {
+    const merged = [...selectedFiles];
+
+    for (const file of incoming) {
+      const exists = merged.some(
+        (item) =>
+          item.name === file.name &&
+          item.size === file.size &&
+          item.lastModified === file.lastModified,
+      );
+
+      if (!exists) {
+        merged.push(file);
+      }
+    }
+
+    handleSelectedFilesChange(merged);
+
+    if (attachmentInputRef.current) {
+      attachmentInputRef.current.value = "";
+    }
+  };
+
   const handleDownloadAttachment = (messageId: number, attachmentId: number, fileName: string) => {
     setMessage(null);
 
@@ -148,11 +172,7 @@ export function CaseMessageBoard({
     const formElement = event.currentTarget;
     const formData = new FormData(formElement);
     const trimmed = String(formData.get("body") ?? "").trim();
-    const attachedFiles = formData
-      .getAll("attachments")
-      .filter(
-        (item): item is File => item instanceof File && item.name.trim() !== "",
-      );
+    const attachedFiles = selectedFiles;
     const filesError = validateAttachmentSelection(attachedFiles);
 
     setValidationMessage(filesError);
@@ -321,17 +341,28 @@ export function CaseMessageBoard({
                 File Attachments
               </p>
               <input
+                id={attachmentInputId}
                 ref={attachmentInputRef}
                 type="file"
-                name="attachments"
                 multiple
                 accept={attachmentAccept}
-                className="mt-4 block w-full text-sm"
+                className="sr-only"
                 disabled={!conversation?.can_send_message || isPending}
                 onChange={(event) =>
-                  handleSelectedFilesChange(Array.from(event.target.files ?? []))
+                  mergeSelectedFiles(Array.from(event.target.files ?? []))
                 }
               />
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <label
+                  htmlFor={attachmentInputId}
+                  className={`primary-button ${!conversation?.can_send_message || isPending ? "pointer-events-none opacity-60" : "cursor-pointer"}`}
+                >
+                  Add Files
+                </label>
+                <span className="text-sm text-[var(--muted)]">
+                  You can select multiple files in one picker or add more files again.
+                </span>
+              </div>
               <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
                 PDF, images, office documents, CSV, TXT, and ZIP up to 20 MB each.
               </p>

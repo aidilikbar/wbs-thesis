@@ -69,6 +69,7 @@ Creates a report for the authenticated reporter and returns:
 - case number
 - status
 - severity
+  Submitted and pre-verification records use `not_available` until the workflow produces an assessed severity.
 - next steps
 
 This endpoint accepts JSON or `multipart/form-data`.

@@ -585,6 +585,7 @@ class WbsDemoSeeder extends Seeder
             'reporter_email' => $reporter->email,
             'reporter_phone' => $reporter->phone,
             'governance_tags' => $templateContext['governance_tags'],
+            'severity' => $this->severityForStage($definition['stage']),
             'status' => $this->reportStatusForStage($definition['stage']),
         ])->save();
 
@@ -1125,6 +1126,16 @@ class WbsDemoSeeder extends Seeder
             'director_review' => 'director_review',
             'completed' => 'completed',
             default => 'submitted',
+        };
+    }
+
+    private function severityForStage(string $stage): string
+    {
+        return match ($stage) {
+            'submitted', 'verification_in_progress' => 'not_available',
+            'verification_review', 'verified', 'investigation_in_progress', 'director_review' => 'high',
+            'investigation_review', 'completed' => 'medium',
+            default => 'not_available',
         };
     }
 

@@ -211,7 +211,7 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'tracking_token', type: 'string', example: 'ABCD1234EFGH'),
                 new OA\Property(property: 'case_number', type: 'string', example: 'CASE-2026-0001'),
                 new OA\Property(property: 'status', type: 'string', example: 'submitted'),
-                new OA\Property(property: 'severity', type: 'string', example: 'high'),
+                new OA\Property(property: 'severity', type: 'string', example: 'not_available'),
                 new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time', example: '2026-03-19T09:00:00Z'),
                 new OA\Property(property: 'next_steps', type: 'array', items: new OA\Items(type: 'string')),
             ]
@@ -262,7 +262,7 @@ use OpenApi\Attributes as OA;
                             new OA\Property(property: 'title', type: 'string', example: 'Potential bribery during permit approval'),
                             new OA\Property(property: 'category', type: 'string', example: 'bribery'),
                             new OA\Property(property: 'status', type: 'string', example: 'submitted'),
-                            new OA\Property(property: 'severity', type: 'string', example: 'high'),
+                            new OA\Property(property: 'severity', type: 'string', example: 'not_available'),
                             new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time', example: '2026-03-19T09:00:00Z'),
                             new OA\Property(property: 'confidentiality_level', type: 'string', example: 'anonymous'),
                             new OA\Property(property: 'is_editable', type: 'boolean', example: true),

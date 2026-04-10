@@ -65,7 +65,7 @@ class ReportSubmissionTest extends TestCase
         $submission
             ->assertCreated()
             ->assertJsonPath('data.status', 'submitted')
-            ->assertJsonPath('data.severity', 'high');
+            ->assertJsonPath('data.severity', 'not_available');
 
         $this->assertDatabaseHas('reports', [
             'title' => 'Unusual payment request before vendor evaluation',

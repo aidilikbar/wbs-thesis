@@ -14,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 class CaseWorkflowService
 {
+    private const SUBMITTED_SEVERITY = 'not_available';
+
     private const REPORT_STATUSES = [
         'submitted' => 'submitted',
         'verification_in_progress' => 'verification_in_progress',
@@ -52,7 +54,7 @@ class CaseWorkflowService
                 'requested_follow_up' => $payload['requested_follow_up'] ?? true,
                 'witness_available' => $payload['witness_available'] ?? false,
                 'governance_tags' => array_values($payload['governance_tags'] ?? []),
-                'severity' => $this->determineSeverity($reportedParties, $payload),
+                'severity' => self::SUBMITTED_SEVERITY,
                 'status' => self::REPORT_STATUSES['submitted'],
                 'submitted_at' => $submittedAt,
                 'last_public_update_at' => $submittedAt,
@@ -161,7 +163,6 @@ class CaseWorkflowService
             $caseFile = $report->caseFile()->firstOrFail();
             $reportedParties = $this->normalizeReportedParties($payload);
             $confidentialityLevel = $payload['confidentiality_level'] ?? 'identified';
-            $nextSeverity = $this->determineSeverity($reportedParties, $payload);
 
             $report->forceFill([
                 'title' => $payload['title'],
@@ -176,7 +177,7 @@ class CaseWorkflowService
                 'requested_follow_up' => $payload['requested_follow_up'] ?? true,
                 'witness_available' => $payload['witness_available'] ?? false,
                 'governance_tags' => array_values($payload['governance_tags'] ?? []),
-                'severity' => $nextSeverity,
+                'severity' => self::SUBMITTED_SEVERITY,
             ])->save();
 
             $caseFile->forceFill([
@@ -881,42 +882,6 @@ class CaseWorkflowService
 
             return $caseFile->fresh($this->workflowRelations());
         });
-    }
-
-    private function determineSeverity(array $reportedParties, array $payload = []): string
-    {
-        $containsHighRiskParty = collect($reportedParties)
-            ->pluck('classification')
-            ->contains(fn ($classification) => in_array($classification, ['state_official', 'law_enforcement'], true));
-
-        if ($containsHighRiskParty) {
-            return 'high';
-        }
-
-        $highRiskCategories = [
-            'bribery',
-            'procurement',
-            'fraud',
-            'abuse_of_authority',
-            'retaliation',
-        ];
-        $highRiskTags = [
-            'leadership',
-            'financial-loss',
-            'state-loss',
-            'state_financial_loss',
-            'bribery',
-        ];
-
-        if (in_array($payload['category'] ?? null, $highRiskCategories, true)) {
-            return 'high';
-        }
-
-        if (collect($payload['governance_tags'] ?? [])->intersect($highRiskTags)->isNotEmpty()) {
-            return 'high';
-        }
-
-        return count($reportedParties) > 1 ? 'medium' : 'low';
     }
 
     private function determineVerificationSeverity(array $verificationPayload): string

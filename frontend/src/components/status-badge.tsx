@@ -26,6 +26,7 @@ function badgeClasses(value: string) {
 
   if (
     [
+      "not_available",
       "completed",
       "screening_closed",
       "active",
