@@ -146,8 +146,8 @@ export function ReportDirectory(props: NoticeProps) {
 
           return statusMatch && searchMatch;
         }).sort((left, right) => {
-          const leftTimestamp = new Date(left.last_activity_at ?? left.submitted_at).getTime();
-          const rightTimestamp = new Date(right.last_activity_at ?? right.submitted_at).getTime();
+          const leftTimestamp = new Date(left.updated_at ?? left.submitted_at).getTime();
+          const rightTimestamp = new Date(right.updated_at ?? right.submitted_at).getTime();
 
           if (rightTimestamp !== leftTimestamp) {
             return rightTimestamp - leftTimestamp;
@@ -312,7 +312,7 @@ export function ReportDirectory(props: NoticeProps) {
                   Status
                 </th>
                 <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
-                  Submitted
+                  Last Updated
                 </th>
                 <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
                   Actions
@@ -343,7 +343,7 @@ export function ReportDirectory(props: NoticeProps) {
                       </div>
                     </td>
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4 text-sm text-[var(--muted)]">
-                      {formatDateTime(report.submitted_at)}
+                      {formatDateTime(report.updated_at)}
                     </td>
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
                       <div className="flex flex-wrap gap-2">

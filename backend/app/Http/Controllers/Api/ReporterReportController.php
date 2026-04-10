@@ -58,7 +58,7 @@ class ReporterReportController extends Controller
             })
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->leftJoin('case_files', 'case_files.report_id', '=', 'reports.id')
-            ->orderByRaw('COALESCE(case_files.last_activity_at, reports.submitted_at) DESC')
+            ->orderByDesc('reports.updated_at')
             ->orderByDesc('reports.submitted_at')
             ->select('reports.*')
             ->paginate($perPage)
@@ -286,6 +286,7 @@ class ReporterReportController extends Controller
             'status' => $report->status,
             'severity' => $report->severity,
             'submitted_at' => $report->submitted_at?->toISOString(),
+            'updated_at' => $report->updated_at?->toISOString() ?? $report->submitted_at?->toISOString(),
             'last_activity_at' => $report->caseFile?->last_activity_at?->toISOString() ?? $report->submitted_at?->toISOString(),
             'confidentiality_level' => $report->anonymity_level,
             'is_editable' => $this->editLockReason($report) === null,

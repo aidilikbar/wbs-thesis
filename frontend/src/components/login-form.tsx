@@ -37,7 +37,7 @@ export function LoginForm() {
     <form className="panel overflow-hidden rounded-[1rem]" onSubmit={handleSubmit}>
       <div className="border-b border-[var(--panel-border)] bg-[rgba(239,47,39,0.05)] px-8 py-5">
         <p className="eyebrow">Login</p>
-        <h2 className="mt-3 text-3xl">Access your KPK WBS workspace</h2>
+        <h2 className="mt-3 text-3xl">Access to KPK Whistleblowing System</h2>
         <p className="muted mt-3 text-sm leading-7">
           Shared access gateway for reporters and authorized internal officers.
         </p>
