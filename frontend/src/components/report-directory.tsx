@@ -145,6 +145,15 @@ export function ReportDirectory(props: NoticeProps) {
                   .includes(term);
 
           return statusMatch && searchMatch;
+        }).sort((left, right) => {
+          const leftTimestamp = new Date(left.last_activity_at ?? left.submitted_at).getTime();
+          const rightTimestamp = new Date(right.last_activity_at ?? right.submitted_at).getTime();
+
+          if (rightTimestamp !== leftTimestamp) {
+            return rightTimestamp - leftTimestamp;
+          }
+
+          return right.id - left.id;
         });
         const from = fallbackItems.length > 0 ? 1 : null;
         const to = fallbackItems.length > 0 ? Math.min(fallbackItems.length, PAGE_SIZE) : null;

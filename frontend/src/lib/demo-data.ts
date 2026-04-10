@@ -293,6 +293,7 @@ export const demoReporterReports: ReporterReportSummary[] = [
     status: "investigation_in_progress",
     severity: "high",
     submitted_at: "2026-03-11T10:00:00.000Z",
+    last_activity_at: "2026-03-18T09:00:00.000Z",
     confidentiality_level: "anonymous",
     is_editable: true,
     edit_lock_reason: null,

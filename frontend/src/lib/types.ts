@@ -161,6 +161,7 @@ export type ReporterReportSummary = {
   status: string;
   severity: string;
   submitted_at: string;
+  last_activity_at: string;
   confidentiality_level: string;
   is_editable: boolean;
   edit_lock_reason: string | null;

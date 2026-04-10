@@ -134,9 +134,22 @@ export function GovernanceDashboard() {
     );
   }
 
-  const filteredScopeRows = dashboard.specific.scope_rows.filter((row) =>
-    scopeRowMatches(row, scopeSearch),
-  );
+  const filteredScopeRows = dashboard.specific.scope_rows
+    .filter((row) => scopeRowMatches(row, scopeSearch))
+    .sort((left, right) => {
+      const leftTimestamp = left.last_activity_at
+        ? new Date(left.last_activity_at).getTime()
+        : 0;
+      const rightTimestamp = right.last_activity_at
+        ? new Date(right.last_activity_at).getTime()
+        : 0;
+
+      if (rightTimestamp !== leftTimestamp) {
+        return rightTimestamp - leftTimestamp;
+      }
+
+      return left.subject_label.localeCompare(right.subject_label);
+    });
   const totalScopePages = Math.max(
     1,
     Math.ceil(filteredScopeRows.length / scopeRowsPerPage),
