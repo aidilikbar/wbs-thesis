@@ -371,28 +371,6 @@ export function ReportForm({
                 />
               </label>
 
-              <label className="flex items-start gap-3 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 px-5 py-4 text-sm leading-7">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={form.confidentiality_level === "anonymous"}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      confidentiality_level: event.target.checked ? "anonymous" : "identified",
-                    }))
-                  }
-                  disabled={editLocked}
-                />
-                <span>
-                  <span className="block font-semibold text-[var(--foreground)]">
-                    Submit as anonymous reporter
-                  </span>
-                  <span className="mt-1 block text-[var(--muted)]">
-                    If checked, internal officers will see the reporter as `Anonymous`. If unchecked, internal officers can see your name.
-                  </span>
-                </span>
-              </label>
             </div>
           </section>
 
@@ -425,6 +403,29 @@ export function ReportForm({
             onDownloadAttachment={record ? handleDownloadAttachment : undefined}
             onDeleteAttachment={record ? handleDeleteAttachment : undefined}
           />
+
+          <label className="flex items-start gap-3 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 px-5 py-4 text-sm leading-7">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={form.confidentiality_level === "anonymous"}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  confidentiality_level: event.target.checked ? "anonymous" : "identified",
+                }))
+              }
+              disabled={editLocked}
+            />
+            <span>
+              <span className="block font-semibold text-[var(--foreground)]">
+                Submit as anonymous reporter
+              </span>
+              <span className="mt-1 block text-[var(--muted)]">
+                If checked, internal officers will see the reporter as `Anonymous`. If unchecked, internal officers can see your name.
+              </span>
+            </span>
+          </label>
 
           {feedback ? (
             <p

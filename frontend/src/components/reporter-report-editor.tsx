@@ -558,6 +558,28 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
             />
           </label>
 
+          <ReportedPartiesEditor
+            parties={form.reported_parties}
+            options={reportedPartyClassificationOptions}
+            disabled={editLocked}
+            onChange={(reported_parties) =>
+              setForm((current) => (current ? { ...current, reported_parties } : current))
+            }
+          />
+
+          <ReportAttachmentField
+            selectedFiles={selectedFiles}
+            existingAttachments={record.attachments}
+            canMutate={!editLocked}
+            isBusy={isPending}
+            validationMessage={attachmentMessage}
+            kicker="Attachments"
+            title="Case Attachment"
+            onSelectedFilesChange={handleSelectedFilesChange}
+            onDownloadAttachment={handleDownloadAttachment}
+            onDeleteAttachment={handleDeleteAttachment}
+          />
+
           <label className="flex items-start gap-3 rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 px-5 py-4 text-sm leading-7">
             <input
               type="checkbox"
@@ -584,28 +606,6 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
               </span>
             </span>
           </label>
-
-          <ReportedPartiesEditor
-            parties={form.reported_parties}
-            options={reportedPartyClassificationOptions}
-            disabled={editLocked}
-            onChange={(reported_parties) =>
-              setForm((current) => (current ? { ...current, reported_parties } : current))
-            }
-          />
-
-          <ReportAttachmentField
-            selectedFiles={selectedFiles}
-            existingAttachments={record.attachments}
-            canMutate={!editLocked}
-            isBusy={isPending}
-            validationMessage={attachmentMessage}
-            kicker="Attachments"
-            title="Case Attachment"
-            onSelectedFilesChange={handleSelectedFilesChange}
-            onDownloadAttachment={handleDownloadAttachment}
-            onDeleteAttachment={handleDeleteAttachment}
-          />
 
           <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--panel-border)] pt-6">
             <button
