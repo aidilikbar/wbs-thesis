@@ -12,7 +12,7 @@ class CatalogController extends Controller
         path: '/api/catalog',
         operationId: 'getCatalog',
         summary: 'Get reference catalog',
-        description: 'Returns the reference data used by the whistleblowing forms, tracking page, and governance workflow.',
+        description: 'Returns the reference data used by the whistleblowing forms, tracking page, and operational oversight workflow.',
         tags: ['Reference Data'],
         responses: [
             new OA\Response(

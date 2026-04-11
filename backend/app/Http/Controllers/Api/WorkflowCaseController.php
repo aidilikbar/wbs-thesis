@@ -98,6 +98,22 @@ class WorkflowCaseController extends Controller
         ]);
     }
 
+    #[OA\Get(
+        path: '/api/workflow/cases/{caseFile}/export-pdf',
+        operationId: 'exportWorkflowCasePdf',
+        summary: 'Export a completed workflow case as PDF',
+        tags: ['Workflow'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'PDF download stream for the completed case.'),
+            new OA\Response(response: 403, description: 'Internal role access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Workflow case not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+            new OA\Response(response: 422, description: 'Only completed cases can be exported.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+        ]
+    )]
     public function exportPdf(
         Request $request,
         CaseFile $caseFile,
@@ -184,7 +200,7 @@ class WorkflowCaseController extends Controller
         summary: 'Delegate a submitted case to a verification officer',
         tags: ['Workflow'],
         security: [['bearerAuth' => []]],
-        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/DelegateCaseRequest')),
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/VerificationDelegationRequest')),
         parameters: [
             new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],
@@ -216,7 +232,7 @@ class WorkflowCaseController extends Controller
         summary: 'Submit verification back to the verification supervisor',
         tags: ['Workflow'],
         security: [['bearerAuth' => []]],
-        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/SubmitWorkflowStageRequest')),
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/VerificationSubmissionRequest')),
         parameters: [
             new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],
@@ -274,7 +290,7 @@ class WorkflowCaseController extends Controller
         summary: 'Delegate a verified case to an investigator',
         tags: ['Workflow'],
         security: [['bearerAuth' => []]],
-        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/DelegateCaseRequest')),
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/InvestigationDelegationRequest')),
         parameters: [
             new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],
@@ -304,7 +320,7 @@ class WorkflowCaseController extends Controller
         summary: 'Submit investigation back to the investigation supervisor',
         tags: ['Workflow'],
         security: [['bearerAuth' => []]],
-        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/SubmitWorkflowStageRequest')),
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/InvestigationSubmissionRequest')),
         parameters: [
             new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
         ],

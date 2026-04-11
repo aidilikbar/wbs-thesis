@@ -27,9 +27,16 @@ class ApiDocumentationTest extends TestCase
         $openApi = json_decode(File::get($path), true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertSame('KPK Whistleblowing System API', $openApi['info']['title']);
+        $this->assertSame('0.2.1', $openApi['info']['version']);
         $this->assertSame(rtrim((string) config('app.url'), '/'), $openApi['servers'][0]['url']);
         $this->assertSame('registerReporter', $openApi['paths']['/api/auth/register']['post']['operationId']);
         $this->assertSame('submitReporterReport', $openApi['paths']['/api/reporter/reports']['post']['operationId']);
         $this->assertSame('listWorkflowCases', $openApi['paths']['/api/workflow/cases']['get']['operationId']);
+        $this->assertSame('exportWorkflowCasePdf', $openApi['paths']['/api/workflow/cases/{caseFile}/export-pdf']['get']['operationId']);
+        $this->assertSame('listReporterCaseMessages', $openApi['paths']['/api/reporter/reports/{report}/messages']['get']['operationId']);
+        $this->assertSame('listWorkflowCaseMessages', $openApi['paths']['/api/workflow/cases/{caseFile}/messages']['get']['operationId']);
+        $this->assertArrayHasKey('reported_parties', $openApi['components']['schemas']['ReportSubmissionRequest']['properties']);
+        $this->assertArrayNotHasKey('publish_update', $openApi['components']['schemas']['VerificationSubmissionRequest']['properties']);
+        $this->assertArrayNotHasKey('public_message', $openApi['components']['schemas']['ReviewWorkflowStageRequest']['properties']);
     }
 }

@@ -18,9 +18,9 @@ class GovernanceDashboardController extends Controller
     #[OA\Get(
         path: '/api/governance/dashboard',
         operationId: 'getGovernanceDashboard',
-        summary: 'Get governance dashboard data',
-        description: 'Returns global governance posture plus role-scoped workload and approval indicators for internal action.',
-        tags: ['Governance Dashboard'],
+        summary: 'Get operational oversight dashboard data',
+        description: 'Returns global oversight posture plus role-scoped workload and approval indicators for internal action.',
+        tags: ['Operational Oversight'],
         security: [['bearerAuth' => []]],
         responses: [
             new OA\Response(

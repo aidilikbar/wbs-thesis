@@ -13,10 +13,26 @@ use App\Services\CaseMessageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CaseMessageController extends Controller
 {
+    #[OA\Get(
+        path: '/api/reporter/reports/{report}/messages',
+        operationId: 'listReporterCaseMessages',
+        summary: 'Get reporter secure communication thread',
+        tags: ['Reporter Workspace'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'report', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Reporter secure communication thread returned.', content: new OA\JsonContent(ref: '#/components/schemas/CaseMessageConversationResponse')),
+            new OA\Response(response: 403, description: 'Reporter access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Report not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+        ]
+    )]
     public function reporterIndex(
         Request $request,
         Report $report,
@@ -35,6 +51,29 @@ class CaseMessageController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: '/api/reporter/reports/{report}/messages',
+        operationId: 'storeReporterCaseMessage',
+        summary: 'Send a reporter secure message',
+        tags: ['Reporter Workspace'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'report', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(ref: '#/components/schemas/CaseMessageStoreRequest')
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Secure message sent.', content: new OA\JsonContent(ref: '#/components/schemas/CaseMessageMutationResponse')),
+            new OA\Response(response: 403, description: 'Reporter access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Report not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+            new OA\Response(response: 422, description: 'Messaging is not available for this case.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+        ]
+    )]
     public function reporterStore(
         StoreCaseMessageRequest $request,
         Report $report,
@@ -60,6 +99,23 @@ class CaseMessageController extends Controller
         ], 201);
     }
 
+    #[OA\Get(
+        path: '/api/reporter/reports/{report}/messages/{message}/attachments/{attachment}/download',
+        operationId: 'downloadReporterCaseMessageAttachment',
+        summary: 'Download a reporter secure-message attachment',
+        tags: ['Reporter Workspace'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'report', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'message', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'attachment', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Attachment download stream.'),
+            new OA\Response(response: 403, description: 'Reporter access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Message or attachment not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+        ]
+    )]
     public function reporterDownload(
         Request $request,
         Report $report,
@@ -76,6 +132,21 @@ class CaseMessageController extends Controller
         );
     }
 
+    #[OA\Get(
+        path: '/api/workflow/cases/{caseFile}/messages',
+        operationId: 'listWorkflowCaseMessages',
+        summary: 'Get workflow secure communication thread',
+        tags: ['Workflow'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Workflow secure communication thread returned.', content: new OA\JsonContent(ref: '#/components/schemas/CaseMessageConversationResponse')),
+            new OA\Response(response: 403, description: 'Internal role access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Workflow case not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+        ]
+    )]
     public function workflowIndex(
         Request $request,
         CaseFile $caseFile,
@@ -94,6 +165,29 @@ class CaseMessageController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: '/api/workflow/cases/{caseFile}/messages',
+        operationId: 'storeWorkflowCaseMessage',
+        summary: 'Send an internal secure message on a workflow case',
+        tags: ['Workflow'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(ref: '#/components/schemas/CaseMessageStoreRequest')
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Secure message sent.', content: new OA\JsonContent(ref: '#/components/schemas/CaseMessageMutationResponse')),
+            new OA\Response(response: 403, description: 'Internal role access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Workflow case not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+            new OA\Response(response: 422, description: 'Only the assigned active handler may send a message.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+        ]
+    )]
     public function workflowStore(
         StoreCaseMessageRequest $request,
         CaseFile $caseFile,
@@ -112,6 +206,23 @@ class CaseMessageController extends Controller
         ], 201);
     }
 
+    #[OA\Get(
+        path: '/api/workflow/cases/{caseFile}/messages/{message}/attachments/{attachment}/download',
+        operationId: 'downloadWorkflowCaseMessageAttachment',
+        summary: 'Download an internal secure-message attachment',
+        tags: ['Workflow'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'caseFile', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'message', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'attachment', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Attachment download stream.'),
+            new OA\Response(response: 403, description: 'Internal role access required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Message or attachment not found.', content: new OA\JsonContent(ref: '#/components/schemas/NotFoundResponse')),
+        ]
+    )]
     public function workflowDownload(
         Request $request,
         CaseFile $caseFile,
