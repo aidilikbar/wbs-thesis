@@ -3,15 +3,15 @@ import { GovernanceDashboard } from "@/components/governance-dashboard";
 import { PageIntro } from "@/components/page-intro";
 
 export const metadata = {
-  title: "Governance Dashboard",
+  title: "Operational Oversight Dashboard",
 };
 
 export default function GovernancePage() {
   return (
     <AppShell>
       <PageIntro
-        eyebrow="Governance and Integrity"
-        title="Operational dashboard for governance action"
+        eyebrow="Oversight and Integrity"
+        title="Operational Oversight Dashboard"
         description="Use global signals to read the condition of the system, then move into role-specific KPIs and hierarchy-based workload to decide the next action."
         titleClassName="text-5xl"
       />

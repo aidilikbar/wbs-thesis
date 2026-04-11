@@ -31,7 +31,7 @@ function navForRole(role?: string | null): NavItem[] {
 
   if (role && isInternalRole(role)) {
     items.push({ href: "/workflow", label: "Workflow" });
-    items.push({ href: "/governance", label: "Governance" });
+    items.push({ href: "/governance", label: "Oversight" });
   }
 
   if (role && isSystemAdministrator(role)) {
@@ -181,7 +181,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 KPK Whistleblowing System
               </p>
               <p className="max-w-2xl leading-7">
-                Thesis prototype aligned to the KPK whistleblowing business process, with governance-oriented enterprise architecture concerns built directly into the user interface and workflow model.
+                Thesis prototype aligned to the KPK whistleblowing business process, with operational oversight and enterprise architecture concerns built directly into the user interface and workflow model.
               </p>
             </div>
 

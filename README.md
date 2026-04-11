@@ -36,8 +36,8 @@ wbs-thesis/
 └── README.md
 ```
 
-- `frontend`: Next.js 16 application for reporter, workflow, governance, and admin UI
-- `backend`: Laravel 13 API for authentication, workflow, governance, audit, and attachments
+- `frontend`: Next.js 16 application for reporter, workflow, oversight, and admin UI
+- `backend`: Laravel 13 API for authentication, workflow, oversight, audit, and attachments
 - `docs`: supporting architecture, API, and test-case documentation
 - `docker-compose.yml`: local MinIO and optional Redis services
 

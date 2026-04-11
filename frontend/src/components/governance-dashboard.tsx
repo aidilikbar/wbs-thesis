@@ -102,7 +102,7 @@ export function GovernanceDashboard() {
   if (!isReady) {
     return (
       <div className="panel rounded-[1rem] p-8">
-        <p className="text-sm text-[var(--muted)]">Loading governance session.</p>
+        <p className="text-sm text-[var(--muted)]">Loading oversight session.</p>
       </div>
     );
   }
@@ -114,7 +114,7 @@ export function GovernanceDashboard() {
           <p className="eyebrow">Restricted Oversight</p>
           <h2 className="mt-4 text-3xl">Internal role access required</h2>
           <p className="muted mt-4 text-sm leading-7">
-            Governance and integrity indicators are available only to internal KPK roles.
+            Oversight and integrity indicators are available only to internal KPK roles.
           </p>
           <Link href="/login" className="primary-button mt-6">
             Login
@@ -172,14 +172,14 @@ export function GovernanceDashboard() {
     <div className="space-y-6">
       {usingFallback ? (
         <p className="inline-flex rounded-[0.45rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-2 text-sm text-[var(--secondary-strong)]">
-          Backend unavailable. Showing seeded governance data for interface review.
+          Backend unavailable. Showing seeded oversight data for interface review.
         </p>
       ) : null}
 
       <section className="panel rounded-[1rem] p-8">
         <div className="grid gap-6 xl:grid-cols-[0.52fr_0.48fr]">
           <div>
-            <p className="eyebrow">Global Governance Picture</p>
+            <p className="eyebrow">Global Oversight Picture</p>
             <h2 className="mt-4 text-4xl">Act from live queue and integrity signals</h2>
             <p className="muted mt-4 max-w-3xl text-sm leading-7">
               The global section shows the condition of the whistleblowing system as a
@@ -518,7 +518,7 @@ export function GovernanceDashboard() {
       <section className="grid gap-6 xl:grid-cols-[0.56fr_0.44fr]">
         <div className="panel rounded-[1rem] p-8">
           <p className="eyebrow">Control Integrity</p>
-          <h2 className="mt-4 text-3xl">Governance controls to monitor</h2>
+          <h2 className="mt-4 text-3xl">Controls to monitor</h2>
           <div className="mt-6 grid gap-4">
             {dashboard.global.controls.map((control) => (
               <article

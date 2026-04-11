@@ -33,7 +33,7 @@ The current prototype should be validated across these areas:
 - public tracking using `Public Reference` and `Tracking Token`
 - internal workflow handling across screening, verification, investigation, approval, and final decision
 - secure communication between reporter and assigned internal officer during active handling stages
-- governance dashboard visibility by role
+- operational oversight dashboard visibility by role
 - system administrator account management
 - PDF export for completed cases
 
