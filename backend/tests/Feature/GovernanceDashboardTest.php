@@ -184,6 +184,49 @@ class GovernanceDashboardTest extends TestCase
         $this->assertTrue($scopeRoles->contains(User::ROLE_DIRECTOR));
     }
 
+    public function test_system_administrator_sees_expected_governance_action_cards(): void
+    {
+        $systemAdministrator = $this->createUser(
+            'System Administrator',
+            'sysadmin@example.test',
+            User::ROLE_SYSTEM_ADMINISTRATOR,
+            'System Administration'
+        );
+
+        GovernanceControl::query()->create([
+            'code' => 'CTRL-01',
+            'name' => 'User readiness',
+            'description' => 'Track internal account readiness.',
+            'owner_role' => 'System Administrator',
+            'status' => 'warning',
+            'target_metric' => 'All internal users active',
+            'current_metric' => '1 inactive account',
+        ]);
+
+        User::query()->create([
+            'name' => 'Inactive Investigator',
+            'email' => 'inactive.investigator@example.test',
+            'phone' => '+62-812-0000-0002',
+            'role' => User::ROLE_INVESTIGATOR,
+            'unit' => 'Investigation Desk',
+            'is_active' => false,
+            'password' => 'Password123',
+        ]);
+
+        Sanctum::actingAs($systemAdministrator, [$systemAdministrator->role]);
+
+        $response = $this->getJson('/api/governance/dashboard');
+
+        $response->assertOk()
+            ->assertJsonPath('data.specific.role', User::ROLE_SYSTEM_ADMINISTRATOR)
+            ->assertJsonPath('data.specific.action_items.0.title', 'Review control exceptions')
+            ->assertJsonPath('data.specific.action_items.1.title', 'Manage inactive internal users')
+            ->assertJsonPath('data.specific.action_items.2.title', 'Inspect recent audit activity')
+            ->assertJsonPath('data.specific.action_items.1.href', '/admin');
+
+        $this->assertSame([], $response->json('data.specific.scope_rows'));
+    }
+
     private function createUser(string $name, string $email, string $role, string $unit): User
     {
         return User::query()->create([
