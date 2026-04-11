@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { api } from "@/lib/api";
-import { demoTrackingRecord } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
 import { getStageLabel, normalizeWorkflowCopy } from "@/lib/labels";
 import type { TrackingRecord } from "@/lib/types";
@@ -16,6 +15,7 @@ export function TrackingWorkbench() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
+    setRecord(null);
     const formData = new FormData(event.currentTarget);
     const reference = String(formData.get("reference") ?? "");
     const token = String(formData.get("token") ?? "");
@@ -25,11 +25,11 @@ export function TrackingWorkbench() {
         const data = await api.trackReport({ reference, token });
         setRecord(data);
       } catch (error) {
-        setRecord(demoTrackingRecord);
+        setRecord(null);
         setMessage(
           error instanceof Error
-            ? `${error.message} Showing a reference tracking record instead.`
-            : "The API is unavailable. Showing a reference tracking record instead.",
+            ? error.message
+            : "The tracking service is currently unavailable. Please try again.",
         );
       }
     });
