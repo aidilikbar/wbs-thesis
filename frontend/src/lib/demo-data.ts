@@ -1401,7 +1401,7 @@ export function demoGovernanceDashboardForRole(
       action_items: [
         {
           title: "Review overdue operational cases",
-          detail: "Focus on anonymized cases that have exceeded the configured KPI budget.",
+          detail: "Focus on cases that have exceeded the configured KPI budget.",
           href: "/governance",
           count: 3,
           tone: "critical" as const,
@@ -1424,7 +1424,7 @@ export function demoGovernanceDashboardForRole(
       scope_rows: [],
       case_rows: [
         {
-          audit_case_id: "AUD-CASE-0031",
+          audit_case_id: "CASE-2026-0031",
           stage: "verification_in_progress",
           stage_label: "Verification in Progress",
           status: "verification_in_progress",
@@ -1441,11 +1441,11 @@ export function demoGovernanceDashboardForRole(
           sla_status: "at_risk",
           sla_status_label: "At risk",
           sla_tone: "warning",
-          verification_kpi: verificationDemoKpi("AUD-CASE-0031", 6.8, "warning", 3, 5, 1, 0),
+          verification_kpi: verificationDemoKpi("CASE-2026-0031", 6.8, "warning", 3, 5, 1, 0),
           investigation_kpi: null,
         },
         {
-          audit_case_id: "AUD-CASE-0038",
+          audit_case_id: "CASE-2026-0038",
           stage: "investigation_in_progress",
           stage_label: "Investigation in Progress",
           status: "investigation_in_progress",
@@ -1462,11 +1462,11 @@ export function demoGovernanceDashboardForRole(
           sla_status: "overdue",
           sla_status_label: "Overdue",
           sla_tone: "critical",
-          verification_kpi: verificationDemoKpi("AUD-CASE-0038", 7.3, "warning", 0, 1, 0, 0),
-          investigation_kpi: investigationDemoKpi("AUD-CASE-0038", 41.6, "critical", 4, 5, 1, 1),
+          verification_kpi: verificationDemoKpi("CASE-2026-0038", 7.3, "warning", 0, 1, 0, 0),
+          investigation_kpi: investigationDemoKpi("CASE-2026-0038", 41.6, "critical", 4, 5, 1, 1),
         },
         {
-          audit_case_id: "AUD-CASE-0036",
+          audit_case_id: "CASE-2026-0036",
           stage: "director_review",
           stage_label: "Director Review",
           status: "director_review",
@@ -1483,8 +1483,8 @@ export function demoGovernanceDashboardForRole(
           sla_status: "on_track",
           sla_status_label: "On track",
           sla_tone: "normal",
-          verification_kpi: verificationDemoKpi("AUD-CASE-0036", 5.2, "normal", 0, 1, 0, 0),
-          investigation_kpi: investigationDemoKpi("AUD-CASE-0036", 35.5, "warning", 2, 9, 1, 0),
+          verification_kpi: verificationDemoKpi("CASE-2026-0036", 5.2, "normal", 0, 1, 0, 0),
+          investigation_kpi: investigationDemoKpi("CASE-2026-0036", 35.5, "warning", 2, 9, 1, 0),
         },
       ],
     },
@@ -1504,7 +1504,7 @@ export function demoGovernanceDashboardForRole(
             ...log,
             actor_name: null,
             context: {
-              case_reference: `AUD-CASE-00${index + 31}`,
+              case_reference: `CASE-2026-00${index + 31}`,
               stage:
                 index === 0
                   ? "director_review"

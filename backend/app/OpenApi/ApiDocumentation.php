@@ -837,7 +837,7 @@ use OpenApi\Attributes as OA;
     schema: 'GovernanceAuditorCaseRow',
     type: 'object',
     properties: [
-        new OA\Property(property: 'audit_case_id', type: 'string', example: 'AUD-CASE-0001'),
+        new OA\Property(property: 'audit_case_id', type: 'string', example: 'CASE-2026-0001'),
         new OA\Property(property: 'stage', type: 'string', example: 'investigation_in_progress'),
         new OA\Property(property: 'stage_label', type: 'string', example: 'Investigation in Progress'),
         new OA\Property(property: 'status', type: 'string', nullable: true, example: 'investigation_in_progress'),

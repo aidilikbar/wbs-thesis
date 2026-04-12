@@ -555,7 +555,7 @@ export function GovernanceDashboard() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="eyebrow">
-              {dashboard.specific.case_rows?.length ? "Anonymized Case Monitoring" : "Specific Scope"}
+              {dashboard.specific.case_rows?.length ? "Case Monitoring" : "Specific Scope"}
             </p>
             <h2 className="mt-4 text-3xl">
               {dashboard.specific.case_rows?.length
@@ -585,7 +585,7 @@ export function GovernanceDashboard() {
                     setCaseSearch(event.target.value);
                     setCasePage(1);
                   }}
-                  placeholder="Search anonymized case ID, stage, role, unit, or SLA"
+                  placeholder="Search case number, stage, role, unit, or SLA"
                 />
               </label>
               <div className="outline-panel rounded-[0.85rem] px-5 py-4">
@@ -593,8 +593,8 @@ export function GovernanceDashboard() {
                   Auditor boundary
                 </p>
                 <p className="mt-3 text-sm leading-6">
-                  Auditor sees anonymized workflow identifiers, stage timestamps, assigned
-                  role or unit, KPI utilization, and audit metadata only. Complaint content,
+                  Auditor sees case numbers, stage timestamps, assigned role or unit, KPI
+                  utilization, and audit metadata only. Complaint content,
                   whistleblower identity, evidence, and internal notes remain hidden.
                 </p>
               </div>

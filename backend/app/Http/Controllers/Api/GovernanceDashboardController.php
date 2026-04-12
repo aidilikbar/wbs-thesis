@@ -778,7 +778,7 @@ class GovernanceDashboardController extends Controller
         [$slaStatus, $slaStatusLabel, $slaTone] = $this->auditorSlaStatus($caseFile, $verificationKpi, $investigationKpi);
 
         return [
-            'audit_case_id' => $this->anonymizedCaseReference($caseFile),
+            'audit_case_id' => $caseFile->case_number,
             'stage' => $caseFile->stage,
             'stage_label' => config("wbs.case_stages.{$caseFile->stage}", $caseFile->stage),
             'status' => $caseFile->report?->status,
@@ -817,7 +817,7 @@ class GovernanceDashboardController extends Controller
             'at_risk_case_count' => $utilizationPercent >= 80 && $utilizationPercent <= 100 ? 1 : 0,
             'overdue_case_count' => $utilizationPercent > 100 ? 1 : 0,
             'average_elapsed_working_hours' => (float) ($snapshot['elapsed_working_hours'] ?? 0),
-            'focus_case_number' => $this->anonymizedCaseReference($caseFile),
+            'focus_case_number' => $caseFile->case_number,
             'focus_case_title' => null,
             'focus_status' => $snapshot['status'] ?? 'in_progress',
             'focus_elapsed_working_hours' => (float) ($snapshot['elapsed_working_hours'] ?? 0),
@@ -853,22 +853,12 @@ class GovernanceDashboardController extends Controller
         $caseFile = $log->caseFile;
 
         return array_filter([
-            'case_reference' => $caseFile ? $this->anonymizedCaseReference($caseFile) : $this->anonymizedCaseReferenceFromId($log->case_file_id),
+            'case_reference' => $caseFile?->case_number,
             'stage' => $caseFile?->stage,
             'status' => $caseFile?->report?->status,
             'assigned_role' => $caseFile?->current_role,
             'assigned_unit' => $caseFile?->assigned_unit,
         ], fn ($value) => $value !== null && $value !== '');
-    }
-
-    private function anonymizedCaseReference(CaseFile $caseFile): string
-    {
-        return $this->anonymizedCaseReferenceFromId($caseFile->id);
-    }
-
-    private function anonymizedCaseReferenceFromId(?int $caseFileId): string
-    {
-        return sprintf('AUD-CASE-%04d', (int) $caseFileId);
     }
 
     /**
