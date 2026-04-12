@@ -8,6 +8,7 @@ export const roleLabels: Record<UserRole, string> = {
   investigator: "Investigator",
   director: "Director",
   system_administrator: "System Administrator",
+  auditor: "Auditor",
 };
 
 export const stageLabels: Record<string, string> = {

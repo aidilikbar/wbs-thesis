@@ -99,7 +99,7 @@ export function AdminCreateUserForm() {
     <div className="grid gap-6 xl:grid-cols-[0.72fr_0.28fr]">
       <form className="panel rounded-[1rem] p-8" onSubmit={handleSubmit}>
         <p className="eyebrow">Create Internal User</p>
-        <h2 className="mt-4 text-4xl">Provision a workflow role account</h2>
+        <h2 className="mt-4 text-4xl">Provision an internal role account</h2>
         <p className="muted mt-5 max-w-3xl text-sm leading-7">
           Create a dedicated account for a KPK internal role. Reporter accounts remain self-registered and should not be created from this workspace.
         </p>
@@ -205,7 +205,7 @@ export function AdminCreateUserForm() {
           Provisioning Checklist
         </p>
         <ul className="mt-5 space-y-4 text-sm leading-7 text-white/72">
-          <li>Assign only internal workflow or administration roles from this screen.</li>
+          <li>Assign only internal workflow, audit, or administration roles from this screen.</li>
           <li>Set the operational unit that should appear in the user directory and case ownership views.</li>
           <li>After submission, the workflow account will be available from the admin index immediately.</li>
         </ul>

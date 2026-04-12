@@ -30,6 +30,7 @@ return [
         'investigator' => 'Investigator',
         'director' => 'Director',
         'system_administrator' => 'System Administrator',
+        'auditor' => 'Auditor',
     ],
     'internal_roles' => [
         'supervisor_of_verificator',
@@ -38,6 +39,7 @@ return [
         'investigator',
         'director',
         'system_administrator',
+        'auditor',
     ],
     'default_units' => [
         'reporter' => 'Reporter',
@@ -47,6 +49,7 @@ return [
         'investigator' => 'Investigation Desk',
         'director' => 'Directorate of Public Reports and Complaints',
         'system_administrator' => 'System Administration',
+        'auditor' => 'Internal Audit',
     ],
     'categories' => [
         'kpk_report' => 'KPK whistleblowing report',

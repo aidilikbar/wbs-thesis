@@ -7,6 +7,16 @@ const internalRoles: UserRole[] = [
   "investigator",
   "director",
   "system_administrator",
+  "auditor",
+];
+
+const workflowRoles: UserRole[] = [
+  "supervisor_of_verificator",
+  "verificator",
+  "supervisor_of_investigator",
+  "investigator",
+  "director",
+  "system_administrator",
 ];
 
 export function isReporter(role?: string | null): role is "reporter" {
@@ -15,6 +25,10 @@ export function isReporter(role?: string | null): role is "reporter" {
 
 export function isInternalRole(role?: string | null): role is UserRole {
   return internalRoles.includes(role as UserRole);
+}
+
+export function isWorkflowUser(role?: string | null): role is UserRole {
+  return workflowRoles.includes(role as UserRole);
 }
 
 export function isSystemAdministrator(role?: string | null): role is "system_administrator" {
@@ -30,8 +44,16 @@ export function roleHomePath(role?: string | null): string {
     return "/admin";
   }
 
-  if (role && isInternalRole(role)) {
+  if (role === "auditor") {
+    return "/governance";
+  }
+
+  if (role && isWorkflowUser(role)) {
     return "/workflow";
+  }
+
+  if (role && isInternalRole(role)) {
+    return "/governance";
   }
 
   return "/";

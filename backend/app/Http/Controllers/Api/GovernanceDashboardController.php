@@ -58,7 +58,17 @@ class GovernanceDashboardController extends Controller
             ->orderBy('name')
             ->get();
         $controls = GovernanceControl::query()->orderBy('code')->get();
-        $recentAuditLogs = AuditLog::query()->latest('happened_at')->limit(8)->get();
+        $recentAuditLogs = AuditLog::query()
+            ->with(['caseFile.report'])
+            ->latest('happened_at')
+            ->limit($user->hasRole(User::ROLE_AUDITOR) ? 32 : 8)
+            ->get();
+        $displayAuditLogs = $user->hasRole(User::ROLE_AUDITOR)
+            ? $recentAuditLogs
+                ->filter(fn (AuditLog $log) => $log->case_file_id && $log->actor_role !== User::ROLE_REPORTER)
+                ->take(8)
+                ->values()
+            : $recentAuditLogs;
 
         $triagedCases = $caseFiles->filter(fn (CaseFile $caseFile) => $caseFile->triaged_at && $caseFile->report?->submitted_at);
 
@@ -125,7 +135,7 @@ class GovernanceDashboardController extends Controller
                         ['label' => 'Investigation approvals', 'value' => $caseFiles->where('stage', 'investigation_review')->count()],
                         ['label' => 'Director approvals', 'value' => $caseFiles->where('stage', 'director_review')->count()],
                     ],
-                    'action_items' => $this->buildGlobalActionItems($caseFiles),
+                    'action_items' => $this->buildGlobalActionItems($caseFiles, $user),
                     'controls' => $controls->map(fn (GovernanceControl $control) => [
                         'code' => $control->code,
                         'name' => $control->name,
@@ -136,13 +146,10 @@ class GovernanceDashboardController extends Controller
                         'current_metric' => $control->current_metric,
                         'notes' => $control->notes,
                     ])->values()->all(),
-                    'recent_audit_logs' => $recentAuditLogs->map(fn (AuditLog $log) => [
-                        'action' => $log->action,
-                        'actor_role' => $log->actor_role,
-                        'actor_name' => $log->actor_name,
-                        'happened_at' => $log->happened_at?->toISOString(),
-                        'context' => $log->context,
-                    ])->values()->all(),
+                    'recent_audit_logs' => $displayAuditLogs
+                        ->map(fn (AuditLog $log) => $this->transformAuditLog($log, $user))
+                        ->values()
+                        ->all(),
                 ],
                 'specific' => $this->buildSpecificSection(
                     $user,
@@ -152,45 +159,47 @@ class GovernanceDashboardController extends Controller
                     $caseFiles,
                     $casePhaseKpis,
                     $controls,
-                    $recentAuditLogs
+                    $displayAuditLogs
                 ),
             ],
         ]);
     }
 
-    private function buildGlobalActionItems(Collection $caseFiles): array
+    private function buildGlobalActionItems(Collection $caseFiles, User $viewer): array
     {
         $submitted = $caseFiles->where('stage', 'submitted')->count();
         $verificationReview = $caseFiles->where('stage', 'verification_review')->count();
         $investigationReview = $caseFiles->where('stage', 'investigation_review')->count();
         $directorReview = $caseFiles->where('stage', 'director_review')->count();
+        $workflowHref = $viewer->canAccessWorkflow() ? '/workflow' : '/governance';
+        $approvalHref = $viewer->canAccessWorkflow() ? '/workflow/approvals' : '/governance';
 
         return [
             [
                 'title' => 'Assign new verification intake',
                 'detail' => 'Submitted reports should be delegated to a verification officer without delay.',
-                'href' => '/workflow',
+                'href' => $workflowHref,
                 'count' => $submitted,
                 'tone' => $this->toneForCount($submitted, 2, 5),
             ],
             [
                 'title' => 'Resolve verification approvals',
                 'detail' => 'Supervisor approval is pending before cases can move into investigation.',
-                'href' => '/workflow/approvals',
+                'href' => $approvalHref,
                 'count' => $verificationReview,
                 'tone' => $this->toneForCount($verificationReview, 2, 4),
             ],
             [
                 'title' => 'Resolve investigation approvals',
                 'detail' => 'Supervisor approval is blocking the final director decision flow.',
-                'href' => '/workflow/approvals',
+                'href' => $approvalHref,
                 'count' => $investigationReview,
                 'tone' => $this->toneForCount($investigationReview, 2, 4),
             ],
             [
                 'title' => 'Close director review backlog',
                 'detail' => 'Final director decisions should not remain pending longer than necessary.',
-                'href' => '/workflow/approvals',
+                'href' => $approvalHref,
                 'count' => $directorReview,
                 'tone' => $this->toneForCount($directorReview, 1, 3),
             ],
@@ -213,6 +222,10 @@ class GovernanceDashboardController extends Controller
         $viewerActionCount = $this->casesAwaitingViewerAction($user, $caseFiles)->count();
         $subordinateRows = collect($scopeRows)->reject(fn (array $row) => $row['is_self']);
         $subordinateBacklog = $subordinateRows->sum(fn (array $row) => $row['pending_queue'] + $row['pending_approvals']);
+
+        if ($user->role === User::ROLE_AUDITOR) {
+            return $this->buildAuditorSpecificSection($user, $caseFiles, $casePhaseKpis, $recentAuditLogs);
+        }
 
         if ($user->role === User::ROLE_SYSTEM_ADMINISTRATOR) {
             $inactiveInternalUsers = User::query()
@@ -462,6 +475,29 @@ class GovernanceDashboardController extends Controller
                     'tone' => 'normal',
                 ],
             ],
+            User::ROLE_AUDITOR => [
+                [
+                    'title' => 'Review overdue operational cases',
+                    'detail' => 'Focus on anonymized cases that have exceeded the configured KPI budget.',
+                    'href' => '/governance',
+                    'count' => $this->countOverdueCases($caseFiles, $casePhaseKpis),
+                    'tone' => $this->toneForCount($this->countOverdueCases($caseFiles, $casePhaseKpis), 1, 3),
+                ],
+                [
+                    'title' => 'Inspect verification cycle drift',
+                    'detail' => 'Watch cases approaching or breaching the verification working-day budget.',
+                    'href' => '/governance',
+                    'count' => $this->countCasesByPhaseTone($caseFiles, $casePhaseKpis, 'verification', ['warning', 'critical']),
+                    'tone' => $this->toneForCount($this->countCasesByPhaseTone($caseFiles, $casePhaseKpis, 'verification', ['warning', 'critical']), 1, 3),
+                ],
+                [
+                    'title' => 'Inspect recent workflow audit evidence',
+                    'detail' => 'Review metadata-only audit events to confirm operational traceability remains current.',
+                    'href' => '/governance',
+                    'count' => $recentAuditLogs->count(),
+                    'tone' => 'normal',
+                ],
+            ],
             default => [],
         };
     }
@@ -475,8 +511,11 @@ class GovernanceDashboardController extends Controller
             User::ROLE_SUPERVISOR_OF_INVESTIGATOR => $internalUsers->filter(
                 fn (User $subject) => $subject->id === $user->id || $subject->role === User::ROLE_INVESTIGATOR
             ),
-            User::ROLE_DIRECTOR => $internalUsers,
+            User::ROLE_DIRECTOR => $internalUsers->reject(
+                fn (User $subject) => $subject->role === User::ROLE_AUDITOR
+            ),
             User::ROLE_SYSTEM_ADMINISTRATOR => collect([$user]),
+            User::ROLE_AUDITOR => collect([$user]),
             default => $internalUsers->where('id', $user->id),
         };
 
@@ -571,6 +610,7 @@ class GovernanceDashboardController extends Controller
             User::ROLE_INVESTIGATOR => 'Your own investigation workload, timeliness, and completion performance.',
             User::ROLE_DIRECTOR => 'Your final approval responsibilities plus the broader internal workload across the whistleblowing process.',
             User::ROLE_SYSTEM_ADMINISTRATOR => 'Platform readiness, control health, and audit visibility across the whole environment.',
+            User::ROLE_AUDITOR => 'Read-only monitoring of operational KPI, SLA utilization, and workflow audit metadata without confidential case content.',
             default => 'Your role-scoped governance indicators.',
         };
     }
@@ -671,6 +711,210 @@ class GovernanceDashboardController extends Controller
         ];
     }
 
+    private function buildAuditorSpecificSection(
+        User $user,
+        Collection $caseFiles,
+        array $casePhaseKpis,
+        Collection $recentAuditLogs,
+    ): array {
+        $operationalCases = $caseFiles
+            ->filter(fn (CaseFile $caseFile) => $caseFile->current_role !== User::ROLE_SYSTEM_ADMINISTRATOR)
+            ->values();
+        $openOperationalCases = $operationalCases->where('stage', '!=', 'completed');
+
+        return [
+            'role' => $user->role,
+            'role_label' => $user->role_label,
+            'scope_label' => 'Read-only view of anonymized operational workflow KPI, SLA drift, and audit trace metadata across internal officers.',
+            'metrics' => [
+                [
+                    'label' => 'Monitored operational cases',
+                    'value' => $openOperationalCases->count(),
+                    'detail' => 'Open workflow cases currently monitored in anonymized form.',
+                    'tone' => 'normal',
+                ],
+                [
+                    'label' => 'Overdue operational cases',
+                    'value' => $this->countOverdueCases($operationalCases, $casePhaseKpis),
+                    'detail' => 'Cases whose active operational phase has exceeded the configured KPI budget.',
+                    'tone' => $this->toneForCount($this->countOverdueCases($operationalCases, $casePhaseKpis), 1, 3),
+                ],
+                [
+                    'label' => 'Avg verification cycle',
+                    'value' => $this->averagePhaseElapsedHours($operationalCases, $casePhaseKpis, 'verification').' h',
+                    'detail' => 'Average working-hour elapsed time across verification phase snapshots.',
+                    'tone' => 'normal',
+                ],
+                [
+                    'label' => 'Avg investigation cycle',
+                    'value' => $this->averagePhaseElapsedHours($operationalCases, $casePhaseKpis, 'investigation').' h',
+                    'detail' => 'Average working-hour elapsed time across investigation phase snapshots.',
+                    'tone' => 'normal',
+                ],
+            ],
+            'action_items' => $this->buildSpecificActionItems(
+                $user,
+                $operationalCases,
+                $casePhaseKpis,
+                [],
+                collect(),
+                collect(),
+                $recentAuditLogs
+            ),
+            'scope_rows' => [],
+            'case_rows' => $operationalCases
+                ->sortByDesc(fn (CaseFile $caseFile) => $caseFile->last_activity_at?->getTimestamp() ?? 0)
+                ->values()
+                ->map(fn (CaseFile $caseFile) => $this->buildAuditorCaseRow($caseFile, $casePhaseKpis))
+                ->all(),
+        ];
+    }
+
+    private function buildAuditorCaseRow(CaseFile $caseFile, array $casePhaseKpis): array
+    {
+        $milestones = $this->operationalKpiService->buildCaseStageMilestones($caseFile);
+        $verificationKpi = $this->sanitizePhaseSnapshotForAuditor($casePhaseKpis[$caseFile->id]['verification'] ?? null, $caseFile);
+        $investigationKpi = $this->sanitizePhaseSnapshotForAuditor($casePhaseKpis[$caseFile->id]['investigation'] ?? null, $caseFile);
+        [$slaStatus, $slaStatusLabel, $slaTone] = $this->auditorSlaStatus($caseFile, $verificationKpi, $investigationKpi);
+
+        return [
+            'audit_case_id' => $this->anonymizedCaseReference($caseFile),
+            'stage' => $caseFile->stage,
+            'stage_label' => config("wbs.case_stages.{$caseFile->stage}", $caseFile->stage),
+            'status' => $caseFile->report?->status,
+            'current_role' => $caseFile->current_role,
+            'current_role_label' => config("wbs.roles.{$caseFile->current_role}", $caseFile->current_role),
+            'assigned_unit' => $caseFile->assigned_unit,
+            'submitted_at' => $milestones['submitted_at'],
+            'verification_started_at' => $milestones['verification_started_at'],
+            'verification_completed_at' => $milestones['verification_completed_at'],
+            'investigation_started_at' => $milestones['investigation_started_at'],
+            'investigation_completed_at' => $milestones['investigation_completed_at'],
+            'director_decided_at' => $milestones['director_decided_at'],
+            'last_activity_at' => $caseFile->last_activity_at?->toISOString(),
+            'sla_status' => $slaStatus,
+            'sla_status_label' => $slaStatusLabel,
+            'sla_tone' => $slaTone,
+            'verification_kpi' => $verificationKpi,
+            'investigation_kpi' => $investigationKpi,
+        ];
+    }
+
+    private function sanitizePhaseSnapshotForAuditor(?array $snapshot, CaseFile $caseFile): ?array
+    {
+        if (! is_array($snapshot)) {
+            return null;
+        }
+
+        $snapshot['case_number'] = $this->anonymizedCaseReference($caseFile);
+        $snapshot['focus_case_number'] = $this->anonymizedCaseReference($caseFile);
+        $snapshot['case_title'] = null;
+        $snapshot['focus_case_title'] = null;
+
+        return $snapshot;
+    }
+
+    private function transformAuditLog(AuditLog $log, User $viewer): array
+    {
+        if ($viewer->hasRole(User::ROLE_AUDITOR)) {
+            return [
+                'action' => $log->action,
+                'actor_role' => $log->actor_role,
+                'actor_name' => null,
+                'happened_at' => $log->happened_at?->toISOString(),
+                'context' => $this->sanitizeAuditContextForAuditor($log),
+            ];
+        }
+
+        return [
+            'action' => $log->action,
+            'actor_role' => $log->actor_role,
+            'actor_name' => $log->actor_name,
+            'happened_at' => $log->happened_at?->toISOString(),
+            'context' => $log->context ?? [],
+        ];
+    }
+
+    private function sanitizeAuditContextForAuditor(AuditLog $log): array
+    {
+        $caseFile = $log->caseFile;
+
+        return array_filter([
+            'case_reference' => $caseFile ? $this->anonymizedCaseReference($caseFile) : $this->anonymizedCaseReferenceFromId($log->case_file_id),
+            'stage' => $caseFile?->stage,
+            'status' => $caseFile?->report?->status,
+            'assigned_role' => $caseFile?->current_role,
+            'assigned_unit' => $caseFile?->assigned_unit,
+        ], fn ($value) => $value !== null && $value !== '');
+    }
+
+    private function anonymizedCaseReference(CaseFile $caseFile): string
+    {
+        return $this->anonymizedCaseReferenceFromId($caseFile->id);
+    }
+
+    private function anonymizedCaseReferenceFromId(?int $caseFileId): string
+    {
+        return sprintf('AUD-CASE-%04d', (int) $caseFileId);
+    }
+
+    /**
+     * @param  list<'normal'|'warning'|'critical'>  $tones
+     */
+    private function countCasesByPhaseTone(Collection $caseFiles, array $casePhaseKpis, string $phase, array $tones): int
+    {
+        return $caseFiles
+            ->filter(function (CaseFile $caseFile) use ($casePhaseKpis, $phase, $tones) {
+                $snapshot = $casePhaseKpis[$caseFile->id][$phase] ?? null;
+
+                return is_array($snapshot) && in_array($snapshot['tone'] ?? 'normal', $tones, true);
+            })
+            ->count();
+    }
+
+    private function averagePhaseElapsedHours(Collection $caseFiles, array $casePhaseKpis, string $phase): string
+    {
+        $phaseSnapshots = $caseFiles
+            ->map(fn (CaseFile $caseFile) => $casePhaseKpis[$caseFile->id][$phase] ?? null)
+            ->filter(fn ($snapshot) => is_array($snapshot))
+            ->values();
+
+        if ($phaseSnapshots->isEmpty()) {
+            return '0';
+        }
+
+        $average = round(
+            $phaseSnapshots->avg(fn (array $snapshot) => (float) ($snapshot['elapsed_working_hours'] ?? 0)),
+            1,
+        );
+
+        return rtrim(rtrim(number_format($average, 1, '.', ''), '0'), '.');
+    }
+
+    /**
+     * @return array{0:'on_track'|'at_risk'|'overdue'|'closed', 1:string, 2:'normal'|'warning'|'critical'}
+     */
+    private function auditorSlaStatus(CaseFile $caseFile, ?array $verificationKpi, ?array $investigationKpi): array
+    {
+        if ($caseFile->stage === 'completed') {
+            return ['closed', 'Closed', 'normal'];
+        }
+
+        $activeSnapshot = match ($this->activeOperationalPhaseForCase($caseFile)) {
+            'verification' => $verificationKpi,
+            'investigation' => $investigationKpi,
+            default => null,
+        };
+
+        $tone = $activeSnapshot['tone'] ?? 'normal';
+
+        return match ($tone) {
+            'critical' => ['overdue', 'Overdue', 'critical'],
+            'warning' => ['at_risk', 'At risk', 'warning'],
+            default => ['on_track', 'On track', 'normal'],
+        };
+    }
+
     private function toneForCount(int $count, int $warningThreshold = 1, int $criticalThreshold = 3): string
     {
         if ($count >= $criticalThreshold) {
@@ -693,6 +937,7 @@ class GovernanceDashboardController extends Controller
             User::ROLE_INVESTIGATOR => 4,
             User::ROLE_DIRECTOR => 5,
             User::ROLE_SYSTEM_ADMINISTRATOR => 6,
+            User::ROLE_AUDITOR => 7,
             default => 99,
         };
     }

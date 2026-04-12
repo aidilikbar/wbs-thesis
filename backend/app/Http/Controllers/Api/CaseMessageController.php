@@ -257,7 +257,7 @@ class CaseMessageController extends Controller
     ): User {
         $user = $request->user();
 
-        abort_unless($user && $user->isInternalUser(), 403, 'Internal role access required.');
+        abort_unless($user && $user->canAccessWorkflow(), 403, 'Workflow role access required.');
         abort_unless($messages->canInternalView($caseFile, $user), 403, 'You do not have access to this secure communication channel.');
 
         return $user;

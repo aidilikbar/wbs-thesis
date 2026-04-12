@@ -10,9 +10,10 @@ import {
 } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
 import { getRoleLabel, normalizeWorkflowCopy } from "@/lib/labels";
-import { isInternalRole } from "@/lib/roles";
+import { isInternalRole, isWorkflowUser } from "@/lib/roles";
 import type {
   GovernanceActionItem,
+  GovernanceAuditorCaseRow,
   GovernanceDashboardData,
   GovernancePhaseKpiSummary,
   GovernanceMetricCard,
@@ -21,6 +22,7 @@ import type {
 import { api } from "@/lib/api";
 
 const scopeRowsPerPage = 10;
+const auditorCaseRowsPerPage = 10;
 
 function metricToneClasses(tone: GovernanceMetricCard["tone"]) {
   if (tone === "critical") {
@@ -60,6 +62,27 @@ function scopeRowMatches(row: GovernanceScopeRow, term: string) {
     .includes(needle);
 }
 
+function auditorCaseRowMatches(row: GovernanceAuditorCaseRow, term: string) {
+  const needle = term.trim().toLowerCase();
+
+  if (needle.length === 0) {
+    return true;
+  }
+
+  return [
+    row.audit_case_id,
+    row.stage_label,
+    row.status,
+    getRoleLabel(row.current_role, row.current_role_label),
+    row.assigned_unit,
+    row.sla_status_label,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(needle);
+}
+
 function formatHours(value: number) {
   const normalized = Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
 
@@ -76,6 +99,18 @@ function kpiBarToneClasses(tone: GovernanceMetricCard["tone"]) {
   }
 
   return "bg-[#2f8f46]";
+}
+
+function slaToneClasses(tone: GovernanceMetricCard["tone"]) {
+  if (tone === "critical") {
+    return "border-[rgba(239,47,39,0.24)] bg-[rgba(239,47,39,0.1)] text-[var(--primary)]";
+  }
+
+  if (tone === "warning") {
+    return "border-[rgba(197,160,34,0.28)] bg-[rgba(197,160,34,0.14)] text-[var(--secondary-strong)]";
+  }
+
+  return "border-[rgba(47,143,70,0.24)] bg-[rgba(47,143,70,0.1)] text-[#25673a]";
 }
 
 function renderKpiCell(kpi: GovernancePhaseKpiSummary | null) {
@@ -186,6 +221,8 @@ export function GovernanceDashboard() {
   const [usingFallback, setUsingFallback] = useState(true);
   const [scopeSearch, setScopeSearch] = useState("");
   const [scopePage, setScopePage] = useState(1);
+  const [caseSearch, setCaseSearch] = useState("");
+  const [casePage, setCasePage] = useState(1);
 
   const isInternalUser = isInternalRole(user?.role);
 
@@ -287,6 +324,39 @@ export function GovernanceDashboard() {
     currentScopePage * scopeRowsPerPage,
     filteredScopeRows.length,
   );
+  const filteredCaseRows = (dashboard.specific.case_rows ?? [])
+    .filter((row) => auditorCaseRowMatches(row, caseSearch))
+    .sort((left, right) => {
+      const leftTimestamp = left.last_activity_at
+        ? new Date(left.last_activity_at).getTime()
+        : 0;
+      const rightTimestamp = right.last_activity_at
+        ? new Date(right.last_activity_at).getTime()
+        : 0;
+
+      if (rightTimestamp !== leftTimestamp) {
+        return rightTimestamp - leftTimestamp;
+      }
+
+      return left.audit_case_id.localeCompare(right.audit_case_id);
+    });
+  const totalCasePages = Math.max(
+    1,
+    Math.ceil(filteredCaseRows.length / auditorCaseRowsPerPage),
+  );
+  const currentCasePage = Math.min(casePage, totalCasePages);
+  const paginatedCaseRows = filteredCaseRows.slice(
+    (currentCasePage - 1) * auditorCaseRowsPerPage,
+    currentCasePage * auditorCaseRowsPerPage,
+  );
+  const caseFrom =
+    filteredCaseRows.length === 0
+      ? 0
+      : (currentCasePage - 1) * auditorCaseRowsPerPage + 1;
+  const caseTo = Math.min(
+    currentCasePage * auditorCaseRowsPerPage,
+    filteredCaseRows.length,
+  );
 
   return (
     <div className="space-y-6">
@@ -334,9 +404,15 @@ export function GovernanceDashboard() {
               <p className="eyebrow">Global Queues</p>
               <h2 className="mt-4 text-3xl">Current workflow pressure</h2>
             </div>
-            <Link href="/workflow" className="ghost-button">
-              Open Workflow
-            </Link>
+            {isWorkflowUser(user?.role) ? (
+              <Link href="/workflow" className="ghost-button">
+                Open Workflow
+              </Link>
+            ) : (
+              <span className="rounded-[0.8rem] border border-[var(--panel-border)] bg-white/72 px-4 py-3 text-sm text-[var(--muted)]">
+                Read-only monitoring
+              </span>
+            )}
           </div>
 
           <div className="mt-6 space-y-4">
@@ -474,20 +550,203 @@ export function GovernanceDashboard() {
       <section className="panel rounded-[1rem] p-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="eyebrow">Specific Scope</p>
-            <h2 className="mt-4 text-3xl">Operational KPI table</h2>
+            <p className="eyebrow">
+              {dashboard.specific.case_rows?.length ? "Anonymized Case Monitoring" : "Specific Scope"}
+            </p>
+            <h2 className="mt-4 text-3xl">
+              {dashboard.specific.case_rows?.length
+                ? "Case KPI and SLA table"
+                : "Operational KPI table"}
+            </h2>
           </div>
           <div className="text-right">
             <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
               Total rows
             </p>
             <p className="mt-2 text-3xl font-semibold">
-              {dashboard.specific.scope_rows.length}
+              {dashboard.specific.case_rows?.length ?? dashboard.specific.scope_rows.length}
             </p>
           </div>
         </div>
 
-        {dashboard.specific.scope_rows.length > 0 ? (
+        {dashboard.specific.case_rows?.length ? (
+          <>
+            <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">Search case monitor</span>
+                <input
+                  className="field"
+                  value={caseSearch}
+                  onChange={(event) => {
+                    setCaseSearch(event.target.value);
+                    setCasePage(1);
+                  }}
+                  placeholder="Search anonymized case ID, stage, role, unit, or SLA"
+                />
+              </label>
+              <div className="outline-panel rounded-[0.85rem] px-5 py-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                  Auditor boundary
+                </p>
+                <p className="mt-3 text-sm leading-6">
+                  Auditor sees anonymized workflow identifiers, stage timestamps, assigned
+                  role or unit, KPI utilization, and audit metadata only. Complaint content,
+                  whistleblower identity, evidence, and internal notes remain hidden.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 overflow-x-auto">
+              <table className="min-w-full border-separate border-spacing-0 text-left">
+                <thead>
+                  <tr className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                    <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                      Case
+                    </th>
+                    <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                      Workflow state
+                    </th>
+                    <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                      Assigned scope
+                    </th>
+                    <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                      Verification time
+                    </th>
+                    <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                      Investigation time
+                    </th>
+                    <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                      Stage timestamps
+                    </th>
+                    <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
+                      SLA
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedCaseRows.length > 0 ? (
+                    paginatedCaseRows.map((row) => (
+                      <tr key={row.audit_case_id} className="align-top">
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          <p className="font-semibold">{row.audit_case_id}</p>
+                          <p className="muted mt-2 text-sm">
+                            Submitted{" "}
+                            {row.submitted_at ? formatDateTime(row.submitted_at) : "not recorded"}
+                          </p>
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          <p className="font-semibold">{row.stage_label}</p>
+                          <p className="muted mt-2 text-sm">
+                            Status: {normalizeWorkflowCopy(row.status ?? "unknown")}
+                          </p>
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          <p>{getRoleLabel(row.current_role, row.current_role_label)}</p>
+                          <p className="muted mt-2 text-sm">
+                            {row.assigned_unit ?? "Unit not set"}
+                          </p>
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          {renderKpiCell(row.verification_kpi)}
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          {renderKpiCell(row.investigation_kpi)}
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          <div className="space-y-2 text-sm text-[var(--muted)]">
+                            <p>
+                              Verification start:{" "}
+                              {row.verification_started_at
+                                ? formatDateTime(row.verification_started_at)
+                                : "Not reached"}
+                            </p>
+                            <p>
+                              Verification close:{" "}
+                              {row.verification_completed_at
+                                ? formatDateTime(row.verification_completed_at)
+                                : "Not reached"}
+                            </p>
+                            <p>
+                              Investigation start:{" "}
+                              {row.investigation_started_at
+                                ? formatDateTime(row.investigation_started_at)
+                                : "Not reached"}
+                            </p>
+                            <p>
+                              Investigation close:{" "}
+                              {row.investigation_completed_at
+                                ? formatDateTime(row.investigation_completed_at)
+                                : "Not reached"}
+                            </p>
+                            <p>
+                              Director decision:{" "}
+                              {row.director_decided_at
+                                ? formatDateTime(row.director_decided_at)
+                                : "Not reached"}
+                            </p>
+                            <p>
+                              Last activity:{" "}
+                              {row.last_activity_at
+                                ? formatDateTime(row.last_activity_at)
+                                : "No recent activity"}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
+                          <span
+                            className={`inline-flex rounded-[0.75rem] border px-3 py-2 text-sm font-semibold ${slaToneClasses(row.sla_tone)}`}
+                          >
+                            {row.sla_status_label}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-4 py-8 text-sm leading-7 text-[var(--muted)]"
+                      >
+                        No case rows match the current search.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--panel-border)] pt-5">
+              <p className="text-sm text-[var(--muted)]">
+                Showing {caseFrom} to {caseTo} of {filteredCaseRows.length} case rows
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                  Page {currentCasePage} of {totalCasePages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCasePage((current) => Math.max(current - 1, 1))}
+                  disabled={currentCasePage <= 1}
+                  className="ghost-button cursor-pointer px-3 py-2 text-[0.65rem] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCasePage((current) =>
+                      Math.min(current + 1, totalCasePages),
+                    )
+                  }
+                  disabled={currentCasePage >= totalCasePages}
+                  className="ghost-button cursor-pointer px-3 py-2 text-[0.65rem] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
+        ) : dashboard.specific.scope_rows.length > 0 ? (
           <>
             <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
               <label className="block">
@@ -511,8 +770,7 @@ export function GovernanceDashboard() {
                     dashboard.specific.role,
                     dashboard.specific.role_label,
                   )}{" "}
-                  sees only the users that fall inside the
-                  configured hierarchy scope.
+                  sees only the users that fall inside the configured hierarchy scope.
                 </p>
               </div>
             </div>
@@ -720,16 +978,20 @@ export function GovernanceDashboard() {
                   </p>
                 </div>
                 <p className="mt-4 text-lg">
-                  {log.actor_name ?? "System"} · {getRoleLabel(log.actor_role)}
+                  {log.actor_name
+                    ? `${log.actor_name} · ${getRoleLabel(log.actor_role)}`
+                    : getRoleLabel(log.actor_role)}
                 </p>
                 <p className="muted mt-3 text-sm leading-6">
-                  {Object.entries(log.context)
-                    .slice(0, 3)
-                    .map(
-                      ([key, value]) =>
-                        `${key.replaceAll("_", " ")}: ${normalizeWorkflowCopy(String(value))}`,
-                    )
-                    .join(" · ")}
+                  {Object.keys(log.context).length > 0
+                    ? Object.entries(log.context)
+                        .slice(0, 3)
+                        .map(
+                          ([key, value]) =>
+                            `${key.replaceAll("_", " ")}: ${normalizeWorkflowCopy(String(value))}`,
+                        )
+                        .join(" · ")
+                    : "Metadata-only audit event."}
                 </p>
               </article>
             ))}

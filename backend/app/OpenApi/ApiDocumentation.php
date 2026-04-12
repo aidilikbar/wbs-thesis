@@ -5,7 +5,7 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
-    version: '0.2.1',
+    version: '0.2.2',
     title: 'KPK Whistleblowing System API',
     description: 'Interactive API documentation for the role-based KPK Whistleblowing System prototype.'
 )]
@@ -834,6 +834,31 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'GovernanceAuditorCaseRow',
+    type: 'object',
+    properties: [
+        new OA\Property(property: 'audit_case_id', type: 'string', example: 'AUD-CASE-0001'),
+        new OA\Property(property: 'stage', type: 'string', example: 'investigation_in_progress'),
+        new OA\Property(property: 'stage_label', type: 'string', example: 'Investigation in Progress'),
+        new OA\Property(property: 'status', type: 'string', nullable: true, example: 'investigation_in_progress'),
+        new OA\Property(property: 'current_role', type: 'string', example: 'investigator'),
+        new OA\Property(property: 'current_role_label', type: 'string', example: 'Investigator'),
+        new OA\Property(property: 'assigned_unit', type: 'string', nullable: true, example: 'Investigation Desk'),
+        new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time', nullable: true, example: '2026-04-10T08:00:00Z'),
+        new OA\Property(property: 'verification_started_at', type: 'string', format: 'date-time', nullable: true, example: '2026-04-10T09:00:00Z'),
+        new OA\Property(property: 'verification_completed_at', type: 'string', format: 'date-time', nullable: true, example: '2026-04-10T14:00:00Z'),
+        new OA\Property(property: 'investigation_started_at', type: 'string', format: 'date-time', nullable: true, example: '2026-04-11T08:00:00Z'),
+        new OA\Property(property: 'investigation_completed_at', type: 'string', format: 'date-time', nullable: true, example: null),
+        new OA\Property(property: 'director_decided_at', type: 'string', format: 'date-time', nullable: true, example: null),
+        new OA\Property(property: 'last_activity_at', type: 'string', format: 'date-time', nullable: true, example: '2026-04-11T13:00:00Z'),
+        new OA\Property(property: 'sla_status', type: 'string', example: 'at_risk'),
+        new OA\Property(property: 'sla_status_label', type: 'string', example: 'At risk'),
+        new OA\Property(property: 'sla_tone', type: 'string', example: 'warning'),
+        new OA\Property(property: 'verification_kpi', ref: '#/components/schemas/GovernancePhaseKpiSummary', nullable: true),
+        new OA\Property(property: 'investigation_kpi', ref: '#/components/schemas/GovernancePhaseKpiSummary', nullable: true),
+    ]
+)]
+#[OA\Schema(
     schema: 'GovernanceDashboardSpecific',
     type: 'object',
     properties: [
@@ -854,6 +879,11 @@ use OpenApi\Attributes as OA;
             property: 'scope_rows',
             type: 'array',
             items: new OA\Items(ref: '#/components/schemas/GovernanceScopeRow')
+        ),
+        new OA\Property(
+            property: 'case_rows',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/GovernanceAuditorCaseRow')
         ),
     ]
 )]

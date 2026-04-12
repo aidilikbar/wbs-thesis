@@ -10,6 +10,7 @@ import {
   isInternalRole,
   isReporter,
   isSystemAdministrator,
+  isWorkflowUser,
 } from "@/lib/roles";
 
 type NavItem = {
@@ -29,8 +30,11 @@ function navForRole(role?: string | null): NavItem[] {
     items.splice(1, 0, { href: "/submit", label: "Reports" });
   }
 
-  if (role && isInternalRole(role)) {
+  if (role && isWorkflowUser(role)) {
     items.push({ href: "/workflow", label: "Workflow" });
+  }
+
+  if (role && isInternalRole(role)) {
     items.push({ href: "/governance", label: "Oversight" });
   }
 

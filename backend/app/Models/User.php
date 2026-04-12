@@ -27,6 +27,7 @@ class User extends Authenticatable
     public const ROLE_INVESTIGATOR = 'investigator';
     public const ROLE_DIRECTOR = 'director';
     public const ROLE_SYSTEM_ADMINISTRATOR = 'system_administrator';
+    public const ROLE_AUDITOR = 'auditor';
 
     /**
      * Get the attributes that should be cast.
@@ -88,5 +89,17 @@ class User extends Authenticatable
     public function isInternalUser(): bool
     {
         return $this->role !== self::ROLE_REPORTER;
+    }
+
+    public function canAccessWorkflow(): bool
+    {
+        return in_array($this->role, [
+            self::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            self::ROLE_VERIFICATOR,
+            self::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            self::ROLE_INVESTIGATOR,
+            self::ROLE_DIRECTOR,
+            self::ROLE_SYSTEM_ADMINISTRATOR,
+        ], true);
     }
 }

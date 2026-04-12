@@ -229,6 +229,123 @@ class GovernanceDashboardTest extends TestCase
         $this->assertSame([], $response->json('data.specific.scope_rows'));
     }
 
+    public function test_auditor_sees_only_anonymized_case_monitoring_and_metadata_only_audit_logs(): void
+    {
+        $auditor = $this->createUser(
+            'Internal Auditor',
+            'auditor@example.test',
+            User::ROLE_AUDITOR,
+            'Internal Audit'
+        );
+        $supervisor = $this->createUser(
+            'Supervisor Verificator',
+            'supervisor.auditor@example.test',
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'Verification Supervision'
+        );
+        $verificator = $this->createUser(
+            'Verificator',
+            'verificator.auditor@example.test',
+            User::ROLE_VERIFICATOR,
+            'Verification Desk'
+        );
+        $investigationSupervisor = $this->createUser(
+            'Supervisor Investigator',
+            'supervisor.investigator.auditor@example.test',
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            'Investigation Supervision'
+        );
+        $investigator = $this->createUser(
+            'Investigator',
+            'investigator.auditor@example.test',
+            User::ROLE_INVESTIGATOR,
+            'Investigation Desk'
+        );
+        $director = $this->createUser(
+            'Director',
+            'director.auditor@example.test',
+            User::ROLE_DIRECTOR,
+            'Directorate of Public Reports and Complaints'
+        );
+        $reporter = $this->createUser(
+            'Named Reporter',
+            'reporter.auditor@example.test',
+            User::ROLE_REPORTER,
+            'Reporter'
+        );
+
+        $submittedAt = Carbon::parse('2026-04-10 08:00:00', 'UTC');
+        $report = Report::query()->create([
+            'uuid' => '00000000-0000-0000-0000-000000009101',
+            'public_reference' => 'WBS-2026-9101',
+            'tracking_token' => 'TRACK9101ABCD',
+            'title' => 'Sensitive complaint title',
+            'category' => 'procurement',
+            'description' => 'Sensitive complaint narrative that must not be exposed to the auditor role.',
+            'severity' => 'not_available',
+            'status' => 'investigation_in_progress',
+            'anonymity_level' => 'identified',
+            'reporter_name' => 'Named Reporter',
+            'reporter_email' => 'reporter.auditor@example.test',
+            'reporter_phone' => '+62-812-0000-0009',
+            'reporter_user_id' => $reporter->id,
+            'submitted_at' => $submittedAt,
+        ]);
+
+        $caseFile = CaseFile::query()->create([
+            'report_id' => $report->id,
+            'case_number' => 'CASE-2026-9101',
+            'stage' => 'investigation_in_progress',
+            'disposition' => 'investigation_in_progress',
+            'assigned_unit' => 'Investigation Desk',
+            'assigned_to' => $investigator->name,
+            'confidentiality_level' => 'identified',
+            'current_role' => User::ROLE_INVESTIGATOR,
+            'notes' => 'Internal note that must remain confidential.',
+            'verification_supervisor_id' => $supervisor->id,
+            'verificator_id' => $verificator->id,
+            'investigation_supervisor_id' => $investigationSupervisor->id,
+            'investigator_id' => $investigator->id,
+            'director_id' => $director->id,
+            'last_activity_at' => Carbon::parse('2026-04-11 13:00:00', 'UTC'),
+            'completed_at' => null,
+        ]);
+
+        $this->recordAudit($report, $caseFile, 'report_submitted', User::ROLE_REPORTER, Carbon::parse('2026-04-10 08:00:00', 'UTC'));
+        $this->recordAudit($report, $caseFile, 'verification_delegated', User::ROLE_SUPERVISOR_OF_VERIFICATOR, Carbon::parse('2026-04-10 09:00:00', 'UTC'));
+        $this->recordAudit($report, $caseFile, 'review_delegated', User::ROLE_SUPERVISOR_OF_INVESTIGATOR, Carbon::parse('2026-04-11 08:00:00', 'UTC'));
+
+        Sanctum::actingAs($auditor, [$auditor->role]);
+
+        $response = $this->getJson('/api/governance/dashboard');
+
+        $response->assertOk()
+            ->assertJsonPath('data.specific.role', User::ROLE_AUDITOR)
+            ->assertJsonPath('data.specific.scope_rows', [])
+            ->assertJsonPath('data.specific.case_rows.0.audit_case_id', sprintf('AUD-CASE-%04d', $caseFile->id))
+            ->assertJsonPath('data.specific.case_rows.0.current_role', User::ROLE_INVESTIGATOR)
+            ->assertJsonPath('data.specific.case_rows.0.assigned_unit', 'Investigation Desk')
+            ->assertJsonPath('data.global.recent_audit_logs.0.actor_name', null);
+
+        $caseRow = $response->json('data.specific.case_rows.0');
+        $recentAuditLogs = collect($response->json('data.global.recent_audit_logs'));
+
+        $this->assertArrayNotHasKey('title', $caseRow);
+        $this->assertArrayNotHasKey('description', $caseRow);
+        $this->assertArrayNotHasKey('reporter', $caseRow);
+        $this->assertArrayNotHasKey('attachments', $caseRow);
+        $this->assertArrayNotHasKey('notes', $caseRow);
+        $this->assertArrayNotHasKey('assigned_to', $caseRow);
+
+        $this->assertTrue($recentAuditLogs->every(fn (array $log) => $log['actor_name'] === null));
+        $this->assertTrue($recentAuditLogs->every(fn (array $log) => ! in_array($log['actor_role'], [User::ROLE_REPORTER], true)));
+        $this->assertTrue($recentAuditLogs->every(function (array $log) {
+            $allowedKeys = ['case_reference', 'stage', 'status', 'assigned_role', 'assigned_unit'];
+
+            return empty(array_diff(array_keys($log['context']), $allowedKeys));
+        }));
+    }
+
     public function test_verification_kpi_counts_only_working_hours_and_honours_holidays(): void
     {
         config()->set('wbs.operational_kpis.timezone', 'UTC');

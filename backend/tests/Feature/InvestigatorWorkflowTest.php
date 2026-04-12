@@ -866,6 +866,54 @@ class InvestigatorWorkflowTest extends TestCase
             ->assertJsonPath('message', 'Only completed cases can be exported as PDF.');
     }
 
+    public function test_auditor_cannot_access_workflow_case_endpoints(): void
+    {
+        $auditor = $this->createUser(
+            User::ROLE_AUDITOR,
+            'auditor.workflow@example.test',
+            'Internal Audit'
+        );
+        $supervisor = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.workflow@example.test',
+            'Verification Supervision'
+        );
+
+        $report = Report::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'public_reference' => 'WBS-2026-9201',
+            'tracking_token' => 'TOKEN9201ABCD',
+            'title' => 'Restricted workflow case',
+            'category' => 'procurement',
+            'description' => 'Workflow access should remain unavailable to the auditor role.',
+            'anonymity_level' => 'identified',
+            'severity' => 'medium',
+            'status' => 'submitted',
+            'submitted_at' => now()->subDay(),
+            'created_at' => now()->subDay(),
+            'updated_at' => now()->subHour(),
+        ]);
+
+        $caseFile = CaseFile::query()->create([
+            'report_id' => $report->id,
+            'case_number' => 'CASE-2026-9201',
+            'stage' => 'submitted',
+            'disposition' => 'new',
+            'assigned_unit' => 'Verification Supervision',
+            'assigned_to' => $supervisor->name,
+            'confidentiality_level' => 'identified',
+            'current_role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'verification_supervisor_id' => $supervisor->id,
+            'last_activity_at' => now()->subHour(),
+        ]);
+
+        Sanctum::actingAs($auditor, [$auditor->role]);
+
+        $this->getJson('/api/workflow/cases')->assertForbidden();
+        $this->getJson("/api/workflow/cases/{$caseFile->id}")->assertForbidden();
+        $this->getJson("/api/workflow/cases/{$caseFile->id}/messages")->assertForbidden();
+    }
+
     private function createUser(string $role, string $email, string $unit): User
     {
         return User::query()->create([

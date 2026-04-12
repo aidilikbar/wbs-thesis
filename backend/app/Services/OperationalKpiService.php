@@ -52,6 +52,24 @@ class OperationalKpiService
         ];
     }
 
+    public function buildCaseStageMilestones(CaseFile $caseFile): array
+    {
+        return [
+            'submitted_at' => $caseFile->report?->submitted_at?->toISOString(),
+            'verification_started_at' => $this->findFirstActionTimestamp($caseFile, 'verification_delegated')?->toISOString(),
+            'verification_completed_at' => $this->findFirstActionTimestampForActions($caseFile, [
+                'screening_rejected',
+                'verification_approved',
+            ])?->toISOString(),
+            'investigation_started_at' => $this->findFirstActionTimestamp($caseFile, 'review_delegated')?->toISOString(),
+            'investigation_completed_at' => $this->findFirstActionTimestamp($caseFile, 'review_approved')?->toISOString(),
+            'director_decided_at' => $this->findFirstActionTimestampForActions($caseFile, [
+                'director_approved',
+                'director_rejected',
+            ])?->toISOString(),
+        ];
+    }
+
     private function buildVerificationKpi(CaseFile $caseFile, CarbonInterface $referenceTime): ?array
     {
         $reportSubmittedAt = $caseFile->report?->submitted_at;
@@ -356,6 +374,20 @@ class OperationalKpiService
         /** @var AuditLog|null $log */
         $log = $caseFile->auditLogs
             ->filter(fn (AuditLog $entry) => $entry->action === $action && $entry->happened_at)
+            ->sortBy(fn (AuditLog $entry) => $entry->happened_at?->getTimestamp() ?? 0)
+            ->first();
+
+        return $log?->happened_at;
+    }
+
+    /**
+     * @param  list<string>  $actions
+     */
+    private function findFirstActionTimestampForActions(CaseFile $caseFile, array $actions): ?CarbonInterface
+    {
+        /** @var AuditLog|null $log */
+        $log = $caseFile->auditLogs
+            ->filter(fn (AuditLog $entry) => in_array($entry->action, $actions, true) && $entry->happened_at)
             ->sortBy(fn (AuditLog $entry) => $entry->happened_at?->getTimestamp() ?? 0)
             ->first();
 

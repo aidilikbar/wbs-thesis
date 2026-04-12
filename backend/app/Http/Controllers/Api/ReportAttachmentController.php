@@ -185,7 +185,7 @@ class ReportAttachmentController extends Controller
     private function authorizeInternalCaseAccess(Request $request, CaseFile $caseFile): User
     {
         $user = $request->user();
-        abort_unless($user && $user->isInternalUser(), 403, 'This attachment is restricted to internal roles.');
+        abort_unless($user && $user->canAccessWorkflow(), 403, 'This attachment is restricted to workflow roles.');
 
         if ($user->hasRole(User::ROLE_SYSTEM_ADMINISTRATOR)) {
             return $user;

@@ -14,9 +14,9 @@ import { roleLabels } from "@/lib/labels";
 export const landingStats = [
   {
     label: "Institutional Roles",
-    value: "7",
+    value: "8",
     detail:
-      "Reporter, two supervisors, verification officer, investigator, director, and system administrator.",
+      "Reporter, auditor, two supervisors, verification officer, investigator, director, and system administrator.",
   },
   {
     label: "Process Gates",
@@ -160,6 +160,11 @@ export const roleCards = [
     description:
       "Creates internal user accounts, manages operational readiness, and supports operational oversight.",
   },
+  {
+    title: "Auditor",
+    description:
+      "Monitors anonymized KPI, SLA, and workflow audit metadata without access to complaint content or reporter identity.",
+  },
 ];
 
 export const processSteps = [
@@ -265,6 +270,7 @@ export const internalRoleOptions: Array<{
   { value: "investigator", label: roleLabels.investigator },
   { value: "director", label: roleLabels.director },
   { value: "system_administrator", label: roleLabels.system_administrator },
+  { value: "auditor", label: roleLabels.auditor },
 ];
 
 export const initialSubmissionPayload: SubmissionPayload = {
@@ -1361,13 +1367,179 @@ export function demoGovernanceDashboardForRole(
       ],
       scope_rows: [],
     },
+    auditor: {
+      role: "auditor",
+      role_label: "Auditor",
+      scope_label:
+        "Read-only monitoring of anonymized workflow KPI, SLA utilization, and audit trace metadata across internal officers.",
+      metrics: [
+        {
+          label: "Monitored operational cases",
+          value: 31,
+          detail: "Open workflow cases currently monitored in anonymized form.",
+          tone: "normal" as const,
+        },
+        {
+          label: "Overdue operational cases",
+          value: 3,
+          detail: "Cases whose active operational phase has exceeded the configured KPI budget.",
+          tone: "critical" as const,
+        },
+        {
+          label: "Avg verification cycle",
+          value: "6.2 h",
+          detail: "Average working-hour elapsed time across verification phase snapshots.",
+          tone: "normal" as const,
+        },
+        {
+          label: "Avg investigation cycle",
+          value: "27.8 h",
+          detail: "Average working-hour elapsed time across investigation phase snapshots.",
+          tone: "normal" as const,
+        },
+      ],
+      action_items: [
+        {
+          title: "Review overdue operational cases",
+          detail: "Focus on anonymized cases that have exceeded the configured KPI budget.",
+          href: "/governance",
+          count: 3,
+          tone: "critical" as const,
+        },
+        {
+          title: "Inspect verification cycle drift",
+          detail: "Watch cases approaching or breaching the verification working-day budget.",
+          href: "/governance",
+          count: 2,
+          tone: "warning" as const,
+        },
+        {
+          title: "Inspect recent workflow audit evidence",
+          detail: "Review metadata-only audit events to confirm operational traceability remains current.",
+          href: "/governance",
+          count: 8,
+          tone: "normal" as const,
+        },
+      ],
+      scope_rows: [],
+      case_rows: [
+        {
+          audit_case_id: "AUD-CASE-0031",
+          stage: "verification_in_progress",
+          stage_label: "Verification in Progress",
+          status: "verification_in_progress",
+          current_role: "verificator",
+          current_role_label: "Verification Officer",
+          assigned_unit: "Verification Desk",
+          submitted_at: "2026-03-27T08:10:00.000Z",
+          verification_started_at: "2026-03-27T08:40:00.000Z",
+          verification_completed_at: null,
+          investigation_started_at: null,
+          investigation_completed_at: null,
+          director_decided_at: null,
+          last_activity_at: "2026-03-28T10:20:00.000Z",
+          sla_status: "at_risk",
+          sla_status_label: "At risk",
+          sla_tone: "warning",
+          verification_kpi: verificationDemoKpi("AUD-CASE-0031", 6.8, "warning", 3, 5, 1, 0),
+          investigation_kpi: null,
+        },
+        {
+          audit_case_id: "AUD-CASE-0038",
+          stage: "investigation_in_progress",
+          stage_label: "Investigation in Progress",
+          status: "investigation_in_progress",
+          current_role: "investigator",
+          current_role_label: "Investigator",
+          assigned_unit: "Investigation Desk",
+          submitted_at: "2026-03-21T09:00:00.000Z",
+          verification_started_at: "2026-03-21T10:00:00.000Z",
+          verification_completed_at: "2026-03-24T12:30:00.000Z",
+          investigation_started_at: "2026-03-25T08:00:00.000Z",
+          investigation_completed_at: null,
+          director_decided_at: null,
+          last_activity_at: "2026-03-28T12:25:00.000Z",
+          sla_status: "overdue",
+          sla_status_label: "Overdue",
+          sla_tone: "critical",
+          verification_kpi: verificationDemoKpi("AUD-CASE-0038", 7.3, "warning", 0, 1, 0, 0),
+          investigation_kpi: investigationDemoKpi("AUD-CASE-0038", 41.6, "critical", 4, 5, 1, 1),
+        },
+        {
+          audit_case_id: "AUD-CASE-0036",
+          stage: "director_review",
+          stage_label: "Director Review",
+          status: "director_review",
+          current_role: "director",
+          current_role_label: "Director",
+          assigned_unit: "Directorate of Public Reports and Complaints",
+          submitted_at: "2026-03-18T07:30:00.000Z",
+          verification_started_at: "2026-03-18T09:00:00.000Z",
+          verification_completed_at: "2026-03-19T14:10:00.000Z",
+          investigation_started_at: "2026-03-20T08:00:00.000Z",
+          investigation_completed_at: "2026-03-27T15:20:00.000Z",
+          director_decided_at: null,
+          last_activity_at: "2026-03-28T16:00:00.000Z",
+          sla_status: "on_track",
+          sla_status_label: "On track",
+          sla_tone: "normal",
+          verification_kpi: verificationDemoKpi("AUD-CASE-0036", 5.2, "normal", 0, 1, 0, 0),
+          investigation_kpi: investigationDemoKpi("AUD-CASE-0036", 35.5, "warning", 2, 9, 1, 0),
+        },
+      ],
+    },
   } satisfies Record<Exclude<UserRole, "reporter">, GovernanceDashboardData["specific"]>;
 
   const selectedRole =
     role && role !== "reporter" ? role : "director";
+  const global =
+    selectedRole === "auditor"
+      ? {
+          ...demoGovernanceGlobal,
+          action_items: demoGovernanceGlobal.action_items.map((item) => ({
+            ...item,
+            href: "/governance",
+          })),
+          recent_audit_logs: demoGovernanceGlobal.recent_audit_logs.map((log, index) => ({
+            ...log,
+            actor_name: null,
+            context: {
+              case_reference: `AUD-CASE-00${index + 31}`,
+              stage:
+                index === 0
+                  ? "director_review"
+                  : index === 1
+                    ? "investigation_in_progress"
+                    : index === 2
+                      ? "verification_review"
+                      : "submitted",
+              status:
+                index === 0
+                  ? "director_review"
+                  : index === 1
+                    ? "investigation_in_progress"
+                    : index === 2
+                      ? "verification_review"
+                      : "submitted",
+              assigned_role:
+                index === 0
+                  ? "director"
+                  : index === 1
+                    ? "supervisor_of_investigator"
+                    : "supervisor_of_verificator",
+              assigned_unit:
+                index === 0
+                  ? "Directorate of Public Reports and Complaints"
+                  : index === 1
+                    ? "Investigation Supervision"
+                    : "Verification Supervision",
+            },
+          })),
+        }
+      : demoGovernanceGlobal;
 
   return {
-    global: demoGovernanceGlobal,
+    global,
     specific: specific[selectedRole],
   };
 }

@@ -27,7 +27,7 @@ class ApiDocumentationTest extends TestCase
         $openApi = json_decode(File::get($path), true, flags: JSON_THROW_ON_ERROR);
 
         $this->assertSame('KPK Whistleblowing System API', $openApi['info']['title']);
-        $this->assertSame('0.2.1', $openApi['info']['version']);
+        $this->assertSame('0.2.2', $openApi['info']['version']);
         $this->assertSame(rtrim((string) config('app.url'), '/'), $openApi['servers'][0]['url']);
         $this->assertSame('registerReporter', $openApi['paths']['/api/auth/register']['post']['operationId']);
         $this->assertSame('submitReporterReport', $openApi['paths']['/api/reporter/reports']['post']['operationId']);
@@ -42,6 +42,8 @@ class ApiDocumentationTest extends TestCase
         $this->assertArrayHasKey('weekend_days', $openApi['components']['schemas']['OperationalKpiSettings']['properties']);
         $this->assertArrayHasKey('GovernancePhaseKpiSummary', $openApi['components']['schemas']);
         $this->assertArrayHasKey('verification_kpi', $openApi['components']['schemas']['GovernanceScopeRow']['properties']);
+        $this->assertArrayHasKey('GovernanceAuditorCaseRow', $openApi['components']['schemas']);
+        $this->assertArrayHasKey('case_rows', $openApi['components']['schemas']['GovernanceDashboardSpecific']['properties']);
         $this->assertArrayNotHasKey('publish_update', $openApi['components']['schemas']['VerificationSubmissionRequest']['properties']);
         $this->assertArrayNotHasKey('public_message', $openApi['components']['schemas']['ReviewWorkflowStageRequest']['properties']);
     }

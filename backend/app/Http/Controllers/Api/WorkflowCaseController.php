@@ -405,7 +405,7 @@ class WorkflowCaseController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user && $user->isInternalUser(), 403, 'This workflow is restricted to internal roles.');
+        abort_unless($user && $user->canAccessWorkflow(), 403, 'This workflow is restricted to workflow roles.');
 
         return $user;
     }

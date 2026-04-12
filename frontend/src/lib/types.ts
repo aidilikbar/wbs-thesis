@@ -5,7 +5,8 @@ export type UserRole =
   | "supervisor_of_investigator"
   | "investigator"
   | "director"
-  | "system_administrator";
+  | "system_administrator"
+  | "auditor";
 
 export type AuthUser = {
   id: number;
@@ -410,6 +411,28 @@ export type GovernancePhaseKpiSummary = {
   substeps: GovernanceKpiSubstep[];
 };
 
+export type GovernanceAuditorCaseRow = {
+  audit_case_id: string;
+  stage: string;
+  stage_label: string;
+  status: string | null;
+  current_role: string;
+  current_role_label: string;
+  assigned_unit: string | null;
+  submitted_at: string | null;
+  verification_started_at: string | null;
+  verification_completed_at: string | null;
+  investigation_started_at: string | null;
+  investigation_completed_at: string | null;
+  director_decided_at: string | null;
+  last_activity_at: string | null;
+  sla_status: "on_track" | "at_risk" | "overdue" | "closed";
+  sla_status_label: string;
+  sla_tone: "normal" | "warning" | "critical";
+  verification_kpi: GovernancePhaseKpiSummary | null;
+  investigation_kpi: GovernancePhaseKpiSummary | null;
+};
+
 export type GovernanceScopeRow = {
   is_self: boolean;
   subject_label: string;
@@ -441,6 +464,7 @@ export type GovernanceDashboardData = {
     metrics: GovernanceMetricCard[];
     action_items: GovernanceActionItem[];
     scope_rows: GovernanceScopeRow[];
+    case_rows?: GovernanceAuditorCaseRow[];
   };
 };
 

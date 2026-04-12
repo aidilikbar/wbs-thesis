@@ -45,6 +45,31 @@ class AdminUserManagementTest extends TestCase
         ]);
     }
 
+    public function test_system_administrator_can_create_auditor_user(): void
+    {
+        $administrator = $this->createAdministrator();
+
+        Sanctum::actingAs($administrator, [$administrator->role]);
+
+        $this->postJson('/api/admin/users', [
+            'name' => 'Internal Auditor',
+            'email' => 'auditor@example.test',
+            'phone' => '+62-812-0000-0008',
+            'role' => User::ROLE_AUDITOR,
+            'unit' => 'Internal Audit',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
+        ])->assertCreated()
+            ->assertJsonPath('data.role', User::ROLE_AUDITOR)
+            ->assertJsonPath('data.unit', 'Internal Audit');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'auditor@example.test',
+            'role' => User::ROLE_AUDITOR,
+            'unit' => 'Internal Audit',
+        ]);
+    }
+
     public function test_system_administrator_can_list_users_with_pagination(): void
     {
         $administrator = $this->createAdministrator();

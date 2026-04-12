@@ -10,7 +10,7 @@ import { demoWorkflowCases } from "@/lib/demo-data";
 import { triggerBlobDownload } from "@/lib/file-utils";
 import { formatDateTime } from "@/lib/format";
 import { getRoleLabel, getStageLabel } from "@/lib/labels";
-import { isInternalRole } from "@/lib/roles";
+import { isWorkflowUser } from "@/lib/roles";
 import {
   workflowCasePath,
   workflowActionPath,
@@ -113,7 +113,7 @@ export function WorkflowDirectory({
   const [exportingCaseId, setExportingCaseId] = useState<number | null>(null);
 
   const isSessionLoading = !isReady;
-  const isInternalUser = isInternalRole(user?.role);
+  const isInternalUser = isWorkflowUser(user?.role);
   const canViewAllCases = workflowHasAllCaseMenu(user?.role);
   const canViewApprovals = workflowHasApprovalMenu(user?.role);
   const activeStageFilter = stageOptions.some((option) => option.value === stageFilter)

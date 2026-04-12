@@ -23,7 +23,7 @@ import {
 } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
 import { getRoleLabel, getStageLabel, normalizeWorkflowCopy } from "@/lib/labels";
-import { isInternalRole } from "@/lib/roles";
+import { isWorkflowUser } from "@/lib/roles";
 import {
   isApprovalAction,
   workflowActionLabels,
@@ -419,7 +419,7 @@ export function WorkflowCaseEditor({
   const [activeTab, setActiveTab] = useState<WorkflowTab>("details");
   const [isPending, startTransition] = useTransition();
 
-  const isInternalUser = isInternalRole(user?.role);
+  const isInternalUser = isWorkflowUser(user?.role);
   const supportsSecureMessaging =
     user?.role === "verificator" || user?.role === "investigator";
   const canReadApprovalCommunication =
