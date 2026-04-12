@@ -8,6 +8,7 @@ use App\Models\CaseFile;
 use App\Models\GovernanceControl;
 use App\Models\Report;
 use App\Models\User;
+use App\Services\OperationalKpiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
@@ -15,6 +16,11 @@ use OpenApi\Attributes as OA;
 
 class GovernanceDashboardController extends Controller
 {
+    public function __construct(
+        private readonly OperationalKpiService $operationalKpiService,
+    ) {
+    }
+
     #[OA\Get(
         path: '/api/governance/dashboard',
         operationId: 'getGovernanceDashboard',
@@ -44,7 +50,7 @@ class GovernanceDashboardController extends Controller
 
         $reports = Report::query()->get();
         $caseFiles = CaseFile::query()
-            ->with('report')
+            ->with(['report', 'auditLogs'])
             ->get();
         $internalUsers = User::query()
             ->whereIn('role', config('wbs.internal_roles', []))
@@ -60,9 +66,16 @@ class GovernanceDashboardController extends Controller
             ? 0
             : round($triagedCases->avg(fn (CaseFile $caseFile) => $caseFile->report->submitted_at->diffInHours($caseFile->triaged_at)), 1);
 
+        $referenceTime = now();
+        $casePhaseKpis = $caseFiles
+            ->mapWithKeys(fn (CaseFile $caseFile) => [
+                $caseFile->id => $this->operationalKpiService->buildCasePhaseKpis($caseFile, $referenceTime),
+            ])
+            ->all();
+        $globalOverdueCases = $this->countOverdueCases($caseFiles, $casePhaseKpis);
         $scopedUsers = $this->resolveScopedUsers($user, $internalUsers);
         $scopeRows = $scopedUsers
-            ->map(fn (User $subject) => $this->buildScopeRow($subject, $caseFiles, $user))
+            ->map(fn (User $subject) => $this->buildScopeRow($subject, $caseFiles, $user, $casePhaseKpis))
             ->values()
             ->all();
 
@@ -84,9 +97,9 @@ class GovernanceDashboardController extends Controller
                         ],
                         [
                             'label' => 'Overdue cases',
-                            'value' => $this->countOverdueCases($caseFiles),
+                            'value' => $globalOverdueCases,
                             'detail' => 'Cases that have passed the current SLA due time.',
-                            'tone' => $this->countOverdueCases($caseFiles) > 0 ? 'critical' : 'normal',
+                            'tone' => $globalOverdueCases > 0 ? 'critical' : 'normal',
                         ],
                         [
                             'label' => 'Anonymous share',
@@ -137,6 +150,7 @@ class GovernanceDashboardController extends Controller
                     $scopedUsers,
                     $scopeRows,
                     $caseFiles,
+                    $casePhaseKpis,
                     $controls,
                     $recentAuditLogs
                 ),
@@ -189,12 +203,13 @@ class GovernanceDashboardController extends Controller
         Collection $scopedUsers,
         array $scopeRows,
         Collection $caseFiles,
+        array $casePhaseKpis,
         Collection $controls,
         Collection $recentAuditLogs
     ): array {
         $scopeCases = $this->scopeCasesForUser($user, $caseFiles, $scopedUsers);
         $openScopeCases = $scopeCases->where('stage', '!=', 'completed')->count();
-        $overdueScopeCases = $this->countOverdueCases($scopeCases);
+        $overdueScopeCases = $this->countOverdueCases($scopeCases, $casePhaseKpis);
         $viewerActionCount = $this->casesAwaitingViewerAction($user, $caseFiles)->count();
         $subordinateRows = collect($scopeRows)->reject(fn (array $row) => $row['is_self']);
         $subordinateBacklog = $subordinateRows->sum(fn (array $row) => $row['pending_queue'] + $row['pending_approvals']);
@@ -305,7 +320,7 @@ class GovernanceDashboardController extends Controller
             'role_label' => $user->role_label,
             'scope_label' => $this->scopeLabelForUser($user),
             'metrics' => $metrics,
-            'action_items' => $this->buildSpecificActionItems($user, $caseFiles, $scopeRows, $controls, $internalUsers, $recentAuditLogs),
+            'action_items' => $this->buildSpecificActionItems($user, $caseFiles, $casePhaseKpis, $scopeRows, $controls, $internalUsers, $recentAuditLogs),
             'scope_rows' => $scopeRows,
         ];
     }
@@ -313,6 +328,7 @@ class GovernanceDashboardController extends Controller
     private function buildSpecificActionItems(
         User $user,
         Collection $caseFiles,
+        array $casePhaseKpis,
         array $scopeRows,
         Collection $controls,
         Collection $internalUsers,
@@ -357,8 +373,8 @@ class GovernanceDashboardController extends Controller
                     'title' => 'Resolve overdue verifications',
                     'detail' => 'Focus on assigned verification cases that have breached SLA.',
                     'href' => '/workflow',
-                    'count' => $this->countOverdueCases($this->casesForSubject($user, $caseFiles)->where('stage', '!=', 'completed')),
-                    'tone' => $this->toneForCount($this->countOverdueCases($this->casesForSubject($user, $caseFiles)->where('stage', '!=', 'completed')), 1, 2),
+                    'count' => $this->countOverdueCases($this->casesForSubject($user, $caseFiles)->where('stage', '!=', 'completed'), $casePhaseKpis),
+                    'tone' => $this->toneForCount($this->countOverdueCases($this->casesForSubject($user, $caseFiles)->where('stage', '!=', 'completed'), $casePhaseKpis), 1, 2),
                 ],
             ],
             User::ROLE_SUPERVISOR_OF_INVESTIGATOR => [
@@ -396,8 +412,8 @@ class GovernanceDashboardController extends Controller
                     'title' => 'Resolve overdue investigations',
                     'detail' => 'Focus on assigned investigation cases that have breached SLA.',
                     'href' => '/workflow',
-                    'count' => $this->countOverdueCases($this->casesForSubject($user, $caseFiles)->where('stage', '!=', 'completed')),
-                    'tone' => $this->toneForCount($this->countOverdueCases($this->casesForSubject($user, $caseFiles)->where('stage', '!=', 'completed')), 1, 2),
+                    'count' => $this->countOverdueCases($this->casesForSubject($user, $caseFiles)->where('stage', '!=', 'completed'), $casePhaseKpis),
+                    'tone' => $this->toneForCount($this->countOverdueCases($this->casesForSubject($user, $caseFiles)->where('stage', '!=', 'completed'), $casePhaseKpis), 1, 2),
                 ],
             ],
             User::ROLE_DIRECTOR => [
@@ -412,8 +428,8 @@ class GovernanceDashboardController extends Controller
                     'title' => 'Review overdue operational cases',
                     'detail' => 'Escalate cases that have breached SLA anywhere in the internal workflow.',
                     'href' => '/governance',
-                    'count' => $this->countOverdueCases($caseFiles),
-                    'tone' => $this->toneForCount($this->countOverdueCases($caseFiles), 1, 3),
+                    'count' => $this->countOverdueCases($caseFiles, $casePhaseKpis),
+                    'tone' => $this->toneForCount($this->countOverdueCases($caseFiles, $casePhaseKpis), 1, 3),
                 ],
                 [
                     'title' => 'Monitor control warnings',
@@ -475,7 +491,7 @@ class GovernanceDashboardController extends Controller
             ->values();
     }
 
-    private function buildScopeRow(User $subject, Collection $caseFiles, User $viewer): array
+    private function buildScopeRow(User $subject, Collection $caseFiles, User $viewer, array $casePhaseKpis): array
     {
         $subjectCases = $this->casesForSubject($subject, $caseFiles);
         $queueStages = $this->queueStagesForRole($subject->role);
@@ -495,8 +511,10 @@ class GovernanceDashboardController extends Controller
             'pending_approvals' => $subjectCases
                 ->filter(fn (CaseFile $caseFile) => $caseFile->current_role === $subject->role && in_array($caseFile->stage, $approvalStages, true))
                 ->count(),
-            'overdue_cases' => $this->countOverdueCases($subjectCases->where('stage', '!=', 'completed')),
+            'overdue_cases' => $this->countOverdueCases($subjectCases->where('stage', '!=', 'completed'), $casePhaseKpis),
             'completed_cases' => $subjectCases->where('stage', 'completed')->count(),
+            'verification_kpi' => $this->aggregatePhaseKpi($subjectCases, $casePhaseKpis, 'verification'),
+            'investigation_kpi' => $this->aggregatePhaseKpi($subjectCases, $casePhaseKpis, 'investigation'),
             'last_activity_at' => $lastActivityAt?->toISOString(),
         ];
     }
@@ -578,12 +596,79 @@ class GovernanceDashboardController extends Controller
         };
     }
 
-    private function countOverdueCases(Collection $caseFiles): int
+    private function countOverdueCases(Collection $caseFiles, array $casePhaseKpis): int
     {
         return $caseFiles
             ->where('stage', '!=', 'completed')
-            ->filter(fn (CaseFile $caseFile) => $caseFile->sla_due_at && $caseFile->sla_due_at->isPast())
+            ->filter(function (CaseFile $caseFile) use ($casePhaseKpis) {
+                $activePhase = $this->activeOperationalPhaseForCase($caseFile);
+
+                if (! $activePhase) {
+                    return false;
+                }
+
+                $snapshot = $casePhaseKpis[$caseFile->id][$activePhase] ?? null;
+
+                return is_array($snapshot) && ($snapshot['utilization_percent'] ?? 0) > 100;
+            })
             ->count();
+    }
+
+    private function activeOperationalPhaseForCase(CaseFile $caseFile): ?string
+    {
+        return match ($caseFile->stage) {
+            'submitted', 'verification_in_progress', 'verification_review' => 'verification',
+            'verified', 'investigation_in_progress', 'investigation_review', 'director_review' => 'investigation',
+            default => null,
+        };
+    }
+
+    private function aggregatePhaseKpi(Collection $caseFiles, array $casePhaseKpis, string $phase): ?array
+    {
+        $phaseSnapshots = $caseFiles
+            ->map(fn (CaseFile $caseFile) => $casePhaseKpis[$caseFile->id][$phase] ?? null)
+            ->filter(fn ($snapshot) => is_array($snapshot))
+            ->values();
+
+        if ($phaseSnapshots->isEmpty()) {
+            return null;
+        }
+
+        $activeSnapshots = $phaseSnapshots->where('status', 'in_progress')->values();
+        $completedSnapshots = $phaseSnapshots->where('status', 'completed')->values();
+        $focusSnapshot = $activeSnapshots
+            ->sortByDesc(fn (array $snapshot) => $snapshot['utilization_percent'] ?? 0)
+            ->first()
+            ?? $completedSnapshots
+                ->sortByDesc(fn (array $snapshot) => strtotime((string) ($snapshot['ended_at'] ?? $snapshot['last_activity_at'] ?? '')))
+                ->first()
+            ?? $phaseSnapshots->first();
+        $averageElapsedHours = round(
+            $phaseSnapshots->avg(fn (array $snapshot) => (float) ($snapshot['elapsed_working_hours'] ?? 0)),
+            1,
+        );
+
+        return [
+            'label' => $focusSnapshot['label'],
+            'budget_hours' => $focusSnapshot['budget_hours'],
+            'case_count' => $phaseSnapshots->count(),
+            'active_case_count' => $activeSnapshots->count(),
+            'completed_case_count' => $completedSnapshots->count(),
+            'at_risk_case_count' => $phaseSnapshots
+                ->filter(fn (array $snapshot) => ($snapshot['utilization_percent'] ?? 0) >= 80 && ($snapshot['utilization_percent'] ?? 0) <= 100)
+                ->count(),
+            'overdue_case_count' => $phaseSnapshots
+                ->filter(fn (array $snapshot) => ($snapshot['utilization_percent'] ?? 0) > 100)
+                ->count(),
+            'average_elapsed_working_hours' => $averageElapsedHours,
+            'focus_case_number' => $focusSnapshot['case_number'],
+            'focus_case_title' => $focusSnapshot['case_title'],
+            'focus_status' => $focusSnapshot['status'],
+            'focus_elapsed_working_hours' => $focusSnapshot['elapsed_working_hours'],
+            'focus_utilization_percent' => $focusSnapshot['utilization_percent'],
+            'tone' => $focusSnapshot['tone'],
+            'substeps' => $focusSnapshot['substeps'],
+        ];
     }
 
     private function toneForCount(int $count, int $warningThreshold = 1, int $criticalThreshold = 3): string

@@ -157,4 +157,87 @@ return [
         'segregation' => 'Separate reporter, verification, investigation, direction, and administration duties by role.',
         'timeliness' => 'Track SLAs across verification, investigation, and director decision stages.',
     ],
+    'operational_kpis' => [
+        'timezone' => env('WBS_OPERATIONAL_KPI_TIMEZONE', 'UTC'),
+        'workday_start' => env('WBS_OPERATIONAL_KPI_WORKDAY_START', '08:00'),
+        'workday_end' => env('WBS_OPERATIONAL_KPI_WORKDAY_END', '16:00'),
+        'weekend_days' => [6, 7],
+        // 2026 Indonesian national holidays and collective leave days are treated as non-working dates.
+        'non_working_dates' => [
+            '2026-01-01',
+            '2026-01-16',
+            '2026-02-16',
+            '2026-02-17',
+            '2026-03-18',
+            '2026-03-19',
+            '2026-03-20',
+            '2026-03-21',
+            '2026-03-22',
+            '2026-03-23',
+            '2026-03-24',
+            '2026-04-03',
+            '2026-04-05',
+            '2026-05-01',
+            '2026-05-14',
+            '2026-05-15',
+            '2026-05-27',
+            '2026-05-28',
+            '2026-05-31',
+            '2026-06-01',
+            '2026-06-16',
+            '2026-08-17',
+            '2026-08-25',
+            '2026-12-24',
+            '2026-12-25',
+        ],
+        'phases' => [
+            'verification' => [
+                'label' => 'Verification Time',
+                'budget_hours' => 8,
+                'steps' => [
+                    [
+                        'key' => 'screening',
+                        'label' => 'Screening / Delegation',
+                        'budget_hours' => 1,
+                    ],
+                    [
+                        'key' => 'verification',
+                        'label' => 'Verification Work',
+                        'budget_hours' => 5,
+                    ],
+                    [
+                        'key' => 'approval',
+                        'label' => 'Supervisory Approval',
+                        'budget_hours' => 2,
+                    ],
+                ],
+            ],
+            'investigation' => [
+                'label' => 'Investigation Time',
+                'budget_hours' => 40,
+                'steps' => [
+                    [
+                        'key' => 'delegation',
+                        'label' => 'Delegation',
+                        'budget_hours' => 4,
+                    ],
+                    [
+                        'key' => 'investigation',
+                        'label' => 'Investigation Work',
+                        'budget_hours' => 28,
+                    ],
+                    [
+                        'key' => 'approval',
+                        'label' => 'Supervisory Approval',
+                        'budget_hours' => 4,
+                    ],
+                    [
+                        'key' => 'director',
+                        'label' => 'Director Approval',
+                        'budget_hours' => 4,
+                    ],
+                ],
+            ],
+        ],
+    ],
 ];

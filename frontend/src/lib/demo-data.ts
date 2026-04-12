@@ -1,5 +1,6 @@
 import type {
   GovernanceDashboardData,
+  GovernancePhaseKpiSummary,
   InternalUserPayload,
   ReportedPartyClassification,
   ReporterReportSummary,
@@ -670,6 +671,157 @@ const demoGovernanceGlobal = {
   ],
 };
 
+function createDemoPhaseKpi(
+  label: string,
+  budgetHours: number,
+  tone: GovernancePhaseKpiSummary["tone"],
+  focusCaseNumber: string,
+  focusStatus: GovernancePhaseKpiSummary["focus_status"],
+  focusElapsedHours: number,
+  activeCaseCount: number,
+  completedCaseCount: number,
+  atRiskCaseCount: number,
+  overdueCaseCount: number,
+  substeps: GovernancePhaseKpiSummary["substeps"],
+): GovernancePhaseKpiSummary {
+  return {
+    label,
+    budget_hours: budgetHours,
+    case_count: activeCaseCount + completedCaseCount,
+    active_case_count: activeCaseCount,
+    completed_case_count: completedCaseCount,
+    at_risk_case_count: atRiskCaseCount,
+    overdue_case_count: overdueCaseCount,
+    average_elapsed_working_hours: focusElapsedHours,
+    focus_case_number: focusCaseNumber,
+    focus_case_title: null,
+    focus_status: focusStatus,
+    focus_elapsed_working_hours: focusElapsedHours,
+    focus_utilization_percent: Number(((focusElapsedHours / budgetHours) * 100).toFixed(1)),
+    tone,
+    substeps,
+  };
+}
+
+function verificationDemoKpi(
+  focusCaseNumber: string,
+  focusElapsedHours: number,
+  tone: GovernancePhaseKpiSummary["tone"],
+  activeCaseCount: number,
+  completedCaseCount: number,
+  atRiskCaseCount: number,
+  overdueCaseCount: number,
+): GovernancePhaseKpiSummary {
+  return createDemoPhaseKpi(
+    "Verification Time",
+    8,
+    tone,
+    focusCaseNumber,
+    activeCaseCount > 0 ? "in_progress" : "completed",
+    focusElapsedHours,
+    activeCaseCount,
+    completedCaseCount,
+    atRiskCaseCount,
+    overdueCaseCount,
+    [
+      {
+        key: "screening",
+        label: "Screening / Delegation",
+        budget_hours: 1,
+        elapsed_working_hours: 0.8,
+        utilization_percent: 80,
+        tone: "warning",
+        status: "completed",
+      },
+      {
+        key: "verification",
+        label: "Verification Work",
+        budget_hours: 5,
+        elapsed_working_hours: Math.max(Math.min(focusElapsedHours - 1.4, 5), 0),
+        utilization_percent: Number(
+          ((Math.max(Math.min(focusElapsedHours - 1.4, 5), 0) / 5) * 100).toFixed(1),
+        ),
+        tone:
+          focusElapsedHours - 1.4 > 5 ? "critical" : focusElapsedHours - 1.4 >= 4 ? "warning" : "normal",
+        status: activeCaseCount > 0 ? "in_progress" : "completed",
+      },
+      {
+        key: "approval",
+        label: "Supervisory Approval",
+        budget_hours: 2,
+        elapsed_working_hours: activeCaseCount > 0 ? 0 : 1.2,
+        utilization_percent: activeCaseCount > 0 ? 0 : 60,
+        tone: "normal",
+        status: activeCaseCount > 0 ? "pending" : "completed",
+      },
+    ],
+  );
+}
+
+function investigationDemoKpi(
+  focusCaseNumber: string,
+  focusElapsedHours: number,
+  tone: GovernancePhaseKpiSummary["tone"],
+  activeCaseCount: number,
+  completedCaseCount: number,
+  atRiskCaseCount: number,
+  overdueCaseCount: number,
+): GovernancePhaseKpiSummary {
+  return createDemoPhaseKpi(
+    "Investigation Time",
+    40,
+    tone,
+    focusCaseNumber,
+    activeCaseCount > 0 ? "in_progress" : "completed",
+    focusElapsedHours,
+    activeCaseCount,
+    completedCaseCount,
+    atRiskCaseCount,
+    overdueCaseCount,
+    [
+      {
+        key: "delegation",
+        label: "Delegation",
+        budget_hours: 4,
+        elapsed_working_hours: 2,
+        utilization_percent: 50,
+        tone: "normal",
+        status: "completed",
+      },
+      {
+        key: "investigation",
+        label: "Investigation Work",
+        budget_hours: 28,
+        elapsed_working_hours: Math.max(Math.min(focusElapsedHours - 6, 28), 0),
+        utilization_percent: Number(
+          ((Math.max(Math.min(focusElapsedHours - 6, 28), 0) / 28) * 100).toFixed(1),
+        ),
+        tone:
+          focusElapsedHours - 6 > 28 ? "critical" : focusElapsedHours - 6 >= 22.4 ? "warning" : "normal",
+        status: activeCaseCount > 0 ? "in_progress" : "completed",
+      },
+      {
+        key: "approval",
+        label: "Supervisory Approval",
+        budget_hours: 4,
+        elapsed_working_hours: activeCaseCount > 0 ? 0 : 3,
+        utilization_percent: activeCaseCount > 0 ? 0 : 75,
+        tone: "normal",
+        status: activeCaseCount > 0 ? "pending" : "completed",
+      },
+      {
+        key: "director",
+        label: "Director Approval",
+        budget_hours: 4,
+        elapsed_working_hours: activeCaseCount > 0 ? 0 : 2.5,
+        utilization_percent: activeCaseCount > 0 ? 0 : 62.5,
+        tone: "normal",
+        status: activeCaseCount > 0 ? "pending" : "completed",
+      },
+    ],
+  );
+}
+
 export function demoGovernanceDashboardForRole(
   role?: UserRole | null,
 ): GovernanceDashboardData {
@@ -740,6 +892,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 1,
           overdue_cases: 1,
           completed_cases: 5,
+          verification_kpi: verificationDemoKpi("CASE-2026-0031", 6.8, "warning", 3, 5, 1, 0),
+          investigation_kpi: null,
           last_activity_at: "2026-03-28T11:00:00.000Z",
         },
         {
@@ -753,6 +907,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 0,
           overdue_cases: 0,
           completed_cases: 4,
+          verification_kpi: verificationDemoKpi("CASE-2026-0034", 4.7, "normal", 2, 4, 0, 0),
+          investigation_kpi: null,
           last_activity_at: "2026-03-28T10:20:00.000Z",
         },
         {
@@ -766,6 +922,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 0,
           overdue_cases: 0,
           completed_cases: 3,
+          verification_kpi: verificationDemoKpi("CASE-2026-0035", 3.6, "normal", 1, 3, 0, 0),
+          investigation_kpi: null,
           last_activity_at: "2026-03-28T09:35:00.000Z",
         },
       ],
@@ -828,6 +986,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 0,
           overdue_cases: 1,
           completed_cases: 6,
+          verification_kpi: verificationDemoKpi("CASE-2026-0028", 8.6, "critical", 3, 6, 1, 1),
+          investigation_kpi: null,
           last_activity_at: "2026-03-28T10:20:00.000Z",
         },
       ],
@@ -898,6 +1058,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 1,
           overdue_cases: 1,
           completed_cases: 4,
+          verification_kpi: null,
+          investigation_kpi: investigationDemoKpi("CASE-2026-0036", 33.5, "warning", 3, 4, 1, 0),
           last_activity_at: "2026-03-28T14:00:00.000Z",
         },
         {
@@ -911,6 +1073,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 0,
           overdue_cases: 0,
           completed_cases: 5,
+          verification_kpi: null,
+          investigation_kpi: investigationDemoKpi("CASE-2026-0038", 26.4, "normal", 2, 5, 0, 0),
           last_activity_at: "2026-03-28T12:25:00.000Z",
         },
         {
@@ -924,6 +1088,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 0,
           overdue_cases: 0,
           completed_cases: 2,
+          verification_kpi: null,
+          investigation_kpi: investigationDemoKpi("CASE-2026-0032", 18.2, "normal", 0, 2, 0, 0),
           last_activity_at: "2026-03-27T16:10:00.000Z",
         },
       ],
@@ -986,6 +1152,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 0,
           overdue_cases: 1,
           completed_cases: 5,
+          verification_kpi: null,
+          investigation_kpi: investigationDemoKpi("CASE-2026-0038", 41.6, "critical", 4, 5, 1, 1),
           last_activity_at: "2026-03-28T12:25:00.000Z",
         },
       ],
@@ -1056,6 +1224,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 1,
           overdue_cases: 1,
           completed_cases: 5,
+          verification_kpi: verificationDemoKpi("CASE-2026-0031", 6.8, "warning", 3, 5, 1, 0),
+          investigation_kpi: null,
           last_activity_at: "2026-03-28T11:00:00.000Z",
         },
         {
@@ -1069,6 +1239,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 0,
           overdue_cases: 1,
           completed_cases: 6,
+          verification_kpi: verificationDemoKpi("CASE-2026-0028", 8.6, "critical", 3, 6, 1, 1),
+          investigation_kpi: null,
           last_activity_at: "2026-03-28T10:20:00.000Z",
         },
         {
@@ -1082,6 +1254,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 1,
           overdue_cases: 1,
           completed_cases: 4,
+          verification_kpi: null,
+          investigation_kpi: investigationDemoKpi("CASE-2026-0036", 33.5, "warning", 3, 4, 1, 0),
           last_activity_at: "2026-03-28T14:00:00.000Z",
         },
         {
@@ -1095,6 +1269,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 0,
           overdue_cases: 1,
           completed_cases: 5,
+          verification_kpi: null,
+          investigation_kpi: investigationDemoKpi("CASE-2026-0038", 41.6, "critical", 4, 5, 1, 1),
           last_activity_at: "2026-03-28T12:25:00.000Z",
         },
         {
@@ -1108,6 +1284,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 2,
           overdue_cases: 0,
           completed_cases: 9,
+          verification_kpi: null,
+          investigation_kpi: investigationDemoKpi("CASE-2026-0036", 35.5, "warning", 2, 9, 1, 0),
           last_activity_at: "2026-03-28T16:00:00.000Z",
         },
         {
@@ -1121,6 +1299,8 @@ export function demoGovernanceDashboardForRole(
           pending_approvals: 0,
           overdue_cases: 0,
           completed_cases: 0,
+          verification_kpi: null,
+          investigation_kpi: null,
           last_activity_at: "2026-03-28T15:15:00.000Z",
         },
       ],

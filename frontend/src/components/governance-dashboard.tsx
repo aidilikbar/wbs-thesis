@@ -14,6 +14,7 @@ import { isInternalRole } from "@/lib/roles";
 import type {
   GovernanceActionItem,
   GovernanceDashboardData,
+  GovernancePhaseKpiSummary,
   GovernanceMetricCard,
   GovernanceScopeRow,
 } from "@/lib/types";
@@ -57,6 +58,125 @@ function scopeRowMatches(row: GovernanceScopeRow, term: string) {
     .join(" ")
     .toLowerCase()
     .includes(needle);
+}
+
+function formatHours(value: number) {
+  const normalized = Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+
+  return `${normalized.replace(/\.0$/, "")} h`;
+}
+
+function kpiBarToneClasses(tone: GovernanceMetricCard["tone"]) {
+  if (tone === "critical") {
+    return "bg-[var(--primary)]";
+  }
+
+  if (tone === "warning") {
+    return "bg-[var(--secondary)]";
+  }
+
+  return "bg-[#2f8f46]";
+}
+
+function renderKpiCell(kpi: GovernancePhaseKpiSummary | null) {
+  if (!kpi) {
+    return (
+      <div className="rounded-[0.85rem] border border-dashed border-[var(--panel-border)] px-4 py-4 text-sm text-[var(--muted)]">
+        Not applicable in this role scope.
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-w-[280px] rounded-[0.9rem] border border-[var(--panel-border)] bg-white/76 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+            {kpi.label}
+          </p>
+          <p className="mt-2 text-sm leading-6">
+            {kpi.focus_case_number ? (
+              <>
+                <span className="font-semibold">{kpi.focus_case_number}</span>
+                <span className="muted"> · {kpi.focus_status === "completed" ? "Completed" : "In progress"}</span>
+              </>
+            ) : (
+              "No case selected"
+            )}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+            Target
+          </p>
+          <p className="mt-2 text-lg font-semibold">{formatHours(kpi.budget_hours)}</p>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span>Focus case elapsed</span>
+          <span className="font-semibold">
+            {formatHours(kpi.focus_elapsed_working_hours)} / {formatHours(kpi.budget_hours)}
+          </span>
+        </div>
+        <div className="mt-2 h-3 overflow-hidden rounded-full bg-[rgba(19,19,19,0.08)]">
+          <div
+            className={`h-3 rounded-full ${kpiBarToneClasses(kpi.tone)}`}
+            style={{
+              width: `${Math.max(
+                Math.min(kpi.focus_utilization_percent, 100),
+                kpi.focus_utilization_percent > 0 ? 6 : 0,
+              )}%`,
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2 text-xs text-[var(--muted)] sm:grid-cols-2">
+        <p>{kpi.active_case_count} active</p>
+        <p>{kpi.completed_case_count} completed</p>
+        <p>{kpi.at_risk_case_count} at risk</p>
+        <p>{kpi.overdue_case_count} overdue</p>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {kpi.substeps.map((step) => (
+          <div key={step.key}>
+            <div className="flex items-center justify-between gap-3 text-[0.72rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+              <span>{step.label}</span>
+              <span>
+                {formatHours(step.elapsed_working_hours)} / {formatHours(step.budget_hours)}
+              </span>
+            </div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-[rgba(19,19,19,0.08)]">
+              <div
+                className={`h-2 rounded-full ${
+                  step.status === "pending"
+                    ? "bg-[rgba(19,19,19,0.14)]"
+                    : kpiBarToneClasses(step.tone)
+                }`}
+                style={{
+                  width: `${Math.max(
+                    Math.min(step.utilization_percent, 100),
+                    step.status === "pending"
+                      ? 0
+                      : step.utilization_percent > 0
+                        ? 6
+                        : 0,
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-4 text-xs text-[var(--muted)]">
+        Average cycle: {formatHours(kpi.average_elapsed_working_hours)}
+      </p>
+    </div>
+  );
 }
 
 export function GovernanceDashboard() {
@@ -408,19 +528,13 @@ export function GovernanceDashboard() {
                       Role
                     </th>
                     <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
-                      Open
+                      Verification time
                     </th>
                     <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
-                      Queue
+                      Investigation time
                     </th>
                     <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
-                      Approvals
-                    </th>
-                    <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
-                      Overdue
-                    </th>
-                    <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
-                      Completed
+                      Scope summary
                     </th>
                     <th className="border-b border-[var(--panel-border)] px-4 py-3 font-semibold">
                       Last activity
@@ -439,19 +553,31 @@ export function GovernanceDashboard() {
                           <p>{getRoleLabel(row.role, row.role_label)}</p>
                         </td>
                         <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                          {row.open_cases}
+                          {renderKpiCell(row.verification_kpi)}
                         </td>
                         <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                          {row.pending_queue}
+                          {renderKpiCell(row.investigation_kpi)}
                         </td>
                         <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                          {row.pending_approvals}
-                        </td>
-                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                          {row.overdue_cases}
-                        </td>
-                        <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
-                          {row.completed_cases}
+                          <div className="space-y-2 text-sm">
+                            <p>
+                              <span className="font-semibold">{row.open_cases}</span> open
+                            </p>
+                            <p>
+                              <span className="font-semibold">{row.pending_queue}</span> queue
+                            </p>
+                            <p>
+                              <span className="font-semibold">{row.pending_approvals}</span>{" "}
+                              approvals
+                            </p>
+                            <p>
+                              <span className="font-semibold">{row.overdue_cases}</span> overdue
+                            </p>
+                            <p>
+                              <span className="font-semibold">{row.completed_cases}</span>{" "}
+                              completed
+                            </p>
+                          </div>
                         </td>
                         <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4 text-sm text-[var(--muted)]">
                           {row.last_activity_at
@@ -463,7 +589,7 @@ export function GovernanceDashboard() {
                   ) : (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={6}
                         className="px-4 py-8 text-sm leading-7 text-[var(--muted)]"
                       >
                         No scope rows match the current search.

@@ -692,6 +692,87 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'GovernanceKpiSubstep',
+    type: 'object',
+    properties: [
+        new OA\Property(property: 'key', type: 'string', example: 'verification'),
+        new OA\Property(property: 'label', type: 'string', example: 'Verification Work'),
+        new OA\Property(property: 'budget_hours', type: 'number', format: 'float', example: 5),
+        new OA\Property(property: 'elapsed_working_hours', type: 'number', format: 'float', example: 4.5),
+        new OA\Property(property: 'utilization_percent', type: 'number', format: 'float', example: 90),
+        new OA\Property(property: 'tone', type: 'string', example: 'warning'),
+        new OA\Property(property: 'status', type: 'string', example: 'in_progress'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'GovernancePhaseKpiSummary',
+    type: 'object',
+    properties: [
+        new OA\Property(property: 'label', type: 'string', example: 'Verification Time'),
+        new OA\Property(property: 'budget_hours', type: 'number', format: 'float', example: 8),
+        new OA\Property(property: 'case_count', type: 'integer', example: 7),
+        new OA\Property(property: 'active_case_count', type: 'integer', example: 2),
+        new OA\Property(property: 'completed_case_count', type: 'integer', example: 5),
+        new OA\Property(property: 'at_risk_case_count', type: 'integer', example: 1),
+        new OA\Property(property: 'overdue_case_count', type: 'integer', example: 0),
+        new OA\Property(property: 'average_elapsed_working_hours', type: 'number', format: 'float', example: 6.2),
+        new OA\Property(property: 'focus_case_number', type: 'string', nullable: true, example: 'CASE-2026-0031'),
+        new OA\Property(property: 'focus_case_title', type: 'string', nullable: true, example: 'Procurement escalation review'),
+        new OA\Property(property: 'focus_status', type: 'string', example: 'in_progress'),
+        new OA\Property(property: 'focus_elapsed_working_hours', type: 'number', format: 'float', example: 6.8),
+        new OA\Property(property: 'focus_utilization_percent', type: 'number', format: 'float', example: 85),
+        new OA\Property(property: 'tone', type: 'string', example: 'warning'),
+        new OA\Property(
+            property: 'substeps',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/GovernanceKpiSubstep')
+        ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'GovernanceScopeRow',
+    type: 'object',
+    properties: [
+        new OA\Property(property: 'is_self', type: 'boolean', example: true),
+        new OA\Property(property: 'subject_label', type: 'string', example: 'Sinta Pramudita (You)'),
+        new OA\Property(property: 'role', type: 'string', example: 'supervisor_of_verificator'),
+        new OA\Property(property: 'role_label', type: 'string', example: 'Verification Supervisor'),
+        new OA\Property(property: 'unit', type: 'string', nullable: true, example: 'Verification Supervision'),
+        new OA\Property(property: 'open_cases', type: 'integer', example: 7),
+        new OA\Property(property: 'pending_queue', type: 'integer', example: 2),
+        new OA\Property(property: 'pending_approvals', type: 'integer', example: 1),
+        new OA\Property(property: 'overdue_cases', type: 'integer', example: 1),
+        new OA\Property(property: 'completed_cases', type: 'integer', example: 5),
+        new OA\Property(property: 'verification_kpi', ref: '#/components/schemas/GovernancePhaseKpiSummary', nullable: true),
+        new OA\Property(property: 'investigation_kpi', ref: '#/components/schemas/GovernancePhaseKpiSummary', nullable: true),
+        new OA\Property(property: 'last_activity_at', type: 'string', format: 'date-time', nullable: true, example: '2026-03-28T11:00:00Z'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'GovernanceDashboardSpecific',
+    type: 'object',
+    properties: [
+        new OA\Property(property: 'role', type: 'string', example: 'supervisor_of_verificator'),
+        new OA\Property(property: 'role_label', type: 'string', example: 'Verification Supervisor'),
+        new OA\Property(property: 'scope_label', type: 'string', example: 'Your verification supervision workload plus all verification officer activity currently under that functional scope.'),
+        new OA\Property(
+            property: 'metrics',
+            type: 'array',
+            items: new OA\Items(type: 'object', additionalProperties: true)
+        ),
+        new OA\Property(
+            property: 'action_items',
+            type: 'array',
+            items: new OA\Items(type: 'object', additionalProperties: true)
+        ),
+        new OA\Property(
+            property: 'scope_rows',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/GovernanceScopeRow')
+        ),
+    ]
+)]
+#[OA\Schema(
     schema: 'GovernanceDashboardResponse',
     type: 'object',
     required: ['data'],
@@ -701,7 +782,7 @@ use OpenApi\Attributes as OA;
             type: 'object',
             properties: [
                 new OA\Property(property: 'global', type: 'object', additionalProperties: true),
-                new OA\Property(property: 'specific', type: 'object', additionalProperties: true),
+                new OA\Property(property: 'specific', ref: '#/components/schemas/GovernanceDashboardSpecific'),
             ]
         ),
     ]

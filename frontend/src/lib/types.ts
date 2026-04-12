@@ -347,6 +347,34 @@ export type GovernanceActionItem = {
   tone: "normal" | "warning" | "critical";
 };
 
+export type GovernanceKpiSubstep = {
+  key: string;
+  label: string;
+  budget_hours: number;
+  elapsed_working_hours: number;
+  utilization_percent: number;
+  tone: "normal" | "warning" | "critical";
+  status: "pending" | "in_progress" | "completed";
+};
+
+export type GovernancePhaseKpiSummary = {
+  label: string;
+  budget_hours: number;
+  case_count: number;
+  active_case_count: number;
+  completed_case_count: number;
+  at_risk_case_count: number;
+  overdue_case_count: number;
+  average_elapsed_working_hours: number;
+  focus_case_number: string | null;
+  focus_case_title: string | null;
+  focus_status: "in_progress" | "completed";
+  focus_elapsed_working_hours: number;
+  focus_utilization_percent: number;
+  tone: "normal" | "warning" | "critical";
+  substeps: GovernanceKpiSubstep[];
+};
+
 export type GovernanceScopeRow = {
   is_self: boolean;
   subject_label: string;
@@ -358,6 +386,8 @@ export type GovernanceScopeRow = {
   pending_approvals: number;
   overdue_cases: number;
   completed_cases: number;
+  verification_kpi: GovernancePhaseKpiSummary | null;
+  investigation_kpi: GovernancePhaseKpiSummary | null;
   last_activity_at: string | null;
 };
 

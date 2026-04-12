@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\CaseFile;
 use App\Models\GovernanceControl;
 use App\Models\Report;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -227,6 +229,154 @@ class GovernanceDashboardTest extends TestCase
         $this->assertSame([], $response->json('data.specific.scope_rows'));
     }
 
+    public function test_verification_kpi_counts_only_working_hours_and_honours_holidays(): void
+    {
+        config()->set('wbs.operational_kpis.timezone', 'UTC');
+        config()->set('wbs.operational_kpis.workday_start', '08:00');
+        config()->set('wbs.operational_kpis.workday_end', '16:00');
+        config()->set('wbs.operational_kpis.non_working_dates', ['2026-04-13']);
+
+        $supervisor = $this->createUser(
+            'Supervisor Verificator',
+            'supervisor.kpi@example.test',
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'Verification Supervision'
+        );
+        $investigationSupervisor = $this->createUser(
+            'Supervisor Investigator',
+            'supervisor.investigator.kpi@example.test',
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            'Investigation Supervision'
+        );
+        $director = $this->createUser(
+            'Director',
+            'director.kpi@example.test',
+            User::ROLE_DIRECTOR,
+            'Directorate of Public Reports and Complaints'
+        );
+
+        $submittedAt = Carbon::parse('2026-04-10 15:00:00', 'UTC');
+        $report = Report::query()->create([
+            'uuid' => '00000000-0000-0000-0000-000000009001',
+            'public_reference' => 'WBS-2026-9001',
+            'tracking_token' => 'TRACK9001TOKN',
+            'title' => 'Working-hour KPI check',
+            'category' => 'procurement',
+            'description' => 'Verification KPI should exclude weekends and configured holidays.',
+            'severity' => 'not_available',
+            'status' => 'submitted',
+            'anonymity_level' => 'anonymous',
+            'submitted_at' => $submittedAt,
+        ]);
+
+        CaseFile::query()->create([
+            'report_id' => $report->id,
+            'case_number' => 'CASE-2026-9001',
+            'stage' => 'submitted',
+            'current_role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'assigned_unit' => 'Verification Supervision',
+            'verification_supervisor_id' => $supervisor->id,
+            'investigation_supervisor_id' => $investigationSupervisor->id,
+            'director_id' => $director->id,
+            'last_activity_at' => $submittedAt,
+            'completed_at' => null,
+        ]);
+
+        try {
+            Carbon::setTestNow(Carbon::parse('2026-04-14 10:00:00', 'UTC'));
+            Sanctum::actingAs($supervisor, [$supervisor->role]);
+
+            $response = $this->getJson('/api/governance/dashboard');
+
+            $response->assertOk()
+                ->assertJsonPath('data.specific.scope_rows.0.verification_kpi.label', 'Verification Time')
+                ->assertJsonPath('data.specific.scope_rows.0.verification_kpi.focus_elapsed_working_hours', 3)
+                ->assertJsonPath('data.specific.scope_rows.0.verification_kpi.substeps.0.label', 'Screening / Delegation')
+                ->assertJsonPath('data.specific.scope_rows.0.verification_kpi.substeps.0.tone', 'critical')
+                ->assertJsonPath('data.specific.scope_rows.0.investigation_kpi', null);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_overdue_case_metric_uses_operational_kpi_calculation_instead_of_sla_due_at(): void
+    {
+        config()->set('wbs.operational_kpis.timezone', 'UTC');
+        config()->set('wbs.operational_kpis.workday_start', '08:00');
+        config()->set('wbs.operational_kpis.workday_end', '16:00');
+        config()->set('wbs.operational_kpis.non_working_dates', []);
+
+        $director = $this->createUser(
+            'Director',
+            'director.overdue@example.test',
+            User::ROLE_DIRECTOR,
+            'Directorate of Public Reports and Complaints'
+        );
+        $supervisor = $this->createUser(
+            'Supervisor Verificator',
+            'supervisor.overdue@example.test',
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'Verification Supervision'
+        );
+        $verificator = $this->createUser(
+            'Verificator',
+            'verificator.overdue@example.test',
+            User::ROLE_VERIFICATOR,
+            'Verification Desk'
+        );
+        $investigationSupervisor = $this->createUser(
+            'Supervisor Investigator',
+            'supervisor.investigator.overdue@example.test',
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            'Investigation Supervision'
+        );
+        $investigator = $this->createUser(
+            'Investigator',
+            'investigator.overdue@example.test',
+            User::ROLE_INVESTIGATOR,
+            'Investigation Desk'
+        );
+
+        $report = $this->createReport('Overdue operational KPI case');
+        $caseFile = CaseFile::query()->create([
+            'report_id' => $report->id,
+            'case_number' => 'CASE-2026-9101',
+            'stage' => 'director_review',
+            'current_role' => User::ROLE_DIRECTOR,
+            'assigned_unit' => 'Directorate of Public Reports and Complaints',
+            'verification_supervisor_id' => $supervisor->id,
+            'verificator_id' => $verificator->id,
+            'investigation_supervisor_id' => $investigationSupervisor->id,
+            'investigator_id' => $investigator->id,
+            'director_id' => $director->id,
+            'verification_payload' => ['recommendation' => 'review'],
+            'sla_due_at' => now()->addDays(30),
+            'last_activity_at' => Carbon::parse('2026-04-09 09:00:00', 'UTC'),
+            'completed_at' => null,
+        ]);
+
+        $this->recordAudit($report, $caseFile, 'verification_approved', User::ROLE_SUPERVISOR_OF_VERIFICATOR, Carbon::parse('2026-04-06 08:00:00', 'UTC'));
+        $this->recordAudit($report, $caseFile, 'review_delegated', User::ROLE_SUPERVISOR_OF_INVESTIGATOR, Carbon::parse('2026-04-06 09:00:00', 'UTC'));
+        $this->recordAudit($report, $caseFile, 'review_submitted', User::ROLE_INVESTIGATOR, Carbon::parse('2026-04-08 09:00:00', 'UTC'));
+        $this->recordAudit($report, $caseFile, 'review_approved', User::ROLE_SUPERVISOR_OF_INVESTIGATOR, Carbon::parse('2026-04-09 09:00:00', 'UTC'));
+
+        try {
+            Carbon::setTestNow(Carbon::parse('2026-04-15 10:00:00', 'UTC'));
+            Sanctum::actingAs($director, [$director->role]);
+
+            $response = $this->getJson('/api/governance/dashboard');
+
+            $response->assertOk()
+                ->assertJsonPath('data.global.metrics.2.label', 'Overdue cases')
+                ->assertJsonPath('data.global.metrics.2.value', 1)
+                ->assertJsonPath('data.specific.action_items.1.title', 'Review overdue operational cases')
+                ->assertJsonPath('data.specific.action_items.1.count', 1)
+                ->assertJsonPath('data.specific.scope_rows.0.investigation_kpi.overdue_case_count', 1);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     private function createUser(string $name, string $email, string $role, string $unit): User
     {
         return User::query()->create([
@@ -260,5 +410,25 @@ class GovernanceDashboardTest extends TestCase
         $sequence++;
 
         return $report;
+    }
+
+    private function recordAudit(
+        Report $report,
+        CaseFile $caseFile,
+        string $action,
+        string $actorRole,
+        Carbon $happenedAt,
+    ): void {
+        AuditLog::query()->create([
+            'auditable_type' => CaseFile::class,
+            'auditable_id' => $caseFile->id,
+            'report_id' => $report->id,
+            'case_file_id' => $caseFile->id,
+            'actor_role' => $actorRole,
+            'actor_name' => 'Test Actor',
+            'action' => $action,
+            'context' => [],
+            'happened_at' => $happenedAt,
+        ]);
     }
 }
