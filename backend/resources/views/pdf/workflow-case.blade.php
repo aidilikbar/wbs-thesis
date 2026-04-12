@@ -20,7 +20,6 @@
             color: #26221d;
             border: 1px solid #decfb1;
             border-top: 4px solid #b84a55;
-            border-radius: 14px;
             padding: 22px 24px;
         }
 
@@ -91,7 +90,6 @@
         .pill {
             display: inline-block;
             padding: 5px 10px;
-            border-radius: 999px;
             margin-right: 8px;
             margin-top: 8px;
             font-size: 10px;
@@ -111,7 +109,6 @@
         .section-title {
             margin: 0 0 10px;
             padding: 10px 14px;
-            border-radius: 10px;
             background: #f3ead9;
             border-left: 5px solid #b84a55;
             color: #5f4d1f;
@@ -124,7 +121,6 @@
 
         .panel {
             border: 1px solid #e5d8bf;
-            border-radius: 12px;
             padding: 14px 16px;
             background: #fffdfa;
             page-break-inside: auto;
