@@ -83,8 +83,12 @@ function auditorCaseRowMatches(row: GovernanceAuditorCaseRow, term: string) {
     .includes(needle);
 }
 
-function formatHours(value: number) {
-  const normalized = Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+function formatHours(value?: number | null) {
+  const safeValue =
+    typeof value === "number" && Number.isFinite(value) ? value : 0;
+  const normalized = Number.isInteger(safeValue)
+    ? safeValue.toFixed(0)
+    : safeValue.toFixed(1);
 
   return `${normalized.replace(/\.0$/, "")} h`;
 }

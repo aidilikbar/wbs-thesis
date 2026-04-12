@@ -773,8 +773,8 @@ class GovernanceDashboardController extends Controller
     private function buildAuditorCaseRow(CaseFile $caseFile, array $casePhaseKpis): array
     {
         $milestones = $this->operationalKpiService->buildCaseStageMilestones($caseFile);
-        $verificationKpi = $this->sanitizePhaseSnapshotForAuditor($casePhaseKpis[$caseFile->id]['verification'] ?? null, $caseFile);
-        $investigationKpi = $this->sanitizePhaseSnapshotForAuditor($casePhaseKpis[$caseFile->id]['investigation'] ?? null, $caseFile);
+        $verificationKpi = $this->transformAuditorPhaseSnapshot($casePhaseKpis[$caseFile->id]['verification'] ?? null, $caseFile);
+        $investigationKpi = $this->transformAuditorPhaseSnapshot($casePhaseKpis[$caseFile->id]['investigation'] ?? null, $caseFile);
         [$slaStatus, $slaStatusLabel, $slaTone] = $this->auditorSlaStatus($caseFile, $verificationKpi, $investigationKpi);
 
         return [
@@ -800,18 +800,31 @@ class GovernanceDashboardController extends Controller
         ];
     }
 
-    private function sanitizePhaseSnapshotForAuditor(?array $snapshot, CaseFile $caseFile): ?array
+    private function transformAuditorPhaseSnapshot(?array $snapshot, CaseFile $caseFile): ?array
     {
         if (! is_array($snapshot)) {
             return null;
         }
 
-        $snapshot['case_number'] = $this->anonymizedCaseReference($caseFile);
-        $snapshot['focus_case_number'] = $this->anonymizedCaseReference($caseFile);
-        $snapshot['case_title'] = null;
-        $snapshot['focus_case_title'] = null;
+        $utilizationPercent = (float) ($snapshot['utilization_percent'] ?? 0);
 
-        return $snapshot;
+        return [
+            'label' => $snapshot['label'] ?? 'Operational KPI',
+            'budget_hours' => (float) ($snapshot['budget_hours'] ?? 0),
+            'case_count' => 1,
+            'active_case_count' => ($snapshot['status'] ?? 'in_progress') === 'in_progress' ? 1 : 0,
+            'completed_case_count' => ($snapshot['status'] ?? null) === 'completed' ? 1 : 0,
+            'at_risk_case_count' => $utilizationPercent >= 80 && $utilizationPercent <= 100 ? 1 : 0,
+            'overdue_case_count' => $utilizationPercent > 100 ? 1 : 0,
+            'average_elapsed_working_hours' => (float) ($snapshot['elapsed_working_hours'] ?? 0),
+            'focus_case_number' => $this->anonymizedCaseReference($caseFile),
+            'focus_case_title' => null,
+            'focus_status' => $snapshot['status'] ?? 'in_progress',
+            'focus_elapsed_working_hours' => (float) ($snapshot['elapsed_working_hours'] ?? 0),
+            'focus_utilization_percent' => $utilizationPercent,
+            'tone' => $snapshot['tone'] ?? 'normal',
+            'substeps' => $snapshot['substeps'] ?? [],
+        ];
     }
 
     private function transformAuditLog(AuditLog $log, User $viewer): array

@@ -350,6 +350,15 @@ class WbsDemoSeeder extends Seeder
                 'is_active' => true,
                 'password' => 'Password123',
             ]),
+            'auditor' => User::query()->create([
+                'name' => 'Dewi Paramita',
+                'email' => 'auditor@kpk-wbs.test',
+                'phone' => '+62-812-1000-0009',
+                'role' => User::ROLE_AUDITOR,
+                'unit' => User::defaultUnitForRole(User::ROLE_AUDITOR),
+                'is_active' => true,
+                'password' => 'Password123',
+            ]),
             'reporter_1' => User::query()->create([
                 'name' => 'Laila N',
                 'email' => 'reporter.1@example.test',

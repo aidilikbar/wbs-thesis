@@ -214,6 +214,7 @@ Attachment storage configuration:
 All seeded accounts use password `Password123`.
 
 - System Administrator: `sysadmin@kpk-wbs.test`
+- Auditor: `auditor@kpk-wbs.test`
 - Verification Supervisor: `supervisor.verificator@kpk-wbs.test`
 - Verification Officer: `verificator.1@kpk-wbs.test`
 - Verification Officer: `verificator.2@kpk-wbs.test`

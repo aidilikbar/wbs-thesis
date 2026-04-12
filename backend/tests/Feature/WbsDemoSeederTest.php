@@ -18,6 +18,7 @@ class WbsDemoSeederTest extends TestCase
         $this->seed(WbsDemoSeeder::class);
 
         $expectedEmails = [
+            'auditor@kpk-wbs.test',
             'director@kpk-wbs.test',
             'investigator.1@kpk-wbs.test',
             'investigator.2@kpk-wbs.test',
@@ -33,7 +34,7 @@ class WbsDemoSeederTest extends TestCase
         ];
 
         $this->assertSame($expectedEmails, User::query()->orderBy('email')->pluck('email')->all());
-        $this->assertSame(12, User::query()->count());
+        $this->assertSame(13, User::query()->count());
         $this->assertSame(4, Report::query()->count());
         $this->assertSame(4, CaseFile::query()->count());
 
