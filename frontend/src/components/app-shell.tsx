@@ -181,7 +181,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 KPK Whistleblowing System
               </p>
               <p className="max-w-2xl leading-7">
-                Thesis prototype aligned to the KPK whistleblowing business process, with operational oversight and enterprise architecture concerns built directly into the user interface and workflow model.
+                Thesis prototype aligned to the KPK whistleblowing business process, with operational governance and enterprise architecture concerns built directly into the user interface and workflow model.
               </p>
             </div>
 

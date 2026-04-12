@@ -26,9 +26,9 @@ class OperationalKpiService
 
     private readonly int $workdayEndMinute;
 
-    public function __construct()
+    public function __construct(SystemSettingService $systemSettingService)
     {
-        $config = config('wbs.operational_kpis', []);
+        $config = $systemSettingService->getOperationalKpiConfiguration();
         [$startHour, $startMinute] = $this->parseTime((string) ($config['workday_start'] ?? '08:00'));
         [$endHour, $endMinute] = $this->parseTime((string) ($config['workday_end'] ?? '16:00'));
 

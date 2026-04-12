@@ -35,7 +35,11 @@ class ApiDocumentationTest extends TestCase
         $this->assertSame('exportWorkflowCasePdf', $openApi['paths']['/api/workflow/cases/{caseFile}/export-pdf']['get']['operationId']);
         $this->assertSame('listReporterCaseMessages', $openApi['paths']['/api/reporter/reports/{report}/messages']['get']['operationId']);
         $this->assertSame('listWorkflowCaseMessages', $openApi['paths']['/api/workflow/cases/{caseFile}/messages']['get']['operationId']);
+        $this->assertSame('getOperationalKpiSettings', $openApi['paths']['/api/admin/settings/operational-kpis']['get']['operationId']);
+        $this->assertSame('updateOperationalKpiSettings', $openApi['paths']['/api/admin/settings/operational-kpis']['patch']['operationId']);
         $this->assertArrayHasKey('reported_parties', $openApi['components']['schemas']['ReportSubmissionRequest']['properties']);
+        $this->assertArrayHasKey('OperationalKpiSettings', $openApi['components']['schemas']);
+        $this->assertArrayHasKey('weekend_days', $openApi['components']['schemas']['OperationalKpiSettings']['properties']);
         $this->assertArrayHasKey('GovernancePhaseKpiSummary', $openApi['components']['schemas']);
         $this->assertArrayHasKey('verification_kpi', $openApi['components']['schemas']['GovernanceScopeRow']['properties']);
         $this->assertArrayNotHasKey('publish_update', $openApi['components']['schemas']['VerificationSubmissionRequest']['properties']);

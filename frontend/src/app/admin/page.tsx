@@ -17,8 +17,8 @@ export default async function AdminPage({
     <AppShell>
       <PageIntro
         eyebrow="System Administration"
-        title="Manage internal and reporter accounts"
-        description="Search, filter, activate, deactivate, and delete directory records from the administration index. Dedicated create and edit pages are available for full account maintenance."
+        title="Manage user administration and operational KPI settings"
+        description="Use the administration workspace to manage reporter and internal accounts, while also reviewing and maintaining the operational KPI timing model used across Governance."
         titleClassName="text-5xl"
       />
       <section className="mt-8">

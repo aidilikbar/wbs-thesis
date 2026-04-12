@@ -123,6 +123,14 @@ a {
   line-height: 0.88;
 }
 
+.metric-value-governance {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 3.2vw, 3.3rem);
+  line-height: 0.9;
+  letter-spacing: -0.07em;
+  max-width: 100%;
+}
+
 .security-strip {
   border-bottom: 1px solid rgba(19, 19, 19, 0.08);
   background: rgba(255, 251, 246, 0.98);
@@ -216,6 +224,29 @@ a {
   background: transparent;
   border: 1px solid var(--panel-border);
   color: var(--foreground);
+}
+
+.ghost-button-on-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.35rem;
+  background: rgba(197, 160, 34, 0.08);
+  border: 1px solid rgba(197, 160, 34, 0.42);
+  color: #f2d97a;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  padding: 0.95rem 1.35rem;
+  text-transform: uppercase;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease,
+    border-color 160ms ease, background-color 160ms ease;
+}
+
+.ghost-button-on-dark:hover {
+  transform: translateY(-1px);
+  background: rgba(197, 160, 34, 0.14);
 }
 
 .outline-panel {

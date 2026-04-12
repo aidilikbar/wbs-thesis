@@ -12,7 +12,7 @@ export default function LoginPage() {
       <PageIntro
         eyebrow="Account Access"
         title="Login to the KPK Whistleblowing System"
-        description="Reporters use their own accounts to submit reports. Internal users access the workflow and oversight screens using accounts created by the system administrator."
+        description="Reporters use their own accounts to submit reports. Internal users access the workflow and governance screens using accounts created by the system administrator."
         breadcrumbs={[{ label: "Login" }]}
         titleClassName="text-5xl"
       />

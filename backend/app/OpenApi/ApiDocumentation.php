@@ -692,6 +692,91 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'OperationalKpiSettings',
+    type: 'object',
+    properties: [
+        new OA\Property(property: 'timezone', type: 'string', example: 'Asia/Jakarta'),
+        new OA\Property(property: 'workday_start', type: 'string', example: '08:00'),
+        new OA\Property(property: 'workday_end', type: 'string', example: '16:00'),
+        new OA\Property(
+            property: 'weekend_days',
+            type: 'array',
+            items: new OA\Items(type: 'integer', example: 6)
+        ),
+        new OA\Property(
+            property: 'non_working_dates',
+            type: 'array',
+            items: new OA\Items(type: 'string', format: 'date', example: '2026-04-03')
+        ),
+        new OA\Property(property: 'verification_screening_hours', type: 'number', format: 'float', example: 1),
+        new OA\Property(property: 'verification_work_hours', type: 'number', format: 'float', example: 5),
+        new OA\Property(property: 'verification_approval_hours', type: 'number', format: 'float', example: 2),
+        new OA\Property(property: 'verification_total_hours', type: 'number', format: 'float', example: 8),
+        new OA\Property(property: 'investigation_delegation_hours', type: 'number', format: 'float', example: 4),
+        new OA\Property(property: 'investigation_work_hours', type: 'number', format: 'float', example: 28),
+        new OA\Property(property: 'investigation_approval_hours', type: 'number', format: 'float', example: 4),
+        new OA\Property(property: 'director_approval_hours', type: 'number', format: 'float', example: 4),
+        new OA\Property(property: 'investigation_total_hours', type: 'number', format: 'float', example: 40),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true, example: '2026-04-12T09:30:00Z'),
+        new OA\Property(property: 'updated_by_user_id', type: 'integer', nullable: true, example: 5),
+        new OA\Property(property: 'updated_by_name', type: 'string', nullable: true, example: 'System Administrator'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'OperationalKpiSettingsRequest',
+    type: 'object',
+    required: [
+        'workday_start',
+        'workday_end',
+        'verification_screening_hours',
+        'verification_work_hours',
+        'verification_approval_hours',
+        'investigation_delegation_hours',
+        'investigation_work_hours',
+        'investigation_approval_hours',
+        'director_approval_hours',
+    ],
+    properties: [
+        new OA\Property(property: 'timezone', type: 'string', nullable: true, example: 'Asia/Jakarta'),
+        new OA\Property(property: 'workday_start', type: 'string', example: '08:00'),
+        new OA\Property(property: 'workday_end', type: 'string', example: '16:00'),
+        new OA\Property(
+            property: 'weekend_days',
+            type: 'array',
+            items: new OA\Items(type: 'integer', example: 6)
+        ),
+        new OA\Property(
+            property: 'non_working_dates',
+            type: 'array',
+            items: new OA\Items(type: 'string', format: 'date', example: '2026-04-03')
+        ),
+        new OA\Property(property: 'verification_screening_hours', type: 'number', format: 'float', example: 1),
+        new OA\Property(property: 'verification_work_hours', type: 'number', format: 'float', example: 5),
+        new OA\Property(property: 'verification_approval_hours', type: 'number', format: 'float', example: 2),
+        new OA\Property(property: 'investigation_delegation_hours', type: 'number', format: 'float', example: 4),
+        new OA\Property(property: 'investigation_work_hours', type: 'number', format: 'float', example: 28),
+        new OA\Property(property: 'investigation_approval_hours', type: 'number', format: 'float', example: 4),
+        new OA\Property(property: 'director_approval_hours', type: 'number', format: 'float', example: 4),
+    ]
+)]
+#[OA\Schema(
+    schema: 'OperationalKpiSettingsResponse',
+    type: 'object',
+    required: ['data'],
+    properties: [
+        new OA\Property(property: 'data', ref: '#/components/schemas/OperationalKpiSettings'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'OperationalKpiSettingsMutationResponse',
+    type: 'object',
+    required: ['message', 'data'],
+    properties: [
+        new OA\Property(property: 'message', type: 'string', example: 'Operational KPI settings updated successfully.'),
+        new OA\Property(property: 'data', ref: '#/components/schemas/OperationalKpiSettings'),
+    ]
+)]
+#[OA\Schema(
     schema: 'GovernanceKpiSubstep',
     type: 'object',
     properties: [

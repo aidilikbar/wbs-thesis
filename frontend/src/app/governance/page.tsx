@@ -10,7 +10,7 @@ export default function GovernancePage() {
   return (
     <AppShell>
       <PageIntro
-        eyebrow="Oversight and Integrity"
+        eyebrow="Governance and Integrity"
         title="Operational Oversight Dashboard"
         description="Use global signals to read the condition of the system, then move into role-specific KPIs and hierarchy-based workload to decide the next action."
         titleClassName="text-5xl"

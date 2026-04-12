@@ -16,7 +16,7 @@ export default async function WorkflowAllCasesPage({
   return (
     <AppShell>
       <PageIntro
-        eyebrow="Workflow Oversight"
+        eyebrow="Workflow Governance"
         title="All cases across workflow, approval, and completion stages"
         description="Review the full case portfolio connected to your workflow responsibility, including active work, approvals, and records that have already progressed or closed."
         breadcrumbs={[

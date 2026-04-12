@@ -234,7 +234,7 @@ export function WorkflowDirectory({
           <p className="eyebrow">Approval Queue</p>
           <h2 className="mt-4 text-3xl">Approval access is not assigned to this role</h2>
           <p className="muted mt-4 max-w-3xl text-sm leading-7">
-            Approval actions are reserved for verification supervisors, investigation supervisors, directors, and system administrator oversight accounts.
+            Approval actions are reserved for verification supervisors, investigation supervisors, directors, and system administrator governance accounts.
           </p>
         </div>
       </div>
@@ -249,7 +249,7 @@ export function WorkflowDirectory({
           <p className="eyebrow">All Cases</p>
           <h2 className="mt-4 text-3xl">This role does not use the all-cases directory</h2>
           <p className="muted mt-4 max-w-3xl text-sm leading-7">
-            The all-cases view is reserved for verification supervisors, investigation supervisors, directors, and system administrator oversight accounts.
+            The all-cases view is reserved for verification supervisors, investigation supervisors, directors, and system administrator governance accounts.
           </p>
         </div>
       </div>

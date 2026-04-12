@@ -9,6 +9,8 @@ import type {
   InternalUserPayload,
   LoginPayload,
   MessageResponse,
+  OperationalKpiSettings,
+  OperationalKpiSettingsPayload,
   PaginatedData,
   ReportAttachment,
   RegisterReporterPayload,
@@ -502,6 +504,19 @@ export const api = {
       },
     );
   },
+  fetchOperationalKpiSettings: (token: string) =>
+    request<OperationalKpiSettings>("/admin/settings/operational-kpis", {
+      token,
+    }),
+  updateOperationalKpiSettings: (
+    token: string,
+    body: OperationalKpiSettingsPayload,
+  ) =>
+    request<OperationalKpiSettings>("/admin/settings/operational-kpis", {
+      method: "PATCH",
+      token,
+      body,
+    }),
   createUser: (token: string, body: InternalUserPayload) =>
     request<AuthUser>("/admin/users", {
       method: "POST",

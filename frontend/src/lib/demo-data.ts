@@ -34,7 +34,7 @@ export const landingStats = [
     label: "Primary Modules",
     value: "5",
     detail:
-      "Overview, reporter submission, tracking, workflow operations, and oversight administration.",
+      "Overview, reporter submission, tracking, workflow operations, and governance administration.",
   },
 ];
 
@@ -62,8 +62,8 @@ export const moduleCards = [
   },
   {
     href: "/governance",
-    kicker: "Oversight",
-    title: "Operational Oversight",
+    kicker: "Governance",
+    title: "Operational Governance",
     description:
       "Monitor workload, timeliness, controls, and audit evidence across the whistleblowing process.",
   },
@@ -81,13 +81,13 @@ export const architectureLayers = [
     kicker: "Frontend",
     title: "Next.js institutional interface",
     description:
-      "Provides reporter registration and login, protected submission, workflow screens, and oversight views.",
+      "Provides reporter registration and login, protected submission, workflow screens, and governance views.",
   },
   {
     kicker: "Backend",
-    title: "Laravel oversight workflow core",
+    title: "Laravel governance workflow core",
     description:
-      "Owns role-controlled case routing, audit logging, public tracking, and oversight APIs.",
+      "Owns role-controlled case routing, audit logging, public tracking, and governance APIs.",
   },
   {
     kicker: "Infrastructure",

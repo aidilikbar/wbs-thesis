@@ -57,6 +57,41 @@ export type AdminUserUpdatePayload = {
   password_confirmation?: string;
 };
 
+export type OperationalKpiSettings = {
+  timezone: string;
+  workday_start: string;
+  workday_end: string;
+  weekend_days: number[];
+  non_working_dates: string[];
+  verification_screening_hours: number;
+  verification_work_hours: number;
+  verification_approval_hours: number;
+  verification_total_hours: number;
+  investigation_delegation_hours: number;
+  investigation_work_hours: number;
+  investigation_approval_hours: number;
+  director_approval_hours: number;
+  investigation_total_hours: number;
+  updated_at: string | null;
+  updated_by_user_id: number | null;
+  updated_by_name: string | null;
+};
+
+export type OperationalKpiSettingsPayload = {
+  timezone?: string;
+  workday_start: string;
+  workday_end: string;
+  weekend_days: number[];
+  non_working_dates: string[];
+  verification_screening_hours: number;
+  verification_work_hours: number;
+  verification_approval_hours: number;
+  investigation_delegation_hours: number;
+  investigation_work_hours: number;
+  investigation_approval_hours: number;
+  director_approval_hours: number;
+};
+
 export type PaginationMeta = {
   current_page: number;
   last_page: number;

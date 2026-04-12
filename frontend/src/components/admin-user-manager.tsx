@@ -9,7 +9,12 @@ import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { getRoleLabel } from "@/lib/labels";
 import { isSystemAdministrator } from "@/lib/roles";
-import type { AuthUser, PaginatedData, UserRole } from "@/lib/types";
+import type {
+  AuthUser,
+  OperationalKpiSettings,
+  PaginatedData,
+  UserRole,
+} from "@/lib/types";
 
 const PAGE_SIZE = 10;
 
@@ -48,6 +53,32 @@ const statusFilterOptions: Array<{
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
 ];
+
+const weekdayLabels: Record<number, string> = {
+  1: "Mon",
+  2: "Tue",
+  3: "Wed",
+  4: "Thu",
+  5: "Fri",
+  6: "Sat",
+  7: "Sun",
+};
+
+function formatHours(value: number) {
+  return `${value.toFixed(1).replace(/\.0$/, "")} h`;
+}
+
+function summarizeWeekendDays(days: number[]) {
+  if (days.length === 0) {
+    return "No weekends configured";
+  }
+
+  return days
+    .slice()
+    .sort((left, right) => left - right)
+    .map((day) => weekdayLabels[day] ?? String(day))
+    .join(", ");
+}
 
 function noticeClasses(tone: "success" | "error") {
   if (tone === "success") {
@@ -90,6 +121,8 @@ export function AdminUserManager({
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const [roleFilter, setRoleFilter] = useState<DirectoryRoleFilter>("all");
   const [statusFilter, setStatusFilter] = useState<DirectoryStatusFilter>("all");
+  const [operationalKpiSettings, setOperationalKpiSettings] =
+    useState<OperationalKpiSettings | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const isAdmin = isSystemAdministrator(user?.role);
@@ -142,6 +175,34 @@ export function AdminUserManager({
       active = false;
     };
   }, [token, isAdmin, page, deferredSearchTerm, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    if (!token || !isAdmin) {
+      return;
+    }
+
+    let active = true;
+
+    const loadSettings = async () => {
+      try {
+        const data = await api.fetchOperationalKpiSettings(token);
+
+        if (active) {
+          setOperationalKpiSettings(data);
+        }
+      } catch {
+        if (active) {
+          setOperationalKpiSettings(null);
+        }
+      }
+    };
+
+    loadSettings();
+
+    return () => {
+      active = false;
+    };
+  }, [token, isAdmin]);
 
   const reloadUsers = async (targetPage = page) => {
     if (!token) {
@@ -280,21 +341,105 @@ export function AdminUserManager({
 
   return (
     <div className="space-y-6">
-      <aside className="dark-card rounded-[1rem] border border-white/8 p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
-              Directory Controls
-            </p>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/72">
-              Search by name, email, phone, or unit. Filter by role and status, then open dedicated create and edit screens while keeping activation and deletion available directly from the directory.
-            </p>
+      <section className="grid gap-6 xl:grid-cols-[0.58fr_0.42fr]">
+        <div className="panel rounded-[1rem] p-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="eyebrow">Operational KPI Settings</p>
+              <h2 className="mt-4 text-3xl">Current timing configuration</h2>
+              <p className="muted mt-4 max-w-3xl text-sm leading-7">
+                These stored values drive Governance KPI bars, at-risk thresholds, and overdue calculations. Editing remains on the dedicated settings page.
+              </p>
+            </div>
+            <Link href="/admin/settings" className="secondary-button">
+              Edit KPI Settings
+            </Link>
           </div>
-          <Link href="/admin/create" className="primary-button">
-            Create Internal User
-          </Link>
+
+          {operationalKpiSettings ? (
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              <article className="outline-panel rounded-[0.9rem] p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                  Work Calendar
+                </p>
+                <div className="mt-4 space-y-3 text-sm leading-6">
+                  <p>
+                    <span className="font-semibold">Timezone:</span>{" "}
+                    {operationalKpiSettings.timezone}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Working hours:</span>{" "}
+                    {operationalKpiSettings.workday_start} - {operationalKpiSettings.workday_end}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Weekend days:</span>{" "}
+                    {summarizeWeekendDays(operationalKpiSettings.weekend_days)}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Non-working dates:</span>{" "}
+                    {operationalKpiSettings.non_working_dates.length}
+                  </p>
+                </div>
+              </article>
+
+              <article className="outline-panel rounded-[0.9rem] p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                  Verification Budget
+                </p>
+                <p className="mt-3 text-3xl font-semibold">
+                  {formatHours(operationalKpiSettings.verification_total_hours)}
+                </p>
+                <div className="mt-4 grid gap-2 text-sm leading-6">
+                  <p>Screening / Delegation: {formatHours(operationalKpiSettings.verification_screening_hours)}</p>
+                  <p>Verification Work: {formatHours(operationalKpiSettings.verification_work_hours)}</p>
+                  <p>Supervisory Approval: {formatHours(operationalKpiSettings.verification_approval_hours)}</p>
+                </div>
+              </article>
+
+              <article className="outline-panel rounded-[0.9rem] p-5 lg:col-span-2">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                      Investigation Budget
+                    </p>
+                    <p className="mt-3 text-3xl font-semibold">
+                      {formatHours(operationalKpiSettings.investigation_total_hours)}
+                    </p>
+                  </div>
+                  <div className="text-sm leading-6 text-right">
+                    <p className="font-semibold">Last updated</p>
+                    <p>{formatDateTime(operationalKpiSettings.updated_at)}</p>
+                    <p className="muted">
+                      {operationalKpiSettings.updated_by_name ?? "Default configuration"}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-2 text-sm leading-6 md:grid-cols-2">
+                  <p>Delegation: {formatHours(operationalKpiSettings.investigation_delegation_hours)}</p>
+                  <p>Investigation Work: {formatHours(operationalKpiSettings.investigation_work_hours)}</p>
+                  <p>Supervisory Approval: {formatHours(operationalKpiSettings.investigation_approval_hours)}</p>
+                  <p>Director Approval: {formatHours(operationalKpiSettings.director_approval_hours)}</p>
+                </div>
+              </article>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-[0.9rem] border border-dashed border-[var(--panel-border)] px-5 py-5 text-sm text-[var(--muted)]">
+              Operational KPI settings are not available right now. Open the dedicated settings page to review or restore the configuration.
+            </div>
+          )}
         </div>
-      </aside>
+
+        <aside className="dark-card rounded-[1rem] border border-white/8 p-8">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--secondary)]">
+            Administration Scope
+          </p>
+          <ul className="mt-5 space-y-4 text-sm leading-7 text-white/72">
+            <li>User administration covers reporter and internal account readiness, activation, and directory maintenance.</li>
+            <li>Operational KPI settings define the work calendar and the verification or investigation hour budgets used in Governance.</li>
+            <li>Use the summary on this page for review, and the dedicated settings page for editing and saving changes.</li>
+          </ul>
+        </aside>
+      </section>
 
       <div className="panel rounded-[1rem] p-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -302,11 +447,16 @@ export function AdminUserManager({
             <p className="eyebrow">Provisioned Users</p>
             <h2 className="mt-4 text-3xl">Paginated user directory</h2>
           </div>
-          <div className="text-right">
-            <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
-              Total users
-            </p>
-            <p className="mt-2 text-3xl font-semibold">{directory.meta.total}</p>
+          <div className="flex flex-wrap items-end gap-4">
+            <Link href="/admin/create" className="primary-button">
+              Create Internal User
+            </Link>
+            <div className="text-right">
+              <p className="font-mono text-[0.64rem] uppercase tracking-[0.22em] text-[var(--muted)]">
+                Total users
+              </p>
+              <p className="mt-2 text-3xl font-semibold">{directory.meta.total}</p>
+            </div>
           </div>
         </div>
 

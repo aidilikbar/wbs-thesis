@@ -5,7 +5,7 @@ const purposePoints = [
   "Encourage safe reporting of corruption and misconduct",
   "Protect whistleblowers from retaliation",
   "Ensure fair, impartial, and timely case handling",
-  "Strengthen oversight and institutional integrity",
+  "Strengthen governance and institutional integrity",
   "Support KPK's mission in corruption prevention and enforcement",
 ];
 
@@ -84,11 +84,11 @@ export default function Home() {
         <div className="space-y-6">
           <p className="eyebrow">KPK Whistleblowing System (KWS)</p>
           <h1 className="max-w-4xl text-[clamp(3rem,8vw,6rem)]">
-            Oversight-Oriented
+            Governance-Oriented
             <span className="block text-[var(--primary)]">Whistleblowing Platform</span>
           </h1>
           <p className="max-w-2xl text-xl leading-9 text-[var(--muted)]">
-            A secure and oversight-oriented platform designed to support
+            A secure and governance-oriented platform designed to support
             transparent, accountable, and protected reporting of wrongdoing,
             aligned with ISO 37002 principles.
           </p>
@@ -107,7 +107,7 @@ export default function Home() {
           <div className="relative grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
             <div className="rounded-[1rem] border border-white/55 bg-white/76 p-6 shadow-[0_18px_36px_rgba(19,19,19,0.06)]">
               <p className="eyebrow">Institutional Purpose</p>
-              <h2 className="mt-3 text-4xl">Protected reporting embedded into oversight</h2>
+              <h2 className="mt-3 text-4xl">Protected reporting embedded into governance</h2>
               <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
                 KWS is designed as more than a filing interface. It embeds
                 accountability, protection, and structured case handling directly
@@ -263,19 +263,19 @@ export default function Home() {
             This is not just a reporting tool.
           </h2>
           <blockquote className="mt-6 border-l-[3px] border-[var(--secondary)] pl-5 text-lg leading-8 text-white/86">
-            KWS is an oversight-oriented system where policy, accountability, and
+            KWS is a governance-oriented system where policy, accountability, and
             protection are embedded into the architecture.
           </blockquote>
           <p className="mt-6 max-w-2xl text-sm leading-8 text-white/72">
             Aligned with ISO 37002, the platform is intended to sustain
-            whistleblowing as an organizational oversight mechanism rather than
+            whistleblowing as an organizational governance mechanism rather than
             a standalone complaint form.
           </p>
         </div>
 
         <div className="panel rounded-[1rem] p-8">
           <p className="eyebrow">Aligned Outcomes</p>
-          <h2 className="mt-3 text-4xl">Built for continuous oversight improvement</h2>
+          <h2 className="mt-3 text-4xl">Built for continuous governance improvement</h2>
           <div className="mt-6 space-y-4">
             {philosophyPoints.map((item, index) => (
               <div

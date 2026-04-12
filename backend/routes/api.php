@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminUserController;
+use App\Http\Controllers\Api\AdminOperationalKpiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CaseMessageController;
 use App\Http\Controllers\Api\CatalogController;
@@ -59,6 +60,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/users/{user}', [AdminUserController::class, 'update']);
         Route::patch('/users/{user}/deactivate', [AdminUserController::class, 'deactivate']);
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
+        Route::get('/settings/operational-kpis', [AdminOperationalKpiController::class, 'show']);
+        Route::patch('/settings/operational-kpis', [AdminOperationalKpiController::class, 'update']);
     });
 
     Route::get('/governance/dashboard', [GovernanceDashboardController::class, 'index']);
