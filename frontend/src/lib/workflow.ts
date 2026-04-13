@@ -77,6 +77,12 @@ export function workflowAllowedStagesForView(
       "completed",
     ],
     director: [
+      "submitted",
+      "verification_in_progress",
+      "verification_review",
+      "verified",
+      "investigation_in_progress",
+      "investigation_review",
       "director_review",
       "completed",
     ],

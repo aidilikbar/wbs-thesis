@@ -490,6 +490,12 @@ class WorkflowCaseController extends Controller
                 'completed',
             ],
             User::ROLE_DIRECTOR => [
+                'submitted',
+                'verification_in_progress',
+                'verification_review',
+                'verified',
+                'investigation_in_progress',
+                'investigation_review',
                 'director_review',
                 'completed',
             ],

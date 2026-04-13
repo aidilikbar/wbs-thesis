@@ -531,11 +531,26 @@ class InvestigatorWorkflowTest extends TestCase
 
         $caseFile = CaseFile::query()->firstOrFail();
 
+        $this->postJson('/api/reporter/reports', [
+            'title' => 'All case visibility while active',
+            'category' => 'fraud',
+            'description' => 'Report used to verify that director all-case visibility includes active verification work.',
+            'confidentiality_level' => 'identified',
+        ])->assertCreated();
+
+        $activeCase = CaseFile::query()->latest('id')->firstOrFail();
+
         Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
         $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
             'assignee_user_id' => $verificator->id,
             'assigned_unit' => 'Verification Desk',
         ])->assertOk();
+
+        $this->patchJson("/api/workflow/cases/{$activeCase->id}/delegate-verification", [
+            'assignee_user_id' => $verificator->id,
+            'assigned_unit' => 'Verification Desk',
+        ])->assertOk()
+            ->assertJsonPath('data.stage', 'verification_in_progress');
 
         Sanctum::actingAs($verificator, [$verificator->role]);
         $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-verification", [
@@ -605,8 +620,11 @@ class InvestigatorWorkflowTest extends TestCase
         Sanctum::actingAs($director, [$director->role]);
         $this->getJson('/api/workflow/cases?view=all&search=visibility')
             ->assertOk()
-            ->assertJsonPath('data.meta.total', 1)
-            ->assertJsonPath('data.items.0.stage', 'completed');
+            ->assertJsonPath('data.meta.total', 2)
+            ->assertJsonPath('data.items.0.stage', 'verification_in_progress')
+            ->assertJsonPath('data.items.0.title', 'All case visibility while active')
+            ->assertJsonPath('data.items.1.stage', 'completed')
+            ->assertJsonPath('data.items.1.title', 'All case visibility after completion');
     }
 
     public function test_public_tracking_history_matches_progressed_workflow_sequence(): void
