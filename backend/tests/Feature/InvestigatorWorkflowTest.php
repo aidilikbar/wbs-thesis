@@ -16,6 +16,13 @@ class InvestigatorWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_workflow_directory_returns_api_safe_unauthorized_response(): void
+    {
+        $this->get('/api/workflow/cases')
+            ->assertStatus(401)
+            ->assertJsonPath('message', 'Unauthenticated.');
+    }
+
     public function test_case_moves_from_submission_to_director_approval_through_kpk_roles(): void
     {
         $supervisorOfVerificator = $this->createUser(

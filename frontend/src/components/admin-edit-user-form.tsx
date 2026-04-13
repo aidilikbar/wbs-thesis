@@ -289,6 +289,12 @@ export function AdminEditUserForm({ userId }: { userId: number }) {
         <div className="mt-5 space-y-4 text-sm leading-7 text-white/72">
           <div>
             <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/48">
+              Email
+            </p>
+            <p>{form.email}</p>
+          </div>
+          <div>
+            <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-white/48">
               Role
             </p>
             <p>{getRoleLabel(form.role, form.role_label)}</p>

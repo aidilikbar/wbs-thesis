@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useDeferredValue, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { demoReporterReports } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
 import { getDisplayLabel, getStageLabel } from "@/lib/labels";
@@ -129,6 +129,17 @@ export function ReportDirectory(props: NoticeProps) {
         setUsingFallback(false);
       } catch (error) {
         if (!active) {
+          return;
+        }
+
+        if (error instanceof ApiError && error.status < 500) {
+          setDirectory(emptyDirectory);
+          setUsingFallback(false);
+          setNotice({
+            tone: "error",
+            text: error.message,
+          });
+
           return;
         }
 

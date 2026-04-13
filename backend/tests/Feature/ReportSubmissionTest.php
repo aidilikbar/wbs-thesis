@@ -97,6 +97,13 @@ class ReportSubmissionTest extends TestCase
         ]);
     }
 
+    public function test_reporter_report_directory_returns_api_safe_unauthorized_response(): void
+    {
+        $this->get('/api/reporter/reports')
+            ->assertStatus(401)
+            ->assertJsonPath('message', 'Unauthenticated.');
+    }
+
     public function test_reporter_can_list_reports_with_pagination_and_filters(): void
     {
         $reporter = User::query()->create([

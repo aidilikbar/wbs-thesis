@@ -27,6 +27,18 @@ import type {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api";
 
+export const AUTH_INVALIDATED_EVENT = "kpk-wbs-auth-invalidated";
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   token?: string | null;
@@ -45,6 +57,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
           ? body
           : JSON.stringify(body),
     headers: {
+      Accept: "application/json",
+      "X-Requested-With": "XMLHttpRequest",
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers ?? {}),
@@ -55,7 +69,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(payload?.message ?? "Request failed");
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(AUTH_INVALIDATED_EVENT));
+    }
+
+    throw new ApiError(payload?.message ?? "Request failed", response.status);
   }
 
   return (payload?.data ?? payload) as T;
@@ -74,6 +92,8 @@ async function requestBlob(path: string, options: RequestOptions = {}): Promise<
           ? body
           : JSON.stringify(body),
     headers: {
+      Accept: "application/json",
+      "X-Requested-With": "XMLHttpRequest",
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers ?? {}),
@@ -83,7 +103,12 @@ async function requestBlob(path: string, options: RequestOptions = {}): Promise<
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
-    throw new Error(payload?.message ?? "Request failed");
+
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(AUTH_INVALIDATED_EVENT));
+    }
+
+    throw new ApiError(payload?.message ?? "Request failed", response.status);
   }
 
   return response.blob();

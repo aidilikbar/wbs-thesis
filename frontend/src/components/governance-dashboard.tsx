@@ -4,10 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
-import {
-  demoGovernanceDashboard,
-  demoGovernanceDashboardForRole,
-} from "@/lib/demo-data";
+import { api, ApiError } from "@/lib/api";
+import { demoGovernanceDashboardForRole } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
 import { getRoleLabel, normalizeWorkflowCopy } from "@/lib/labels";
 import { isInternalRole, isWorkflowUser } from "@/lib/roles";
@@ -19,7 +17,6 @@ import type {
   GovernanceMetricCard,
   GovernanceScopeRow,
 } from "@/lib/types";
-import { api } from "@/lib/api";
 
 const scopeRowsPerPage = 10;
 const auditorCaseRowsPerPage = 10;
@@ -221,8 +218,9 @@ function renderKpiCell(kpi: GovernancePhaseKpiSummary | null) {
 export function GovernanceDashboard() {
   const { isReady, isAuthenticated, token, user } = useAuth();
   const [dashboard, setDashboard] =
-    useState<GovernanceDashboardData>(demoGovernanceDashboard);
+    useState<GovernanceDashboardData | null>(null);
   const [usingFallback, setUsingFallback] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [scopeSearch, setScopeSearch] = useState("");
   const [scopePage, setScopePage] = useState(1);
   const [caseSearch, setCaseSearch] = useState("");
@@ -244,11 +242,19 @@ export function GovernanceDashboard() {
         if (active) {
           setDashboard(data);
           setUsingFallback(false);
+          setLoadError(null);
         }
-      } catch {
+      } catch (error) {
         if (active) {
-          setDashboard(demoGovernanceDashboardForRole(user?.role));
-          setUsingFallback(true);
+          if (error instanceof ApiError && error.status < 500) {
+            setDashboard(null);
+            setUsingFallback(false);
+            setLoadError(error.message);
+          } else {
+            setDashboard(demoGovernanceDashboardForRole(user?.role));
+            setUsingFallback(true);
+            setLoadError(null);
+          }
         }
       }
     };
@@ -291,6 +297,24 @@ export function GovernanceDashboard() {
             <li>Use scope data to follow up on subordinate workload where hierarchy applies.</li>
           </ul>
         </aside>
+      </div>
+    );
+  }
+
+  if (!dashboard && loadError) {
+    return (
+      <div className="panel rounded-[1rem] p-8">
+        <p className="eyebrow">Governance Unavailable</p>
+        <h2 className="mt-4 text-3xl">The governance dashboard could not be loaded</h2>
+        <p className="muted mt-4 text-sm leading-7">{loadError}</p>
+      </div>
+    );
+  }
+
+  if (!dashboard) {
+    return (
+      <div className="panel rounded-[1rem] p-8">
+        <p className="text-sm text-[var(--muted)]">Loading governance dashboard.</p>
       </div>
     );
   }

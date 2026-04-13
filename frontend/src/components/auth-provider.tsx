@@ -6,7 +6,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { api } from "@/lib/api";
+import { api, AUTH_INVALIDATED_EVENT } from "@/lib/api";
 import type {
   AuthSession,
   AuthUser,
@@ -121,6 +121,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleInvalidation = () => {
+      setToken(null);
+      setUser(null);
+      persistSession(null);
+      setIsReady(true);
+    };
+
+    window.addEventListener(AUTH_INVALIDATED_EVENT, handleInvalidation);
+
+    return () => {
+      window.removeEventListener(AUTH_INVALIDATED_EVENT, handleInvalidation);
     };
   }, []);
 

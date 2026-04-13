@@ -5,7 +5,7 @@ import { useDeferredValue, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
 import { WorkflowNavigation } from "@/components/workflow-navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { demoWorkflowCases } from "@/lib/demo-data";
 import { triggerBlobDownload } from "@/lib/file-utils";
 import { formatDateTime } from "@/lib/format";
@@ -159,6 +159,17 @@ export function WorkflowDirectory({
         setUsingFallback(false);
       } catch (error) {
         if (!active) {
+          return;
+        }
+
+        if (error instanceof ApiError && error.status < 500) {
+          setDirectory(emptyDirectory);
+          setUsingFallback(false);
+          setNotice({
+            tone: "error",
+            text: error.message,
+          });
+
           return;
         }
 

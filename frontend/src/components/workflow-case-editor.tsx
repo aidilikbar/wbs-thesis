@@ -10,7 +10,7 @@ import { ReportedPartiesSummary } from "@/components/reported-parties-summary";
 import { StatusBadge } from "@/components/status-badge";
 import { WorkflowAttachmentPanel } from "@/components/workflow-attachment-panel";
 import { WorkflowNavigation } from "@/components/workflow-navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import {
   corruptionArticleOptions,
   delictOptions,
@@ -460,6 +460,15 @@ export function WorkflowCaseEditor({
         setUsingFallback(false);
       } catch (error) {
         if (!active) {
+          return;
+        }
+
+        if (error instanceof ApiError && error.status < 500) {
+          setRecord(null);
+          setActionState(buildActionState(null));
+          setUsingFallback(false);
+          setMessage(error.message);
+
           return;
         }
 
