@@ -13,6 +13,7 @@ class WorkflowCasePdfService
     public function build(CaseFile $caseFile, User $viewer): array
     {
         $report = $caseFile->report;
+        $isAnonymousCase = $caseFile->confidentiality_level === 'anonymous';
         $screeningRecord = $this->arrayValue($caseFile->screening_payload);
         $verificationRecord = $this->arrayValue($caseFile->verification_payload);
         $verificationApprovalRecord = $this->arrayValue($caseFile->verification_approval_payload);
@@ -57,9 +58,9 @@ class WorkflowCasePdfService
                 $this->field('Evidence Summary', $report?->evidence_summary),
             ]),
             'reporter_rows' => $this->compactRows([
-                $this->field('Reporter Name', $caseFile->confidentiality_level === 'anonymous' ? 'Anonymous' : $report?->reporter_name),
-                $this->field('Reporter Email', $caseFile->confidentiality_level === 'anonymous' ? null : $report?->reporter_email),
-                $this->field('Reporter Phone', $caseFile->confidentiality_level === 'anonymous' ? null : $report?->reporter_phone),
+                $this->field('Reporter Name', $isAnonymousCase ? 'Anonymous' : $report?->reporter_name),
+                $this->field('Reporter Email', $isAnonymousCase ? null : $report?->reporter_email),
+                $this->field('Reporter Phone', $isAnonymousCase ? null : $report?->reporter_phone),
             ]),
             'workflow_rows' => $this->compactRows([
                 $this->field('Verification Supervisor', $caseFile->verificationSupervisor?->name),
@@ -82,18 +83,35 @@ class WorkflowCasePdfService
             'timeline' => $caseFile->timelineEvents
                 ->sortBy('occurred_at')
                 ->values()
-                ->map(fn ($event) => [
+                ->map(function ($event) use ($isAnonymousCase) {
+                    $actorName = $this->maskedTimelineActorName(
+                        $event->actor_role,
+                        $event->actor_name,
+                        $isAnonymousCase
+                    );
+
+                    return [
                     'when' => $this->dateTimeValue($event->occurred_at),
                     'visibility' => Str::headline((string) $event->visibility),
                     'stage' => $this->labelValue($event->stage, 'wbs.case_stages'),
-                    'headline' => $event->headline,
-                    'detail' => $event->detail,
+                    'headline' => $this->maskedTimelineHeadline(
+                        $event->actor_role,
+                        $event->headline,
+                        $isAnonymousCase
+                    ),
+                    'detail' => $this->maskedTimelineDetail(
+                        $event->actor_role,
+                        $event->detail,
+                        $event->actor_name,
+                        $isAnonymousCase
+                    ),
                     'actor' => trim(sprintf(
                         '%s%s',
                         $this->labelValue($event->actor_role, 'wbs.roles'),
-                        $event->actor_name ? " · {$event->actor_name}" : ''
+                        $actorName ? " · {$actorName}" : ''
                     ), ' ·'),
-                ])
+                    ];
+                })
                 ->all(),
             'records' => array_values(array_filter([
                 $this->section('Screening Record', [
@@ -168,6 +186,56 @@ class WorkflowCasePdfService
     private function compactRows(array $rows): array
     {
         return array_values(array_filter($rows));
+    }
+
+    private function maskedTimelineActorName(
+        ?string $actorRole,
+        ?string $actorName,
+        bool $isAnonymousCase,
+    ): ?string {
+        if (! $isAnonymousCase) {
+            return $actorName;
+        }
+
+        if ($actorRole === User::ROLE_REPORTER) {
+            return 'Anonymous';
+        }
+
+        return $actorName;
+    }
+
+    private function maskedTimelineHeadline(
+        ?string $actorRole,
+        ?string $headline,
+        bool $isAnonymousCase,
+    ): ?string {
+        if (! $isAnonymousCase || $headline === null || $actorRole !== User::ROLE_REPORTER) {
+            return $headline;
+        }
+
+        return str_replace('registered reporter', 'anonymous reporter', $headline);
+    }
+
+    private function maskedTimelineDetail(
+        ?string $actorRole,
+        ?string $detail,
+        ?string $actorName,
+        bool $isAnonymousCase,
+    ): ?string {
+        if (! $isAnonymousCase || $detail === null || $actorRole !== User::ROLE_REPORTER) {
+            return $detail;
+        }
+
+        $masked = $detail;
+
+        if ($actorName) {
+            $masked = str_replace($actorName, 'an anonymous reporter', $masked);
+            $masked = str_replace("Reporter an anonymous reporter", 'An anonymous reporter', $masked);
+        }
+
+        $masked = str_replace('registered reporter', 'anonymous reporter', $masked);
+
+        return $masked;
     }
 
     private function field(string $label, mixed $value): ?array

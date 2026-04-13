@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\CaseFile;
 use App\Models\Report;
 use App\Models\User;
+use App\Services\WorkflowCasePdfService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -889,6 +890,104 @@ class InvestigatorWorkflowTest extends TestCase
         $this->getJson("/api/workflow/cases/{$caseFile->id}/export-pdf")
             ->assertStatus(422)
             ->assertJsonPath('message', 'Only completed cases can be exported as PDF.');
+    }
+
+    public function test_anonymous_reporter_identity_is_masked_in_workflow_timeline_and_pdf_export(): void
+    {
+        $director = $this->createUser(
+            User::ROLE_DIRECTOR,
+            'director.anonymous.export@example.test',
+            'Directorate of Public Reports and Complaints'
+        );
+        $supervisor = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.anonymous.export@example.test',
+            'Verification Supervision'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.anonymous.export@example.test',
+            'Reporter'
+        );
+
+        $report = Report::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'public_reference' => 'WBS-2026-9003',
+            'tracking_token' => 'EXPORT9003AA',
+            'title' => 'Anonymous export masking validation',
+            'category' => 'fraud',
+            'description' => 'A completed anonymous case used to verify timeline and export masking.',
+            'reporter_user_id' => $reporter->id,
+            'reporter_name' => 'Hidden Reporter Name',
+            'reporter_email' => 'hidden.reporter@example.test',
+            'reporter_phone' => '+62-812-0000-0999',
+            'anonymity_level' => 'anonymous',
+            'severity' => 'high',
+            'status' => 'completed',
+            'submitted_at' => now()->subDays(4),
+            'created_at' => now()->subDays(4),
+            'updated_at' => now()->subDay(),
+        ]);
+
+        $caseFile = CaseFile::query()->create([
+            'report_id' => $report->id,
+            'case_number' => 'CASE-2026-9003',
+            'stage' => 'completed',
+            'disposition' => 'completed',
+            'assigned_unit' => 'Directorate of Public Reports and Complaints',
+            'assigned_to' => $director->name,
+            'confidentiality_level' => 'anonymous',
+            'current_role' => User::ROLE_DIRECTOR,
+            'verification_supervisor_id' => $supervisor->id,
+            'director_id' => $director->id,
+            'last_activity_at' => now()->subDay(),
+            'completed_at' => now()->subDay(),
+        ]);
+
+        $caseFile->timelineEvents()->create([
+            'report_id' => $report->id,
+            'visibility' => 'internal',
+            'stage' => 'submitted',
+            'headline' => 'Report submitted by registered reporter',
+            'detail' => 'Reporter Hidden Reporter Name submitted the case and it is now waiting for delegation by the verification supervisor.',
+            'actor_role' => User::ROLE_REPORTER,
+            'actor_name' => 'Hidden Reporter Name',
+            'occurred_at' => now()->subDays(4),
+        ]);
+
+        Sanctum::actingAs($supervisor, [$supervisor->role]);
+
+        $response = $this->getJson("/api/workflow/cases/{$caseFile->id}")
+            ->assertOk()
+            ->assertJsonPath('data.reporter.name', 'Anonymous');
+
+        $reporterTimelineEntry = collect($response->json('data.timeline'))
+            ->firstWhere('actor_role', User::ROLE_REPORTER);
+
+        $this->assertNotNull($reporterTimelineEntry);
+        $this->assertSame('Anonymous', $reporterTimelineEntry['actor_name']);
+        $this->assertSame('Report submitted by anonymous reporter', $reporterTimelineEntry['headline']);
+        $this->assertSame(
+            'An anonymous reporter submitted the case and it is now waiting for delegation by the verification supervisor.',
+            $reporterTimelineEntry['detail']
+        );
+
+        $export = app(WorkflowCasePdfService::class)->build(
+            $caseFile->fresh(['report', 'timelineEvents', 'verificationSupervisor', 'director']),
+            $director
+        );
+
+        $this->assertSame(
+            'Anonymous',
+            collect($export['reporter_rows'])->firstWhere('label', 'Reporter Name')['value']
+        );
+        $this->assertSame('Report submitted by anonymous reporter', $export['timeline'][0]['headline']);
+        $this->assertSame(
+            'An anonymous reporter submitted the case and it is now waiting for delegation by the verification supervisor.',
+            $export['timeline'][0]['detail']
+        );
+        $this->assertStringContainsString('Anonymous', $export['timeline'][0]['actor']);
+        $this->assertStringNotContainsString('Hidden Reporter Name', $export['timeline'][0]['actor']);
     }
 
     public function test_auditor_cannot_access_workflow_case_endpoints(): void

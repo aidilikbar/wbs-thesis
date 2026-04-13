@@ -627,7 +627,13 @@ class WorkflowCaseController extends Controller
             'sla_due_at' => $caseFile->sla_due_at?->toISOString(),
             'last_activity_at' => $caseFile->last_activity_at?->toISOString(),
             'notes' => $caseFile->notes,
-            'latest_internal_event' => $internalEvents->last()?->headline,
+            'latest_internal_event' => $internalEvents->last()
+                ? $this->maskedTimelineHeadline(
+                    $internalEvents->last()?->actor_role,
+                    $internalEvents->last()?->headline,
+                    ! $reporterVisible
+                )
+                : null,
             'latest_public_event' => $publicEvents->last()?->headline,
             'timeline' => $caseFile->timelineEvents
                 ->values()
@@ -635,10 +641,23 @@ class WorkflowCaseController extends Controller
                     'visibility' => $event->visibility,
                     'stage' => $event->stage,
                     'stage_label' => config("wbs.case_stages.{$event->stage}", $event->stage),
-                    'headline' => $event->headline,
-                    'detail' => $event->detail,
+                    'headline' => $this->maskedTimelineHeadline(
+                        $event->actor_role,
+                        $event->headline,
+                        ! $reporterVisible
+                    ),
+                    'detail' => $this->maskedTimelineDetail(
+                        $event->actor_role,
+                        $event->detail,
+                        $event->actor_name,
+                        ! $reporterVisible
+                    ),
                     'actor_role' => $event->actor_role,
-                    'actor_name' => $event->actor_name,
+                    'actor_name' => $this->maskedTimelineActorName(
+                        $event->actor_role,
+                        $event->actor_name,
+                        ! $reporterVisible
+                    ),
                     'occurred_at' => $event->occurred_at?->toISOString(),
                 ]),
             'related_reports' => Report::query()
@@ -667,5 +686,55 @@ class WorkflowCaseController extends Controller
             $viewer->hasRole(User::ROLE_DIRECTOR) && $caseFile->stage === 'director_review' => ['director_review'],
             default => [],
         };
+    }
+
+    private function maskedTimelineActorName(
+        ?string $actorRole,
+        ?string $actorName,
+        bool $isAnonymousCase,
+    ): ?string {
+        if (! $isAnonymousCase) {
+            return $actorName;
+        }
+
+        if ($actorRole === User::ROLE_REPORTER) {
+            return 'Anonymous';
+        }
+
+        return $actorName;
+    }
+
+    private function maskedTimelineHeadline(
+        ?string $actorRole,
+        ?string $headline,
+        bool $isAnonymousCase,
+    ): ?string {
+        if (! $isAnonymousCase || $headline === null || $actorRole !== User::ROLE_REPORTER) {
+            return $headline;
+        }
+
+        return str_replace('registered reporter', 'anonymous reporter', $headline);
+    }
+
+    private function maskedTimelineDetail(
+        ?string $actorRole,
+        ?string $detail,
+        ?string $actorName,
+        bool $isAnonymousCase,
+    ): ?string {
+        if (! $isAnonymousCase || $detail === null || $actorRole !== User::ROLE_REPORTER) {
+            return $detail;
+        }
+
+        $masked = $detail;
+
+        if ($actorName) {
+            $masked = str_replace($actorName, 'an anonymous reporter', $masked);
+            $masked = str_replace("Reporter an anonymous reporter", 'An anonymous reporter', $masked);
+        }
+
+        $masked = str_replace('registered reporter', 'anonymous reporter', $masked);
+
+        return $masked;
     }
 }
