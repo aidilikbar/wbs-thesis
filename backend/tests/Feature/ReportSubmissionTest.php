@@ -8,7 +8,9 @@ use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class ReportSubmissionTest extends TestCase
@@ -257,6 +259,61 @@ class ReportSubmissionTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJsonPath('message', 'Completed reports can no longer be edited by the reporter.');
+    }
+
+    public function test_reporter_can_submit_report_with_multipart_attachments(): void
+    {
+        Storage::fake('attachments');
+
+        User::query()->create([
+            'name' => 'Verification Supervisor',
+            'email' => 'supervisor.multipart@example.test',
+            'phone' => '+62-812-0000-0200',
+            'role' => User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'unit' => 'Verification Supervision',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        $reporter = User::query()->create([
+            'name' => 'Multipart Reporter',
+            'email' => 'reporter.multipart@example.test',
+            'phone' => '+62-812-0000-0201',
+            'role' => User::ROLE_REPORTER,
+            'unit' => 'Reporter',
+            'is_active' => true,
+            'password' => 'Password123',
+        ]);
+
+        $token = $this->postJson('/api/auth/login', [
+            'email' => $reporter->email,
+            'password' => 'Password123',
+        ])->json('data.token');
+
+        $response = $this->withToken($token)->post('/api/reporter/reports', [
+            'title' => 'Multipart report submission with attachments',
+            'category' => 'procurement',
+            'description' => 'A procurement committee member requested an unofficial transfer before the vendor ranking process was finalized and supporting files are attached.',
+            'confidentiality_level' => 'anonymous',
+            'reported_parties' => [[
+                'full_name' => 'Hendra Saptono',
+                'position' => 'Procurement Committee Chair',
+                'classification' => 'state_official',
+            ]],
+            'attachments' => [
+                UploadedFile::fake()->create('procurement-brief.pdf', 64, 'application/pdf'),
+                UploadedFile::fake()->image('site-photo.png')->size(256),
+            ],
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('message', 'Report submitted successfully.');
+
+        $report = Report::query()->latest('id')->firstOrFail();
+
+        $this->assertDatabaseCount('report_attachments', 2);
+        Storage::disk('attachments')->assertExists("reports/{$report->uuid}/attachments");
     }
 
     private function createReporterReport(

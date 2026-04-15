@@ -15,6 +15,11 @@ use Illuminate\Support\Str;
 
 class CaseMessageService
 {
+    public function __construct(
+        private readonly PrivateAttachmentStorage $storage,
+    ) {
+    }
+
     public function conversationContext(CaseFile $caseFile): array
     {
         $activeStage = $this->activeConversationStage($caseFile);
@@ -153,15 +158,7 @@ class CaseMessageService
             $extension !== '' ? ".{$extension}" : ''
         );
 
-        $stream = fopen($file->getRealPath(), 'r');
-        $disk->writeStream($path, $stream, [
-            'visibility' => 'private',
-            'ContentType' => $file->getMimeType(),
-        ]);
-
-        if (is_resource($stream)) {
-            fclose($stream);
-        }
+        $this->storage->store($diskName, $path, $file);
 
         try {
             return $message->attachments()->create([
@@ -177,7 +174,7 @@ class CaseMessageService
                 'checksum_sha256' => hash_file('sha256', $file->getRealPath()),
             ]);
         } catch (\Throwable $exception) {
-            $disk->delete($path);
+            rescue(static fn () => $disk->delete($path), report: false);
 
             throw $exception;
         }

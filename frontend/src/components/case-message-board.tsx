@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { attachmentAccept, validateAttachmentSelection } from "@/lib/attachment-validation";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
@@ -26,7 +26,9 @@ export function CaseMessageBoard({
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
+  const [isSending, setIsSending] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [downloadingAttachmentKey, setDownloadingAttachmentKey] = useState<string | null>(null);
   const isMountedRef = useRef(true);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputId = useId();
@@ -136,8 +138,10 @@ export function CaseMessageBoard({
 
   const handleDownloadAttachment = (messageId: number, attachmentId: number, fileName: string) => {
     setMessage(null);
+    const downloadKey = `${messageId}:${attachmentId}`;
+    setDownloadingAttachmentKey(downloadKey);
 
-    startTransition(async () => {
+    void (async () => {
       try {
         const blob =
           scope.kind === "reporter"
@@ -158,8 +162,12 @@ export function CaseMessageBoard({
         setMessage(
           error instanceof Error ? error.message : "Attachment download failed.",
         );
+      } finally {
+        setDownloadingAttachmentKey((current) =>
+          current === downloadKey ? null : current,
+        );
       }
-    });
+    })();
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -195,7 +203,9 @@ export function CaseMessageBoard({
 
     setMessage(null);
 
-    startTransition(async () => {
+    setIsSending(true);
+
+    void (async () => {
       try {
         const postedMessage =
           scope.kind === "reporter"
@@ -231,8 +241,10 @@ export function CaseMessageBoard({
         setMessage(
           error instanceof Error ? error.message : "Secure message could not be sent.",
         );
+      } finally {
+        setIsSending(false);
       }
-    });
+    })();
   };
 
   const headerLabel = conversation?.active_stage
@@ -308,7 +320,7 @@ export function CaseMessageBoard({
                   key={entry.id}
                   entry={entry}
                   onDownloadAttachment={handleDownloadAttachment}
-                  isBusy={isPending}
+                  downloadingAttachmentKey={downloadingAttachmentKey}
                 />
               ))
             ) : (
@@ -332,7 +344,7 @@ export function CaseMessageBoard({
                 aria-label="Message"
                 className="field min-h-40"
                 placeholder="Request clarification, answer questions, or provide a protected follow-up."
-                disabled={!conversation?.can_send_message || isPending}
+                disabled={!conversation?.can_send_message || isSending}
               />
             </label>
 
@@ -347,7 +359,7 @@ export function CaseMessageBoard({
                 multiple
                 accept={attachmentAccept}
                 className="sr-only"
-                disabled={!conversation?.can_send_message || isPending}
+                disabled={!conversation?.can_send_message || isSending}
                 onChange={(event) =>
                   mergeSelectedFiles(Array.from(event.target.files ?? []))
                 }
@@ -355,7 +367,7 @@ export function CaseMessageBoard({
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <label
                   htmlFor={attachmentInputId}
-                  className={`primary-button ${!conversation?.can_send_message || isPending ? "pointer-events-none opacity-60" : "cursor-pointer"}`}
+                  className={`primary-button ${!conversation?.can_send_message || isSending ? "pointer-events-none opacity-60" : "cursor-pointer"}`}
                 >
                   Add Files
                 </label>
@@ -400,14 +412,14 @@ export function CaseMessageBoard({
               <button
                 type="submit"
                 className="primary-button disabled:opacity-60"
-                disabled={!conversation?.can_send_message || isPending}
+                disabled={!conversation?.can_send_message || isSending}
               >
-                {isPending ? "Sending..." : "Send Secure Message"}
+                {isSending ? "Sending..." : "Send Secure Message"}
               </button>
               <button
                 type="button"
                 className="ghost-button disabled:opacity-60"
-                disabled={selectedFiles.length === 0 || isPending}
+                disabled={selectedFiles.length === 0 || isSending}
                 onClick={() => {
                   setSelectedFiles([]);
                   setValidationMessage(null);
@@ -421,12 +433,13 @@ export function CaseMessageBoard({
               <button
                 type="button"
                 className="ghost-button disabled:opacity-60"
-                disabled={isLoading || isPending}
+                disabled={isLoading || isRefreshing || isSending}
                 onClick={() => {
                   setMessage(null);
                   setValidationMessage(null);
+                  setIsRefreshing(true);
 
-                  startTransition(async () => {
+                  void (async () => {
                     try {
                       await loadConversation();
                     } catch (error) {
@@ -435,8 +448,10 @@ export function CaseMessageBoard({
                           ? error.message
                           : "Secure communication could not be refreshed.",
                       );
+                    } finally {
+                      setIsRefreshing(false);
                     }
-                  });
+                  })();
                 }}
               >
                 Refresh
@@ -452,11 +467,11 @@ export function CaseMessageBoard({
 function MessageCard({
   entry,
   onDownloadAttachment,
-  isBusy,
+  downloadingAttachmentKey,
 }: {
   entry: CaseMessageRecord;
   onDownloadAttachment: (messageId: number, attachmentId: number, fileName: string) => void;
-  isBusy: boolean;
+  downloadingAttachmentKey: string | null;
 }) {
   return (
     <article className="rounded-[0.95rem] border border-[var(--panel-border)] bg-white/78 p-5">
@@ -502,12 +517,14 @@ function MessageCard({
               <button
                 type="button"
                 className="ghost-button disabled:opacity-60"
-                disabled={isBusy}
+                disabled={downloadingAttachmentKey === `${entry.id}:${attachment.id}`}
                 onClick={() =>
                   onDownloadAttachment(entry.id, attachment.id, attachment.original_name)
                 }
               >
-                Download
+                {downloadingAttachmentKey === `${entry.id}:${attachment.id}`
+                  ? "Downloading..."
+                  : "Download"}
               </button>
             </div>
           ))}

@@ -218,6 +218,91 @@ class CaseCommunicationTest extends TestCase
         $this->assertDatabaseCount('case_messages', 2);
     }
 
+    public function test_investigator_can_reply_after_downloading_reporter_attachment(): void
+    {
+        Storage::fake('attachments');
+
+        $supervisorOfVerificator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_VERIFICATOR,
+            'supervisor.download.reply@example.test',
+            'Verification Supervision'
+        );
+        $verificator = $this->createUser(
+            User::ROLE_VERIFICATOR,
+            'verificator.download.reply@example.test',
+            'Verification Desk'
+        );
+        $supervisorOfInvestigator = $this->createUser(
+            User::ROLE_SUPERVISOR_OF_INVESTIGATOR,
+            'supervisor.investigation.download.reply@example.test',
+            'Investigation Supervision'
+        );
+        $investigator = $this->createUser(
+            User::ROLE_INVESTIGATOR,
+            'investigator.download.reply@example.test',
+            'Investigation Desk'
+        );
+        $reporter = $this->createUser(
+            User::ROLE_REPORTER,
+            'reporter.download.reply@example.test',
+            'Reporter'
+        );
+
+        $report = $this->submitReport($reporter, 'Investigator download reply case');
+        $caseFile = $report->caseFile()->firstOrFail();
+
+        Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-verification", [
+            'assignee_user_id' => $verificator->id,
+            'assigned_unit' => 'Verification Desk',
+        ])->assertOk();
+
+        Sanctum::actingAs($verificator, [$verificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/submit-verification", [
+            'summary' => 'Verification completed and ready for escalation.',
+            'reason' => 'Escalation is warranted.',
+            'recommendation' => 'review',
+        ])->assertOk();
+
+        Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/review-verification", [
+            'decision' => 'approved',
+            'approval_note' => 'Proceed to investigation.',
+        ])->assertOk();
+
+        Sanctum::actingAs($supervisorOfInvestigator, [$supervisorOfInvestigator->role]);
+        $this->patchJson("/api/workflow/cases/{$caseFile->id}/delegate-investigation", [
+            'assignee_user_id' => $investigator->id,
+            'assigned_unit' => 'Investigation Desk',
+        ])->assertOk();
+
+        Sanctum::actingAs($reporter, [$reporter->role]);
+        $this->post("/api/reporter/reports/{$report->id}/messages", [
+            'body' => 'Reporter investigation-stage message with attachment.',
+            'attachments' => [
+                UploadedFile::fake()->create('supporting-memo.pdf', 128, 'application/pdf'),
+            ],
+        ])->assertCreated();
+
+        $attachment = CaseMessageAttachment::query()->latest('id')->firstOrFail();
+
+        Sanctum::actingAs($investigator, [$investigator->role]);
+        $this->get("/api/workflow/cases/{$caseFile->id}/messages/{$attachment->case_message_id}/attachments/{$attachment->id}/download")
+            ->assertOk()
+            ->assertHeader('content-disposition', 'attachment; filename=supporting-memo.pdf');
+
+        $this->postJson("/api/workflow/cases/{$caseFile->id}/messages", [
+            'body' => 'Investigator reply after attachment download.',
+        ])->assertCreated()
+            ->assertJsonPath('data.sender_role', User::ROLE_INVESTIGATOR);
+
+        $this->assertDatabaseHas('case_messages', [
+            'case_file_id' => $caseFile->id,
+            'sender_role' => User::ROLE_INVESTIGATOR,
+            'body' => 'Investigator reply after attachment download.',
+        ]);
+    }
+
     public function test_approval_roles_can_view_secure_communication_in_read_only_mode(): void
     {
         Storage::fake('attachments');

@@ -674,7 +674,15 @@ export function WorkflowCaseEditor({
           });
         }
 
-        router.push(`${backPath}?notice=updated`);
+        const destination = `${backPath}?notice=updated`;
+
+        if (typeof window !== "undefined") {
+          window.location.assign(destination);
+
+          return;
+        }
+
+        router.push(destination);
         router.refresh();
       } catch (error) {
         setMessage(

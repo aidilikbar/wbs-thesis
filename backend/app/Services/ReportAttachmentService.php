@@ -12,6 +12,11 @@ use Illuminate\Support\Str;
 
 class ReportAttachmentService
 {
+    public function __construct(
+        private readonly PrivateAttachmentStorage $storage,
+    ) {
+    }
+
     public function storeUploadedFile(Report $report, User $user, UploadedFile $file): ReportAttachment
     {
         $diskName = config('wbs.attachments.disk', 'attachments');
@@ -25,14 +30,7 @@ class ReportAttachmentService
             $extension !== '' ? ".{$extension}" : ''
         );
 
-        $stream = fopen($file->getRealPath(), 'r');
-        $disk->writeStream($path, $stream, [
-            'visibility' => 'private',
-            'ContentType' => $file->getMimeType(),
-        ]);
-        if (is_resource($stream)) {
-            fclose($stream);
-        }
+        $this->storage->store($diskName, $path, $file);
 
         try {
             $attachment = $report->attachments()->create([
@@ -62,7 +60,7 @@ class ReportAttachmentService
 
             return $attachment;
         } catch (\Throwable $exception) {
-            $disk->delete($path);
+            rescue(static fn () => $disk->delete($path), report: false);
 
             throw $exception;
         }

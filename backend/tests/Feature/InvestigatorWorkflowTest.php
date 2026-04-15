@@ -600,9 +600,15 @@ class InvestigatorWorkflowTest extends TestCase
         Sanctum::actingAs($supervisorOfVerificator, [$supervisorOfVerificator->role]);
         $this->getJson('/api/workflow/cases?view=all&search=visibility')
             ->assertOk()
-            ->assertJsonPath('data.meta.total', 1)
-            ->assertJsonPath('data.items.0.stage', 'completed')
-            ->assertJsonPath('data.items.0.title', 'All case visibility after completion');
+            ->assertJsonPath('data.meta.total', 2)
+            ->assertJsonFragment([
+                'stage' => 'verification_in_progress',
+                'title' => 'All case visibility while active',
+            ])
+            ->assertJsonFragment([
+                'stage' => 'completed',
+                'title' => 'All case visibility after completion',
+            ]);
 
         $this->getJson('/api/workflow/cases?view=queue&search=visibility')
             ->assertOk()
@@ -616,16 +622,23 @@ class InvestigatorWorkflowTest extends TestCase
         $this->getJson('/api/workflow/cases?view=all&search=visibility')
             ->assertOk()
             ->assertJsonPath('data.meta.total', 1)
-            ->assertJsonPath('data.items.0.stage', 'completed');
+            ->assertJsonFragment([
+                'stage' => 'completed',
+                'title' => 'All case visibility after completion',
+            ]);
 
         Sanctum::actingAs($director, [$director->role]);
         $this->getJson('/api/workflow/cases?view=all&search=visibility')
             ->assertOk()
             ->assertJsonPath('data.meta.total', 2)
-            ->assertJsonPath('data.items.0.stage', 'verification_in_progress')
-            ->assertJsonPath('data.items.0.title', 'All case visibility while active')
-            ->assertJsonPath('data.items.1.stage', 'completed')
-            ->assertJsonPath('data.items.1.title', 'All case visibility after completion');
+            ->assertJsonFragment([
+                'stage' => 'verification_in_progress',
+                'title' => 'All case visibility while active',
+            ])
+            ->assertJsonFragment([
+                'stage' => 'completed',
+                'title' => 'All case visibility after completion',
+            ]);
     }
 
     public function test_public_tracking_history_matches_progressed_workflow_sequence(): void
