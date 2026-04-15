@@ -831,6 +831,7 @@ class GovernanceDashboardController extends Controller
     {
         if ($viewer->hasRole(User::ROLE_AUDITOR)) {
             return [
+                'id' => $log->id,
                 'action' => $log->action,
                 'actor_role' => $log->actor_role,
                 'actor_name' => null,
@@ -840,6 +841,7 @@ class GovernanceDashboardController extends Controller
         }
 
         return [
+            'id' => $log->id,
             'action' => $log->action,
             'actor_role' => $log->actor_role,
             'actor_name' => $log->actor_name,

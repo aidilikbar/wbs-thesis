@@ -996,7 +996,7 @@ export function GovernanceDashboard() {
           <div className="mt-6 space-y-4">
             {dashboard.global.recent_audit_logs.map((log) => (
               <article
-                key={`${log.action}-${log.happened_at}`}
+                key={log.id}
                 className="rounded-[0.9rem] border border-[var(--panel-border)] bg-white/72 p-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">

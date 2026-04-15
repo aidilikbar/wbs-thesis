@@ -325,6 +325,7 @@ class GovernanceDashboardTest extends TestCase
             ->assertJsonPath('data.specific.case_rows.0.audit_case_id', $caseFile->case_number)
             ->assertJsonPath('data.specific.case_rows.0.current_role', User::ROLE_INVESTIGATOR)
             ->assertJsonPath('data.specific.case_rows.0.assigned_unit', 'Investigation Desk')
+            ->assertJsonPath('data.global.recent_audit_logs.0.id', 3)
             ->assertJsonPath('data.global.recent_audit_logs.0.actor_name', null);
 
         $caseRow = $response->json('data.specific.case_rows.0');

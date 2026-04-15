@@ -361,6 +361,7 @@ export type GovernanceControl = {
 };
 
 export type AuditLogEntry = {
+  id: number;
   action: string;
   actor_role: string;
   actor_name: string | null;

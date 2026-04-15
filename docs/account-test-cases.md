@@ -65,11 +65,15 @@ All seeded accounts use password `Password123`.
 
 ## Local-Only Detailed Packs
 
-When detailed scripted testing is needed, use the local-only workspaces under `docs/`:
+When detailed scripted testing is needed, use the local localhost-oriented workspaces under `docs/`:
 
-- `docs/ai-agent-test-pack/`
-- `docs/ai-agent-test-result/`
+- `docs/ai-agent-test-local/ai-agent-test-pack/`
+- `docs/ai-agent-test-local/ai-agent-test-result/`
 - `docs/human-test-pack/`
+
+For DigitalOcean deployment testing, use:
+
+- `docs/ai-agent-test-cloud/ai-agent-test-pack/`
 
 These folders are intentionally ignored by Git and can evolve independently from the committed public documentation.
 

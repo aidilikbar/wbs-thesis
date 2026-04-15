@@ -636,6 +636,7 @@ const demoGovernanceGlobal = {
   ],
   recent_audit_logs: [
     {
+      id: 1,
       action: "director_approved",
       actor_role: "director",
       actor_name: "Nadia Prabowo",
@@ -646,6 +647,7 @@ const demoGovernanceGlobal = {
       } as Record<string, string | number | boolean | null>,
     },
     {
+      id: 2,
       action: "investigation_delegated",
       actor_role: "supervisor_of_investigator",
       actor_name: "Bagas Santoso",
@@ -656,6 +658,7 @@ const demoGovernanceGlobal = {
       } as Record<string, string | number | boolean | null>,
     },
     {
+      id: 3,
       action: "verification_returned",
       actor_role: "supervisor_of_verificator",
       actor_name: "Sinta Pramudita",
@@ -665,6 +668,7 @@ const demoGovernanceGlobal = {
       } as Record<string, string | number | boolean | null>,
     },
     {
+      id: 4,
       action: "report_submitted",
       actor_role: "reporter",
       actor_name: "Laila N",
