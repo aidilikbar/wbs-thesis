@@ -68,9 +68,9 @@ Creates a report for the authenticated reporter and returns:
 - tracking token
 - case number
 - status
-- severity
-  Submitted and pre-verification records use `not_available` until the workflow produces an assessed severity.
 - next steps
+
+Reporter-facing responses intentionally do not expose severity. Severity is reserved for internal decision-maker and oversight views.
 
 This endpoint accepts JSON or `multipart/form-data`.
 

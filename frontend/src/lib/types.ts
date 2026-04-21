@@ -140,7 +140,6 @@ export type SubmissionReceipt = {
   tracking_token: string;
   case_number: string;
   status: string;
-  severity: string;
   submitted_at: string;
   next_steps: string[];
 };
@@ -195,7 +194,6 @@ export type ReporterReportSummary = {
   title: string;
   category: string;
   status: string;
-  severity: string;
   submitted_at: string;
   updated_at: string;
   last_activity_at: string;
@@ -248,7 +246,6 @@ export type TrackingRecord = {
   category: string;
   category_label: string;
   status: string;
-  severity: string;
   submitted_at: string;
   confidentiality_level: string;
   case: {

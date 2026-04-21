@@ -140,7 +140,6 @@ class ReporterReportController extends Controller
                 'tracking_token' => $report->tracking_token,
                 'case_number' => $caseFile->case_number,
                 'status' => $report->status,
-                'severity' => $report->severity,
                 'submitted_at' => $report->submitted_at?->toISOString(),
                 'next_steps' => [
                     'Keep the reference and tracking token in a safe place.',
@@ -284,7 +283,6 @@ class ReporterReportController extends Controller
             'title' => $report->title,
             'category' => $report->category,
             'status' => $report->status,
-            'severity' => $report->severity,
             'submitted_at' => $report->submitted_at?->toISOString(),
             'updated_at' => $report->updated_at?->toISOString() ?? $report->submitted_at?->toISOString(),
             'last_activity_at' => $report->caseFile?->last_activity_at?->toISOString() ?? $report->submitted_at?->toISOString(),

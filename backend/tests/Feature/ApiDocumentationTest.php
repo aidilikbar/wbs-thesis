@@ -44,6 +44,10 @@ class ApiDocumentationTest extends TestCase
         $this->assertArrayHasKey('verification_kpi', $openApi['components']['schemas']['GovernanceScopeRow']['properties']);
         $this->assertArrayHasKey('GovernanceAuditorCaseRow', $openApi['components']['schemas']);
         $this->assertArrayHasKey('case_rows', $openApi['components']['schemas']['GovernanceDashboardSpecific']['properties']);
+        $this->assertArrayNotHasKey('severity', $openApi['components']['schemas']['ReportSubmissionResponse']['properties']['data']['properties']);
+        $this->assertArrayNotHasKey('severity', $openApi['components']['schemas']['ReporterReportDirectoryResponse']['properties']['data']['properties']['items']['items']['properties']);
+        $this->assertArrayNotHasKey('severity', $openApi['components']['schemas']['ReporterReportRecordResponse']['properties']['data']['properties']);
+        $this->assertArrayNotHasKey('severity', $openApi['components']['schemas']['TrackingResponse']['properties']['data']['properties']);
         $this->assertArrayNotHasKey('publish_update', $openApi['components']['schemas']['VerificationSubmissionRequest']['properties']);
         $this->assertArrayNotHasKey('public_message', $openApi['components']['schemas']['ReviewWorkflowStageRequest']['properties']);
     }

@@ -62,7 +62,6 @@ class PublicReportController extends Controller
                 'category' => $report->category,
                 'category_label' => config("wbs.categories.{$report->category}", $report->category),
                 'status' => $this->publicTrackingStage($report->caseFile) ?? $report->status,
-                'severity' => $report->severity,
                 'submitted_at' => $report->submitted_at?->toISOString(),
                 'confidentiality_level' => $report->anonymity_level,
                 'case' => [

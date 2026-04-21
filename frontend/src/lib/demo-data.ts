@@ -298,7 +298,6 @@ export const demoReporterReports: ReporterReportSummary[] = [
     title: "Repeated duplicate reimbursement patterns in finance unit",
     category: "fraud",
     status: "investigation_in_progress",
-    severity: "high",
     submitted_at: "2026-03-11T10:00:00.000Z",
     updated_at: "2026-03-18T09:00:00.000Z",
     last_activity_at: "2026-03-18T09:00:00.000Z",
@@ -322,7 +321,6 @@ export const demoTrackingRecord: TrackingRecord = {
   category: "procurement",
   category_label: "Procurement fraud",
   status: "investigation_in_progress",
-  severity: "high",
   submitted_at: "2026-03-04T08:30:00.000Z",
   confidentiality_level: "anonymous",
   case: {
