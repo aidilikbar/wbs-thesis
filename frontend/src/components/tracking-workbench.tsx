@@ -111,7 +111,7 @@ export function TrackingWorkbench() {
           </div>
 
           {record ? (
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <article className="signal-card rounded-[0.85rem] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                   Reference
@@ -125,12 +125,6 @@ export function TrackingWorkbench() {
                 <p className="mt-2 text-sm">
                   {getStageLabel(record.case.stage, record.case.stage_label)}
                 </p>
-              </article>
-              <article className="accent-card rounded-[0.85rem] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                  Severity
-                </p>
-                <p className="mt-2 text-sm">{record.severity}</p>
               </article>
               <article className="outline-panel rounded-[0.85rem] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">

@@ -290,7 +290,6 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <StatusBadge value={record.status} />
-            <StatusBadge value={record.severity} />
           </div>
         </div>
 

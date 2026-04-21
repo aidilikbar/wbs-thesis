@@ -350,7 +350,6 @@ export function ReportDirectory(props: NoticeProps) {
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4">
                       <div className="flex flex-wrap gap-2">
                         <StatusBadge value={report.status} />
-                        <StatusBadge value={report.severity} />
                       </div>
                     </td>
                     <td className="border-b border-[rgba(19,19,19,0.06)] px-4 py-4 text-sm text-[var(--muted)]">
