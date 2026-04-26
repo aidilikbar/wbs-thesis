@@ -14,13 +14,12 @@ import { api, ApiError } from "@/lib/api";
 import {
   corruptionArticleOptions,
   delictOptions,
-  demoWorkflowCases,
   governanceTagOptions,
   monthOptions,
   reportedPartyClassificationOptions,
   reviewRecommendationOptions,
   verificationRecommendationOptions,
-} from "@/lib/demo-data";
+} from "@/lib/form-options";
 import { formatDateTime } from "@/lib/format";
 import { getRoleLabel, getStageLabel, normalizeWorkflowCopy } from "@/lib/labels";
 import { isWorkflowUser } from "@/lib/roles";
@@ -415,7 +414,6 @@ export function WorkflowCaseEditor({
   const [actionState, setActionState] = useState<ActionState>(() => buildActionState(null));
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [usingFallback, setUsingFallback] = useState(false);
   const [activeTab, setActiveTab] = useState<WorkflowTab>("details");
   const [isPending, startTransition] = useTransition();
 
@@ -457,30 +455,17 @@ export function WorkflowCaseEditor({
         setRecord(data);
         setActionState(buildActionState(data));
         setMessage(null);
-        setUsingFallback(false);
       } catch (error) {
         if (!active) {
           return;
         }
 
-        if (error instanceof ApiError && error.status < 500) {
-          setRecord(null);
-          setActionState(buildActionState(null));
-          setUsingFallback(false);
-          setMessage(error.message);
-
-          return;
-        }
-
-        const fallback = demoWorkflowCases.find((item) => item.id === caseId) ?? null;
-
-        setRecord(fallback);
-        setActionState(buildActionState(fallback));
-        setUsingFallback(true);
+        setRecord(null);
+        setActionState(buildActionState(null));
         setMessage(
-          error instanceof Error
-            ? `${error.message} Showing seeded workflow detail instead.`
-            : "Workflow case detail could not be loaded.",
+          error instanceof ApiError
+            ? error.message
+            : "Workflow case detail could not be loaded. Try again when the backend is available.",
         );
       } finally {
         if (active) {
@@ -518,7 +503,7 @@ export function WorkflowCaseEditor({
       : "Return the case to the Investigator for revision based on the approval note.";
 
   useEffect(() => {
-    if (!record || !currentAction || !token || usingFallback) {
+    if (!record || !currentAction || !token) {
       return;
     }
 
@@ -551,7 +536,7 @@ export function WorkflowCaseEditor({
     return () => {
       active = false;
     };
-  }, [record, currentAction, token, usingFallback]);
+  }, [record, currentAction, token]);
 
   const updateActionState = <K extends keyof ActionState>(
     field: K,
@@ -576,12 +561,6 @@ export function WorkflowCaseEditor({
     event.preventDefault();
 
     if (!token || !record || !currentAction || !meta) {
-      return;
-    }
-
-    if (usingFallback) {
-      setMessage("Workflow actions are unavailable while the backend is offline.");
-
       return;
     }
 
@@ -803,12 +782,6 @@ export function WorkflowCaseEditor({
             <StatusBadge value={record.severity} />
           </div>
         </div>
-
-        {usingFallback ? (
-          <p className="mt-6 inline-flex rounded-[0.45rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-2 text-sm text-[var(--secondary-strong)]">
-            Backend unavailable. Showing seeded workflow detail for interface review.
-          </p>
-        ) : null}
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <article className="outline-panel rounded-[0.9rem] px-5 py-4">

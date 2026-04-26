@@ -22,6 +22,16 @@ return [
             'application/x-zip-compressed',
         ],
     ],
+    'auth' => [
+        'session_cookie' => env('WBS_FRONTEND_SESSION_COOKIE', 'kpk_wbs_session'),
+        'cookie_domain' => env('WBS_FRONTEND_SESSION_DOMAIN', env('SESSION_DOMAIN')),
+        'cookie_secure' => env('WBS_FRONTEND_SESSION_SECURE', env('SESSION_SECURE_COOKIE', false)),
+        'cookie_same_site' => env('WBS_FRONTEND_SESSION_SAME_SITE', env('SESSION_SAME_SITE', 'lax')),
+        'cookie_lifetime_minutes' => (int) env('WBS_FRONTEND_SESSION_LIFETIME', env('SESSION_LIFETIME', 120)),
+    ],
+    'api_documentation' => [
+        'enabled' => env('WBS_ENABLE_API_DOCUMENTATION', false),
+    ],
     'roles' => [
         'reporter' => 'Reporter',
         'supervisor_of_verificator' => 'Verification Supervisor',

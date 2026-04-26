@@ -46,11 +46,10 @@ class ReportSubmissionTest extends TestCase
 
         $registration
             ->assertCreated()
-            ->assertJsonPath('data.user.role', User::ROLE_REPORTER);
+            ->assertJsonPath('data.user.role', User::ROLE_REPORTER)
+            ->assertJsonMissingPath('data.token');
 
-        $token = $registration->json('data.token');
-
-        $submission = $this->withToken($token)->postJson('/api/reporter/reports', [
+        $submission = $this->withFrontendSession($registration)->postJson('/api/reporter/reports', [
             'title' => 'Unusual payment request before vendor evaluation',
             'category' => 'procurement',
             'description' => 'A procurement officer requested a personal transfer before confirming that a vendor submission would move to the next review stage.',
@@ -146,12 +145,12 @@ class ReportSubmissionTest extends TestCase
             'title' => 'Other reporter case',
         ]);
 
-        $token = $this->postJson('/api/auth/login', [
+        $login = $this->postJson('/api/auth/login', [
             'email' => $reporter->email,
             'password' => 'Password123',
-        ])->json('data.token');
+        ]);
 
-        $this->withToken($token)
+        $this->withFrontendSession($login)
             ->getJson('/api/reporter/reports?per_page=10&search=Flagged&status=submitted')
             ->assertOk()
             ->assertJsonPath('data.meta.per_page', 10)
@@ -174,12 +173,12 @@ class ReportSubmissionTest extends TestCase
 
         $report = $this->createReporterReport($reporter);
 
-        $token = $this->postJson('/api/auth/login', [
+        $login = $this->postJson('/api/auth/login', [
             'email' => $reporter->email,
             'password' => 'Password123',
-        ])->json('data.token');
+        ]);
 
-        $this->withToken($token)
+        $this->withFrontendSession($login)
             ->getJson("/api/reporter/reports/{$report->id}")
             ->assertOk()
             ->assertJsonPath('data.id', $report->id)
@@ -187,7 +186,7 @@ class ReportSubmissionTest extends TestCase
             ->assertJsonPath('data.category_label', 'Procurement fraud')
             ->assertJsonPath('data.timeline.0.headline', 'Report received');
 
-        $this->withToken($token)
+        $this->withFrontendSession($login)
             ->patchJson("/api/reporter/reports/{$report->id}", [
                 'title' => 'Updated allegation title',
                 'category' => 'fraud',
@@ -238,12 +237,12 @@ class ReportSubmissionTest extends TestCase
             ['stage' => 'completed', 'current_role' => User::ROLE_DIRECTOR]
         );
 
-        $token = $this->postJson('/api/auth/login', [
+        $login = $this->postJson('/api/auth/login', [
             'email' => $reporter->email,
             'password' => 'Password123',
-        ])->json('data.token');
+        ]);
 
-        $this->withToken($token)
+        $this->withFrontendSession($login)
             ->patchJson("/api/reporter/reports/{$report->id}", [
                 'title' => 'Completed report update attempt',
                 'category' => 'fraud',
@@ -285,12 +284,12 @@ class ReportSubmissionTest extends TestCase
             'password' => 'Password123',
         ]);
 
-        $token = $this->postJson('/api/auth/login', [
+        $login = $this->postJson('/api/auth/login', [
             'email' => $reporter->email,
             'password' => 'Password123',
-        ])->json('data.token');
+        ]);
 
-        $response = $this->withToken($token)->post('/api/reporter/reports', [
+        $response = $this->withFrontendSession($login)->post('/api/reporter/reports', [
             'title' => 'Multipart report submission with attachments',
             'category' => 'procurement',
             'description' => 'A procurement committee member requested an unofficial transfer before the vendor ranking process was finalized and supporting files are attached.',

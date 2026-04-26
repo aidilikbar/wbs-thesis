@@ -16,6 +16,20 @@ class ApiDocumentationTest extends TestCase
             ->assertDontSee('/docs?api-docs.json', false);
     }
 
+    public function test_api_documentation_is_not_public_when_disabled_outside_local_environments(): void
+    {
+        $originalEnvironment = $this->app['env'];
+        $this->app['env'] = 'production';
+        config(['wbs.api_documentation.enabled' => false]);
+
+        try {
+            $this->get('/api/documentation')->assertNotFound();
+            $this->get('/docs')->assertNotFound();
+        } finally {
+            $this->app['env'] = $originalEnvironment;
+        }
+    }
+
     public function test_openapi_json_describes_authenticated_reporter_and_workflow_endpoints(): void
     {
         $this->artisan('l5-swagger:generate')->assertSuccessful();

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
-import { internalRoleOptions } from "@/lib/demo-data";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { internalRoleOptions } from "@/lib/form-options";
 import { getRoleLabel } from "@/lib/labels";
 import { isSystemAdministrator } from "@/lib/roles";
 import type {

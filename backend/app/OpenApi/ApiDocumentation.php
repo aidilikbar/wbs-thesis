@@ -25,7 +25,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Tag(
     name: 'Authentication',
-    description: 'Reporter registration and shared login/logout endpoints.'
+    description: 'Reporter registration and shared login/logout endpoints backed by an HttpOnly frontend session cookie.'
 )]
 #[OA\Tag(
     name: 'Reporter Workspace',
@@ -140,7 +140,6 @@ use OpenApi\Attributes as OA;
             property: 'data',
             type: 'object',
             properties: [
-                new OA\Property(property: 'token', type: 'string', example: '1|plain-text-token'),
                 new OA\Property(
                     property: 'user',
                     type: 'object',

@@ -6,7 +6,11 @@ import {
   useEffect,
   useState,
 } from "react";
-import { api, AUTH_INVALIDATED_EVENT } from "@/lib/api";
+import {
+  api,
+  AUTH_INVALIDATED_EVENT,
+  FRONTEND_SESSION_MARKER,
+} from "@/lib/api";
 import type {
   AuthSession,
   AuthUser,
@@ -25,43 +29,7 @@ type AuthContextValue = {
   refreshProfile: () => Promise<void>;
 };
 
-const STORAGE_KEY = "kpk-wbs-session";
-
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-function readStoredSession(): AuthSession | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(rawValue) as AuthSession;
-  } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
-
-    return null;
-  }
-}
-
-function persistSession(session: AuthSession | null) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  if (!session) {
-    window.localStorage.removeItem(STORAGE_KEY);
-
-    return;
-  }
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
@@ -72,36 +40,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let active = true;
 
     const bootstrap = async () => {
-      const session = readStoredSession();
-
-      if (!session) {
-        if (active) {
-          setIsReady(true);
-        }
-
-        return;
-      }
-
-      if (active) {
-        setToken(session.token);
-        setUser(session.user);
-      }
-
       try {
-        const profile = await api.fetchMe(session.token);
+        const profile = await api.fetchMe(FRONTEND_SESSION_MARKER);
 
         if (!active) {
           return;
         }
 
-        const nextSession = {
-          token: session.token,
-          user: profile.user,
-        };
-
-        setToken(nextSession.token);
-        setUser(nextSession.user);
-        persistSession(nextSession);
+        setToken(FRONTEND_SESSION_MARKER);
+        setUser(profile.user);
       } catch {
         if (!active) {
           return;
@@ -109,7 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setToken(null);
         setUser(null);
-        persistSession(null);
       } finally {
         if (active) {
           setIsReady(true);
@@ -132,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleInvalidation = () => {
       setToken(null);
       setUser(null);
-      persistSession(null);
       setIsReady(true);
     };
 
@@ -144,9 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setSession = (session: AuthSession) => {
-    setToken(session.token);
+    setToken(FRONTEND_SESSION_MARKER);
     setUser(session.user);
-    persistSession(session);
   };
 
   const login = async (payload: LoginPayload) => {
@@ -164,17 +108,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    if (token) {
-      try {
-        await api.logout(token);
-      } catch {
-        // Local session must still be cleared if the backend session already expired.
-      }
+    try {
+      await api.logout(token ?? FRONTEND_SESSION_MARKER);
+    } catch {
+      // Local state must still be cleared if the backend session already expired.
     }
 
     setToken(null);
     setUser(null);
-    persistSession(null);
   };
 
   const refreshProfile = async () => {
@@ -183,12 +124,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const profile = await api.fetchMe(token);
-    const nextSession = {
-      token,
-      user: profile.user,
-    };
 
-    setSession(nextSession);
+    setSession({
+      user: profile.user,
+    });
   };
 
   const value: AuthContextValue = {

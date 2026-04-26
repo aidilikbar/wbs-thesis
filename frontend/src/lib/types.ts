@@ -21,7 +21,6 @@ export type AuthUser = {
 };
 
 export type AuthSession = {
-  token: string;
   user: AuthUser;
 };
 

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { internalRoleOptions } from "@/lib/demo-data";
 import { api } from "@/lib/api";
+import { internalRoleOptions } from "@/lib/form-options";
 import { isSystemAdministrator } from "@/lib/roles";
 import type { InternalUserPayload } from "@/lib/types";
 

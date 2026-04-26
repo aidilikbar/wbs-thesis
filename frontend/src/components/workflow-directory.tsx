@@ -6,7 +6,6 @@ import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
 import { WorkflowNavigation } from "@/components/workflow-navigation";
 import { api, ApiError } from "@/lib/api";
-import { demoWorkflowCases } from "@/lib/demo-data";
 import { triggerBlobDownload } from "@/lib/file-utils";
 import { formatDateTime } from "@/lib/format";
 import { getRoleLabel, getStageLabel } from "@/lib/labels";
@@ -15,10 +14,8 @@ import {
   workflowCasePath,
   workflowActionPath,
   workflowActionShortLabel,
-  workflowAllowedStagesForView,
   workflowHasAllCaseMenu,
   workflowHasApprovalMenu,
-  workflowMatchesSearch,
   workflowNoticeText,
   workflowStageOptions,
 } from "@/lib/workflow";
@@ -53,38 +50,6 @@ function noticeClasses(tone: "success" | "error") {
   return "border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] text-[var(--secondary-strong)]";
 }
 
-function fallbackDirectory(
-  role: string | null | undefined,
-  view: WorkflowDirectoryView,
-  page: number,
-  stage: string,
-  search: string,
-): PaginatedData<WorkflowCase> {
-  const allowedStages = workflowAllowedStagesForView(role, view);
-  const filteredItems = demoWorkflowCases.filter((caseItem) => {
-    const stageAllowed = allowedStages.includes(caseItem.stage);
-    const stageMatches = stage === "all" ? true : caseItem.stage === stage;
-    const searchMatches = workflowMatchesSearch(caseItem, search);
-
-    return stageAllowed && stageMatches && searchMatches;
-  });
-  const start = (page - 1) * PAGE_SIZE;
-  const items = filteredItems.slice(start, start + PAGE_SIZE);
-  const lastPage = Math.max(Math.ceil(filteredItems.length / PAGE_SIZE), 1);
-
-  return {
-    items,
-    meta: {
-      current_page: page,
-      last_page: lastPage,
-      per_page: PAGE_SIZE,
-      total: filteredItems.length,
-      from: items.length > 0 ? start + 1 : null,
-      to: items.length > 0 ? start + items.length : null,
-    },
-  };
-}
-
 export function WorkflowDirectory({
   view,
   initialNotice,
@@ -109,7 +74,6 @@ export function WorkflowDirectory({
         }
       : null;
   });
-  const [usingFallback, setUsingFallback] = useState(false);
   const [exportingCaseId, setExportingCaseId] = useState<number | null>(null);
 
   const isSessionLoading = !isReady;
@@ -156,39 +120,18 @@ export function WorkflowDirectory({
         }
 
         setDirectory(data);
-        setUsingFallback(false);
       } catch (error) {
         if (!active) {
           return;
         }
 
-        if (error instanceof ApiError && error.status < 500) {
-          setDirectory(emptyDirectory);
-          setUsingFallback(false);
-          setNotice({
-            tone: "error",
-            text: error.message,
-          });
-
-          return;
-        }
-
-        const fallback = fallbackDirectory(
-          user?.role,
-          view,
-          page,
-          activeStageFilter,
-          deferredSearchTerm,
-        );
-
-        setDirectory(fallback);
-        setUsingFallback(true);
+        setDirectory(emptyDirectory);
         setNotice({
           tone: "error",
           text:
-            error instanceof Error
-              ? `${error.message} Showing seeded workflow cases instead.`
-              : "Backend unavailable. Showing seeded workflow cases instead.",
+            error instanceof ApiError
+              ? error.message
+              : "Workflow cases could not be loaded. Try again when the backend is available.",
         });
       }
     };
@@ -285,15 +228,6 @@ export function WorkflowDirectory({
       return;
     }
 
-    if (usingFallback) {
-      setNotice({
-        tone: "error",
-        text: "PDF export is unavailable while the backend is offline.",
-      });
-
-      return;
-    }
-
     setExportingCaseId(caseItem.id);
 
     try {
@@ -324,11 +258,7 @@ export function WorkflowDirectory({
           <WorkflowNavigation activeView={view} role={user?.role} />
         </div>
 
-        {usingFallback ? (
-          <p className="mt-5 rounded-[0.75rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-3 text-sm text-[var(--secondary)]">
-            Backend unavailable. Showing seeded workflow cases for interface review.
-          </p>
-        ) : isSessionLoading ? (
+        {isSessionLoading ? (
           <p className="mt-5 rounded-[0.75rem] border border-[var(--panel-border)] bg-white/12 px-4 py-3 text-sm text-white/72">
             Loading workflow session.
           </p>
@@ -487,7 +417,7 @@ export function WorkflowDirectory({
                             type="button"
                             className="ghost-button px-3 py-2 text-[0.65rem] disabled:opacity-50"
                             onClick={() => void handleExportPdf(caseItem)}
-                            disabled={exportingCaseId === caseItem.id || usingFallback}
+                            disabled={exportingCaseId === caseItem.id}
                           >
                             {exportingCaseId === caseItem.id ? "Exporting..." : "Export PDF"}
                           </button>

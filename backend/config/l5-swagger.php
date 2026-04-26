@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\RestrictApiDocumentation;
+
 return [
     'default' => 'default',
     'documentations' => [
@@ -68,10 +70,10 @@ return [
              * Middleware allows to prevent unexpected access to API documentation
              */
             'middleware' => [
-                'api' => [],
-                'asset' => [],
-                'docs' => [],
-                'oauth2_callback' => [],
+                'api' => [RestrictApiDocumentation::class],
+                'asset' => [RestrictApiDocumentation::class],
+                'docs' => [RestrictApiDocumentation::class],
+                'oauth2_callback' => [RestrictApiDocumentation::class],
             ],
 
             /*

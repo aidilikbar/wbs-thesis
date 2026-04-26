@@ -12,7 +12,7 @@ import { StatusBadge } from "@/components/status-badge";
 import {
   initialSubmissionPayload,
   reportedPartyClassificationOptions,
-} from "@/lib/demo-data";
+} from "@/lib/form-options";
 import { validateAttachmentSelection } from "@/lib/attachment-validation";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";

@@ -5,7 +5,6 @@ import { useDeferredValue, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
 import { api, ApiError } from "@/lib/api";
-import { demoReporterReports } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
 import { getDisplayLabel, getStageLabel } from "@/lib/labels";
 import { isReporter } from "@/lib/roles";
@@ -95,7 +94,6 @@ export function ReportDirectory(props: NoticeProps) {
   const [statusFilter, setStatusFilter] =
     useState<(typeof statusOptions)[number]["value"]>("all");
   const [notice, setNotice] = useState<NoticeState>(() => buildInitialNotice(props));
-  const [usingFallback, setUsingFallback] = useState(false);
 
   const isReporterUser = isReporter(user?.role);
 
@@ -126,67 +124,18 @@ export function ReportDirectory(props: NoticeProps) {
         }
 
         setDirectory(data);
-        setUsingFallback(false);
       } catch (error) {
         if (!active) {
           return;
         }
 
-        if (error instanceof ApiError && error.status < 500) {
-          setDirectory(emptyDirectory);
-          setUsingFallback(false);
-          setNotice({
-            tone: "error",
-            text: error.message,
-          });
-
-          return;
-        }
-
-        const fallbackItems = demoReporterReports.filter((item) => {
-          const statusMatch =
-            statusFilter === "all" ? true : item.status === statusFilter;
-          const term = deferredSearchTerm.trim().toLowerCase();
-          const searchMatch =
-            term.length === 0
-              ? true
-              : [item.title, item.public_reference, item.category]
-                  .join(" ")
-                  .toLowerCase()
-                  .includes(term);
-
-          return statusMatch && searchMatch;
-        }).sort((left, right) => {
-          const leftTimestamp = new Date(left.updated_at ?? left.submitted_at).getTime();
-          const rightTimestamp = new Date(right.updated_at ?? right.submitted_at).getTime();
-
-          if (rightTimestamp !== leftTimestamp) {
-            return rightTimestamp - leftTimestamp;
-          }
-
-          return right.id - left.id;
-        });
-        const from = fallbackItems.length > 0 ? 1 : null;
-        const to = fallbackItems.length > 0 ? Math.min(fallbackItems.length, PAGE_SIZE) : null;
-
-        setDirectory({
-          items: fallbackItems.slice(0, PAGE_SIZE),
-          meta: {
-            current_page: 1,
-            last_page: 1,
-            per_page: PAGE_SIZE,
-            total: fallbackItems.length,
-            from,
-            to,
-          },
-        });
-        setUsingFallback(true);
+        setDirectory(emptyDirectory);
         setNotice({
           tone: "error",
           text:
-            error instanceof Error
-              ? `${error.message} Showing seeded reporter records instead.`
-              : "Backend unavailable. Showing seeded reporter records instead.",
+            error instanceof ApiError
+              ? error.message
+              : "Reporter transactions could not be loaded. Try again when the backend is available.",
         });
       }
     };
@@ -383,17 +332,10 @@ export function ReportDirectory(props: NoticeProps) {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--panel-border)] pt-5">
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-[var(--muted)]">
-              Showing {directory.meta.from ?? 0} to {directory.meta.to ?? 0} of{" "}
-              {directory.meta.total} reports
-            </p>
-            {usingFallback ? (
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--secondary-strong)]">
-                Seeded fallback data
-              </p>
-            ) : null}
-          </div>
+          <p className="text-sm text-[var(--muted)]">
+            Showing {directory.meta.from ?? 0} to {directory.meta.to ?? 0} of{" "}
+            {directory.meta.total} reports
+          </p>
           <div className="flex items-center gap-2">
             <span className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
               Page {directory.meta.current_page} of {directory.meta.last_page}

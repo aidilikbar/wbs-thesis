@@ -24,10 +24,41 @@ import type {
   WorkflowDirectoryView,
 } from "@/lib/types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api";
+const DEFAULT_API_BASE_URL = "http://localhost:8000/api";
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1"]);
+
+function resolveApiBaseUrl() {
+  const configuredBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL;
+  const normalizedBaseUrl = configuredBaseUrl.replace(/\/$/, "");
+
+  if (typeof window === "undefined" || normalizedBaseUrl.startsWith("/")) {
+    return normalizedBaseUrl;
+  }
+
+  try {
+    const resolvedBaseUrl = new URL(normalizedBaseUrl);
+    const browserHostname = window.location.hostname;
+
+    // Keep loopback development on a single host alias so session cookies stay same-site.
+    if (
+      LOOPBACK_HOSTS.has(resolvedBaseUrl.hostname) &&
+      LOOPBACK_HOSTS.has(browserHostname) &&
+      resolvedBaseUrl.hostname !== browserHostname
+    ) {
+      resolvedBaseUrl.hostname = browserHostname;
+
+      return resolvedBaseUrl.toString().replace(/\/$/, "");
+    }
+  } catch {
+    return normalizedBaseUrl;
+  }
+
+  return normalizedBaseUrl;
+}
 
 export const AUTH_INVALIDATED_EVENT = "kpk-wbs-auth-invalidated";
+export const FRONTEND_SESSION_MARKER = "__frontend_session__";
 
 export class ApiError extends Error {
   constructor(
@@ -47,8 +78,9 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, token, headers, ...init } = options;
   const isFormData = body instanceof FormData;
+  const apiBaseUrl = resolveApiBaseUrl();
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     body:
       body === undefined
@@ -60,10 +92,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       Accept: "application/json",
       "X-Requested-With": "XMLHttpRequest",
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token && token !== FRONTEND_SESSION_MARKER
+        ? { Authorization: `Bearer ${token}` }
+        : {}),
       ...(headers ?? {}),
     },
     cache: "no-store",
+    credentials: "include",
   });
 
   const payload = await response.json().catch(() => null);
@@ -82,8 +117,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 async function requestBlob(path: string, options: RequestOptions = {}): Promise<Blob> {
   const { body, token, headers, ...init } = options;
   const isFormData = body instanceof FormData;
+  const apiBaseUrl = resolveApiBaseUrl();
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     body:
       body === undefined
@@ -95,10 +131,13 @@ async function requestBlob(path: string, options: RequestOptions = {}): Promise<
       Accept: "application/json",
       "X-Requested-With": "XMLHttpRequest",
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token && token !== FRONTEND_SESSION_MARKER
+        ? { Authorization: `Bearer ${token}` }
+        : {}),
       ...(headers ?? {}),
     },
     cache: "no-store",
+    credentials: "include",
   });
 
   if (!response.ok) {

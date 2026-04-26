@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { StatusBadge } from "@/components/status-badge";
 import { api, ApiError } from "@/lib/api";
-import { demoGovernanceDashboardForRole } from "@/lib/demo-data";
 import { formatDateTime } from "@/lib/format";
 import { getRoleLabel, normalizeWorkflowCopy } from "@/lib/labels";
 import { isInternalRole, isWorkflowUser } from "@/lib/roles";
@@ -219,7 +218,6 @@ export function GovernanceDashboard() {
   const { isReady, isAuthenticated, token, user } = useAuth();
   const [dashboard, setDashboard] =
     useState<GovernanceDashboardData | null>(null);
-  const [usingFallback, setUsingFallback] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [scopeSearch, setScopeSearch] = useState("");
   const [scopePage, setScopePage] = useState(1);
@@ -241,20 +239,16 @@ export function GovernanceDashboard() {
 
         if (active) {
           setDashboard(data);
-          setUsingFallback(false);
           setLoadError(null);
         }
       } catch (error) {
         if (active) {
-          if (error instanceof ApiError && error.status < 500) {
-            setDashboard(null);
-            setUsingFallback(false);
-            setLoadError(error.message);
-          } else {
-            setDashboard(demoGovernanceDashboardForRole(user?.role));
-            setUsingFallback(true);
-            setLoadError(null);
-          }
+          setDashboard(null);
+          setLoadError(
+            error instanceof ApiError
+              ? error.message
+              : "The governance dashboard could not be loaded. Try again when the backend is available.",
+          );
         }
       }
     };
@@ -388,12 +382,6 @@ export function GovernanceDashboard() {
 
   return (
     <div className="space-y-6">
-      {usingFallback ? (
-        <p className="inline-flex rounded-[0.45rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-2 text-sm text-[var(--secondary-strong)]">
-          Backend unavailable. Showing seeded governance data for interface review.
-        </p>
-      ) : null}
-
       <section className="panel rounded-[1rem] p-8">
         <div className="grid gap-6 xl:grid-cols-[0.52fr_0.48fr]">
           <div>

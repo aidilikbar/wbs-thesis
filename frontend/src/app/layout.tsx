@@ -9,11 +9,6 @@ export const metadata: Metadata = {
   },
   description:
     "KPK Whistleblowing System with secure reporting, protected case tracking, investigator coordination, and governance oversight.",
-  icons: {
-    icon: "/logos/kws_favicon.png",
-    shortcut: "/logos/kws_favicon.png",
-    apple: "/logos/kws_favicon.png",
-  },
 };
 
 export default function RootLayout({

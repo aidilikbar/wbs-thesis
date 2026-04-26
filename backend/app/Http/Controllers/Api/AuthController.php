@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\PersonalAccessToken;
 use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
@@ -17,7 +18,7 @@ class AuthController extends Controller
         path: '/api/auth/register',
         operationId: 'registerReporter',
         summary: 'Register a reporter account',
-        description: 'Creates a reporter account and returns a bearer token session for immediate access.',
+        description: 'Creates a reporter account and starts an authenticated frontend session.',
         tags: ['Authentication'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -40,17 +41,18 @@ class AuthController extends Controller
             'password' => $request->string('password')->toString(),
         ]);
 
-        return response()->json([
-            'message' => 'Reporter account registered successfully.',
-            'data' => $this->sessionPayload($user),
-        ], 201);
+        return $this->authenticatedResponse(
+            user: $user,
+            message: 'Reporter account registered successfully.',
+            status: 201,
+        );
     }
 
     #[OA\Post(
         path: '/api/auth/login',
         operationId: 'login',
         summary: 'Login with an existing account',
-        description: 'Authenticates a reporter or internal user and returns a bearer token session.',
+        description: 'Authenticates a reporter or internal user and starts an authenticated frontend session.',
         tags: ['Authentication'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -82,10 +84,10 @@ class AuthController extends Controller
             ], 403);
         }
 
-        return response()->json([
-            'message' => 'Login successful.',
-            'data' => $this->sessionPayload($user),
-        ]);
+        return $this->authenticatedResponse(
+            user: $user,
+            message: 'Login successful.',
+        );
     }
 
     #[OA\Get(
@@ -113,29 +115,113 @@ class AuthController extends Controller
         operationId: 'logout',
         summary: 'Logout the current session',
         tags: ['Authentication'],
-        security: [['bearerAuth' => []]],
         responses: [
             new OA\Response(response: 200, description: 'Logout successful.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
-            new OA\Response(response: 401, description: 'Authentication required.', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
         ]
     )]
     public function logout(Request $request): JsonResponse
     {
-        $request->user()?->currentAccessToken()?->delete();
+        $this->revokeFrontendSession($request);
 
-        return response()->json([
+        return $this->expireSessionCookie(response()->json([
             'message' => 'Logout successful.',
-        ]);
+        ]));
     }
 
-    private function sessionPayload(User $user): array
+    private function authenticatedResponse(
+        User $user,
+        string $message,
+        int $status = 200,
+    ): JsonResponse
+    {
+        $token = $this->issueFrontendSessionToken($user);
+
+        return $this->attachSessionCookie(
+            response()->json([
+                'message' => $message,
+                'data' => [
+                    'user' => $this->userPayload($user),
+                ],
+            ], $status),
+            $token,
+        );
+    }
+
+    private function issueFrontendSessionToken(User $user): string
     {
         $user->tokens()->delete();
 
-        return [
-            'token' => $user->createToken('frontend-session', [$user->role])->plainTextToken,
-            'user' => $this->userPayload($user),
-        ];
+        return $user->createToken('frontend-session', [$user->role])->plainTextToken;
+    }
+
+    private function revokeFrontendSession(Request $request): void
+    {
+        $request->user()?->currentAccessToken()?->delete();
+
+        $cookieToken = trim((string) $request->cookie($this->frontendSessionCookieName()));
+
+        if ($cookieToken !== '') {
+            PersonalAccessToken::findToken($cookieToken)?->delete();
+        }
+    }
+
+    private function attachSessionCookie(JsonResponse $response, string $token): JsonResponse
+    {
+        return $response->cookie(
+            $this->frontendSessionCookieName(),
+            $token,
+            $this->frontendSessionCookieLifetime(),
+            '/',
+            $this->frontendSessionCookieDomain(),
+            $this->frontendSessionCookieSecure(),
+            true,
+            false,
+            $this->frontendSessionCookieSameSite(),
+        );
+    }
+
+    private function expireSessionCookie(JsonResponse $response): JsonResponse
+    {
+        return $response->cookie(
+            $this->frontendSessionCookieName(),
+            '',
+            -2628000,
+            '/',
+            $this->frontendSessionCookieDomain(),
+            $this->frontendSessionCookieSecure(),
+            true,
+            false,
+            $this->frontendSessionCookieSameSite(),
+        );
+    }
+
+    private function frontendSessionCookieName(): string
+    {
+        return (string) config('wbs.auth.session_cookie', 'kpk_wbs_session');
+    }
+
+    private function frontendSessionCookieLifetime(): int
+    {
+        return (int) config('wbs.auth.cookie_lifetime_minutes', 120);
+    }
+
+    private function frontendSessionCookieDomain(): ?string
+    {
+        $domain = config('wbs.auth.cookie_domain');
+
+        return is_string($domain) && $domain !== '' ? $domain : null;
+    }
+
+    private function frontendSessionCookieSecure(): bool
+    {
+        return (bool) config('wbs.auth.cookie_secure', false);
+    }
+
+    private function frontendSessionCookieSameSite(): ?string
+    {
+        $sameSite = config('wbs.auth.cookie_same_site');
+
+        return is_string($sameSite) && $sameSite !== '' ? $sameSite : null;
     }
 
     private function userPayload(?User $user): array
