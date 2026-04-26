@@ -39,34 +39,34 @@ const principleCards = [
 const lifecycleSteps = [
   {
     step: "01",
-    title: "Submit Report",
+    title: "Report Submission",
     points: [
-      "Report wrongdoing securely through the protected reporting channel",
-      "Attach supporting evidence",
+      "Submit a protected whistleblowing report through the dedicated reporter channel",
+      "Attach supporting files and identify the reported parties involved",
     ],
   },
   {
     step: "02",
-    title: "Assessment (Triage)",
+    title: "Verification",
     points: [
-      "Validate report scope and urgency",
-      "Identify risks and required protections",
+      "Screen, delegate, and verify the report before escalation or closure",
+      "Assess authority, corruption indication, and the immediate handling path",
     ],
   },
   {
     step: "03",
-    title: "Verification and Investigation",
+    title: "Investigation",
     points: [
-      "Role-based workflow for verification and investigation",
-      "Secure access to evidence and case data",
+      "Assign the case for formal investigation when verification supports escalation",
+      "Review evidence, chronology, legal basis, and follow-up conclusions",
     ],
   },
   {
     step: "04",
-    title: "Resolution",
+    title: "Final Review",
     points: [
-      "Decision making and case closure",
-      "Organizational actions and follow-up",
+      "Complete the final approval chain through supervisor and director review",
+      "Close, archive, or finalize the case based on the approved outcome",
     ],
   },
 ];

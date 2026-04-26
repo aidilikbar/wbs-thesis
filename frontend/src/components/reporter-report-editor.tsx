@@ -512,7 +512,9 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
 
       <section className="panel rounded-[1rem] p-8">
         <p className="eyebrow">Update Report</p>
-        <h3 className="mt-4 text-3xl">Revise the original filing</h3>
+        <h3 className="mt-4 text-3xl">
+          {editLocked ? "View the submitted filing" : "Revise the original filing"}
+        </h3>
 
         {message ? (
           <p className="mt-5 rounded-[0.7rem] border border-[rgba(197,160,34,0.25)] bg-[rgba(197,160,34,0.14)] px-4 py-3 text-sm text-[var(--secondary-strong)]">
@@ -614,13 +616,15 @@ export function ReporterReportEditor({ reportId }: { reportId: number }) {
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="primary-button disabled:opacity-60"
-              disabled={isPending || editLocked}
-            >
-              {isPending ? "Saving..." : "Save Changes"}
-            </button>
+            {!editLocked ? (
+              <button
+                type="submit"
+                className="primary-button disabled:opacity-60"
+                disabled={isPending}
+              >
+                {isPending ? "Saving..." : "Save Changes"}
+              </button>
+            ) : null}
           </div>
         </form>
       </section>

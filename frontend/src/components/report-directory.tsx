@@ -359,13 +359,10 @@ export function ReportDirectory(props: NoticeProps) {
                       <div className="flex flex-wrap gap-2">
                         <Link
                           href={`/submit/${report.id}/edit`}
-                          className={`ghost-button px-3 py-2 text-[0.65rem] ${
-                            report.is_editable ? "cursor-pointer" : "pointer-events-none opacity-60"
-                          }`}
-                          aria-disabled={!report.is_editable}
-                          title={report.edit_lock_reason ?? "Edit report"}
+                          className="ghost-button px-3 py-2 text-[0.65rem]"
+                          title={report.is_editable ? "Edit report" : "Open report"}
                         >
-                          Edit
+                          {report.is_editable ? "Edit" : "Open"}
                         </Link>
                       </div>
                     </td>
