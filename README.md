@@ -2,9 +2,9 @@
 
 KPK Whistleblowing System is a thesis prototype for **Developing a Governance-Oriented Enterprise Architecture for Whistleblowing Systems**. It models a KPK-inspired operational flow while keeping the user-facing governance terminology aligned to ISO 37002-friendly English labels such as `Reporter`, `Verification Supervisor`, `Verification Officer`, `Investigation Supervisor`, and `Investigator`.
 
-Current release: [v0.2.2](https://github.com/aidilikbar/wbs-thesis/releases/tag/v0.2.2)
+Current release: [v0.2.3](https://github.com/aidilikbar/wbs-thesis/releases/tag/v0.2.3)
 
-## v0.2.2 Highlights
+## v0.2.3 Highlights
 
 - KPK-inspired workflow data has been aligned more closely with the current prototype flow while keeping user-facing governance terminology in ISO 37002-friendly English.
 - Reporter and internal case pages now use dedicated edit screens with persistent headers, tabs, compact top navigation, and consistent breadcrumbs.
@@ -12,6 +12,7 @@ Current release: [v0.2.2](https://github.com/aidilikbar/wbs-thesis/releases/tag/
 - Local testing preparation has been expanded with refreshed seeded data, versioned database dumps, and detailed scenario guidance in [docs/account-test-cases.md](/Users/mbp13m2-003/development/utwente/wbs-thesis/docs/account-test-cases.md).
 - Completed cases can now be exported as formatted PDF reports, and director-facing workflow data uses the canonical unit name `Directorate of Public Reports and Complaints`.
 - System administration now includes configurable operational KPI timing settings, exposed through `/admin` and `/admin/settings`, so governance calculations no longer rely only on static defaults.
+- The landing page has been refined further with clearer governance-oriented section content, denser layouts, and more consistent visual hierarchy across hero, institutional, workflow, and principle panels.
 
 ## Current Scope
 
