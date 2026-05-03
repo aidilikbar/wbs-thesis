@@ -27,6 +27,7 @@ docker-compose.override.yml
 # local and cloud AI agent test workspaces
 /docs/ai-agent-test-local/
 /docs/ai-agent-test-cloud/
+/docs/knowledge/
 
 # local human test pack
 /docs/human-test-pack/
