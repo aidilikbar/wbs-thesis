@@ -185,10 +185,21 @@ php artisan openapi:sync-server-url
 
 ## Local Run
 
+Run the backend through the governed local Docker stack:
+
+```bash
+cd ..
+docker compose -f docker/wbs-thesis-services/compose.yml up -d backend
+```
+
+This local Docker path is separate from the DigitalOcean App Platform source deployment. It overrides container-only environment values such as `DB_HOST=host.docker.internal` and `AWS_ENDPOINT=http://minio:9000` without changing the committed backend `.env` file.
+
+Or run it directly on the host:
+
 ```bash
 cp .env.example .env
 composer install
-docker compose up -d minio minio_init
+docker compose -f ../docker/wbs-thesis-services/compose.yml up -d minio minio_init
 php artisan key:generate
 php artisan migrate:fresh --seed
 php artisan serve --host=127.0.0.1 --port=8000
@@ -230,4 +241,4 @@ All seeded accounts use password `Password123`.
 - `php artisan migrate:fresh --seed`
 - `php artisan l5-swagger:generate`
 - `php artisan openapi:sync-server-url`
-- `docker compose up -d minio minio_init`
+- `docker compose -f ../docker/wbs-thesis-services/compose.yml up -d minio minio_init`

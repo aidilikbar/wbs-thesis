@@ -34,6 +34,11 @@ wbs-thesis/
 ├── backend
 ├── frontend
 ├── docs
+├── docker
+│   └── wbs-thesis-services
+│       ├── backend.Dockerfile
+│       ├── compose.yml
+│       └── frontend.Dockerfile
 ├── docker-compose.yml
 └── README.md
 ```
@@ -41,7 +46,10 @@ wbs-thesis/
 - `frontend`: Next.js 16 application for reporter, workflow, oversight, and admin UI
 - `backend`: Laravel 13 API for authentication, workflow, oversight, audit, and attachments
 - `docs`: supporting architecture, API, and test-case documentation
-- `docker-compose.yml`: local MinIO and optional Redis services
+- `docker/wbs-thesis-services/compose.yml`: governed local frontend, backend, MinIO, and optional Redis services for this project only
+- `docker-compose.yml`: compatibility compose file for older local commands
+
+The Docker files under `docker/wbs-thesis-services/` are for local development governance. The DigitalOcean App Platform deployment can continue to build directly from the repository source for `backend` and `frontend`; these local Compose services are not required by that deployment path.
 
 ## Business Roles
 
@@ -89,7 +97,7 @@ createdb -h localhost -p 5432 -U postgres wbs_thesis
 ### MinIO
 
 ```bash
-docker compose up -d minio minio_init
+docker compose -f docker/wbs-thesis-services/compose.yml up -d minio minio_init
 ```
 
 Default object storage:
@@ -100,7 +108,17 @@ Default object storage:
 - secret key: `minioadmin`
 - bucket: `wbs-attachments-dev`
 
+`wbs_thesis_minio_init` is a one-shot bucket initializer. It should exit after creating or confirming the bucket; the long-running object storage service is `wbs_thesis_minio`.
+
 ### Backend
+
+Run through Docker:
+
+```bash
+docker compose -f docker/wbs-thesis-services/compose.yml up -d backend
+```
+
+Or run directly on the host:
 
 ```bash
 cd backend
@@ -113,6 +131,14 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 ### Frontend
 
+Run through Docker:
+
+```bash
+docker compose -f docker/wbs-thesis-services/compose.yml up -d frontend
+```
+
+Or run directly on the host:
+
 ```bash
 cd frontend
 cp .env.local.example .env.local
@@ -123,7 +149,13 @@ npm run dev
 Optional Redis:
 
 ```bash
-docker compose --profile cache up -d
+docker compose -f docker/wbs-thesis-services/compose.yml --profile cache up -d
+```
+
+Full local Docker stack:
+
+```bash
+docker compose -f docker/wbs-thesis-services/compose.yml --profile cache up -d --build
 ```
 
 ## Local URLs
